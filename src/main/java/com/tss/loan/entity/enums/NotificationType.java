@@ -1,0 +1,16 @@
+package com.tss.loan.entity.enums;
+
+public enum NotificationType {
+    EMAIL,
+    SMS,
+    PUSH,
+    IN_APP,
+    SYSTEM_ALERT,
+    COMPLIANCE_ALERT,
+    FRAUD_ALERT,
+    APPROVAL_NOTIFICATION,
+    REJECTION_NOTIFICATION,
+    DOCUMENT_REQUEST,
+    INVESTIGATION_ASSIGNED,
+    DEADLINE_REMINDER
+}

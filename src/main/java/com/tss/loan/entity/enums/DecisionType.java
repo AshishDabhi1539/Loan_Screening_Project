@@ -1,0 +1,14 @@
+package com.tss.loan.entity.enums;
+
+public enum DecisionType {
+    AUTO_APPROVED,
+    AUTO_REJECTED,
+    MANUAL_APPROVED,
+    MANUAL_REJECTED,
+    ESCALATED,
+    PENDING_INVESTIGATION,
+    CONDITIONAL_APPROVAL,
+    DEFERRED,
+    CANCELLED_BY_APPLICANT,
+    EXPIRED
+}
