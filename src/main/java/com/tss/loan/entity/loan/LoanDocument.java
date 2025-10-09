@@ -29,7 +29,8 @@ import lombok.RequiredArgsConstructor;
         @Index(name = "idx_loan_doc_application", columnList = "loan_application_id"),
         @Index(name = "idx_loan_doc_type", columnList = "documentType"),
         @Index(name = "idx_loan_doc_status", columnList = "verificationStatus"),
-        @Index(name = "idx_loan_doc_uploaded", columnList = "uploadedAt")
+        @Index(name = "idx_loan_doc_uploaded", columnList = "uploadedAt"),
+        @Index(name = "idx_loan_doc_uploaded_by", columnList = "uploaded_by_id")
 })
 @RequiredArgsConstructor
 @AllArgsConstructor
@@ -55,6 +56,10 @@ public class LoanDocument {
     
     @Column(nullable = false)
     private LocalDateTime uploadedAt;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "uploaded_by_id", nullable = false)
+    private com.tss.loan.entity.user.User uploadedBy;
     
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

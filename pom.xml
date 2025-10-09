@@ -91,6 +91,13 @@
 			<scope>test</scope>
 		</dependency>
 
+		<!-- Cloudinary for Document Upload -->
+		<dependency>
+			<groupId>com.cloudinary</groupId>
+			<artifactId>cloudinary-http44</artifactId>
+			<version>1.39.0</version>
+		</dependency>
+
 		<!-- OCR and Image Processing -->
 		<dependency>
 			<groupId>net.sourceforge.tess4j</groupId>

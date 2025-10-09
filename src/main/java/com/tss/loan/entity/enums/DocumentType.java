@@ -29,6 +29,7 @@ public enum DocumentType {
     PROFIT_LOSS_STATEMENT,
     BALANCE_SHEET,
     BUSINESS_ITR,
+    FINANCIAL_STATEMENT,
     
     // Property documents
     PROPERTY_PAPERS,

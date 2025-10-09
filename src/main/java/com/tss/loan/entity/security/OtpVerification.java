@@ -43,7 +43,7 @@ public class OtpVerification {
     private String otpCode;
     
     @Column(nullable = false, length = 50)
-    private String otpType; // EMAIL_VERIFICATION, PHONE_VERIFICATION, LOGIN_2FA, PASSWORD_RESET
+    private String otpType; // EMAIL_VERIFICATION, LOGIN_2FA, PASSWORD_RESET
     
     @Column(nullable = false, length = 150)
     private String sentTo; // email or phone number

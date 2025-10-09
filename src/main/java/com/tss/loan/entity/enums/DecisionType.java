@@ -1,6 +1,9 @@
 package com.tss.loan.entity.enums;
 
 public enum DecisionType {
+    APPROVED,
+    REJECTED,
+    PENDING,
     AUTO_APPROVED,
     AUTO_REJECTED,
     MANUAL_APPROVED,

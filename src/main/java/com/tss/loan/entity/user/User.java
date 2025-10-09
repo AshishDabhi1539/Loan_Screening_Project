@@ -1,8 +1,8 @@
 package com.tss.loan.entity.user;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 import com.tss.loan.entity.enums.UserStatus;
 import com.tss.loan.entity.enums.RoleType;
@@ -14,7 +14,6 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.OneToMany;
@@ -26,28 +25,27 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * OPTIMIZED: Authentication and role management only
+ * All personal details moved to ApplicantPersonalDetails
+ */
 @Entity
 @Table(name = "users", indexes = {
         @Index(name = "idx_users_email", columnList = "email", unique = true),
         @Index(name = "idx_users_phone", columnList = "phone", unique = true),
-        @Index(name = "idx_users_status_role", columnList = "status,role"),
-        @Index(name = "idx_users_created_at", columnList = "createdAt")
+        @Index(name = "idx_users_role", columnList = "role"),
+        @Index(name = "idx_users_status", columnList = "status")
 })
 @RequiredArgsConstructor
 @AllArgsConstructor
 @Data
 public class User {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue
+    private UUID id;
     
-    @Column(nullable = false, length = 64)
-    private String firstName;
-    
-    @Column(nullable = false, length = 64)
-    private String lastName;
-    
-    @Column(nullable = false, unique = true, length = 128)
+    // AUTHENTICATION FIELDS
+    @Column(nullable = false, unique = true, length = 150)
     private String email;
     
     @Column(nullable = false, unique = true, length = 15)
@@ -56,27 +54,7 @@ public class User {
     @Column(nullable = false)
     private String passwordHash;
     
-    @Column(nullable = false)
-    private LocalDate dateOfBirth;
-    
-    @Column(length = 10)
-    private String gender;
-    
-    @Column(columnDefinition = "TEXT")
-    private String address;
-    
-    @Column(length = 100)
-    private String city;
-    
-    @Column(length = 100)
-    private String state;
-    
-    @Column(length = 100)
-    private String country = "India";
-    
-    @Column(length = 6)
-    private String pincode;
-    
+    // ROLE & STATUS
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private RoleType role;
@@ -85,18 +63,18 @@ public class User {
     @Column(nullable = false)
     private UserStatus status = UserStatus.ACTIVE;
     
+    // VERIFICATION STATUS
     @Column(nullable = false)
     private Boolean isEmailVerified = false;
     
     @Column(nullable = false)
-    private Boolean isPhoneVerified = false;
+    private Boolean isPhoneVerified = true; // Auto-verified for now (no WhatsApp)
     
+    // SECURITY
     @Column(nullable = false)
     private Integer failedLoginAttempts = 0;
     
     private LocalDateTime lastLoginAt;
-    
-    private LocalDateTime passwordChangedAt;
     
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -107,16 +85,17 @@ public class User {
     @Version
     private Long version;
     
+    // RELATIONSHIPS - Only essential ones
     @OneToMany(mappedBy = "applicant", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<com.tss.loan.entity.loan.LoanApplication> loanApplications;
+    
+    @OneToMany(mappedBy = "assignedOfficer", fetch = FetchType.LAZY)
+    private List<com.tss.loan.entity.loan.LoanApplication> assignedApplications;
     
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
-        if (passwordChangedAt == null) {
-            passwordChangedAt = LocalDateTime.now();
-        }
     }
     
     @PreUpdate
@@ -124,7 +103,12 @@ public class User {
         updatedAt = LocalDateTime.now();
     }
     
-    public String getFullName() {
-        return firstName + " " + lastName;
+    // Business methods
+    public boolean isActive() {
+        return status == UserStatus.ACTIVE;
+    }
+    
+    public boolean isVerified() {
+        return isEmailVerified && isPhoneVerified;
     }
 }

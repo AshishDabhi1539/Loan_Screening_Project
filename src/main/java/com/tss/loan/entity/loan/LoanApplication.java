@@ -3,6 +3,7 @@ package com.tss.loan.entity.loan;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 import com.tss.loan.entity.enums.ApplicationStatus;
 import com.tss.loan.entity.enums.LoanType;
@@ -16,12 +17,12 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
@@ -43,8 +44,8 @@ import lombok.RequiredArgsConstructor;
 @Data
 public class LoanApplication {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue
+    private UUID id;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "applicant_id", nullable = false)
@@ -100,9 +101,7 @@ public class LoanApplication {
     @JoinColumn(name = "assigned_officer_id")
     private User assignedOfficer;
     
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "compliance_officer_id")
-    private User complianceOfficer;
+    // Removed complianceOfficer - use assignedOfficer for all reviews
     
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -113,11 +112,50 @@ public class LoanApplication {
     @Version
     private Long version;
     
+    // DECISION FIELDS (Merged from LoanDecision entity)
+    @Enumerated(EnumType.STRING)
+    private com.tss.loan.entity.enums.DecisionType decisionType;
+    
+    @Column(precision = 15, scale = 2)
+    private BigDecimal approvedAmount;
+    
+    @Column(precision = 5, scale = 2)
+    private BigDecimal approvedInterestRate;
+    
+    @Column
+    private Integer approvedTenureMonths;
+    
+    @Column(columnDefinition = "TEXT")
+    private String decisionReason;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "decided_by")
+    private User decidedBy;
+    
+    private LocalDateTime decidedAt;
+    
+    // RISK SCORING FIELDS (Merged from RiskScore entity)
+    @Column
+    private Integer riskScore; // 0-1000
+    
+    @Column
+    private Integer fraudScore; // 0-100
+    
+    @Column(columnDefinition = "TEXT")
+    private String fraudReasons;
+    
+    // ESSENTIAL RELATIONSHIPS ONLY
+    @OneToOne(mappedBy = "loanApplication", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private com.tss.loan.entity.applicant.ApplicantPersonalDetails personalDetails;
+    
+    @OneToOne(mappedBy = "loanApplication", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private com.tss.loan.entity.financial.ApplicantFinancialProfile financialProfile;
+    
     @OneToMany(mappedBy = "loanApplication", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<LoanDocument> documents;
     
     @OneToMany(mappedBy = "loanApplication", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<com.tss.loan.entity.financial.ApplicantFinancials> financials;
+    private List<com.tss.loan.entity.fraud.FraudCheckResult> fraudCheckResults;
     
     @PrePersist
     protected void onCreate() {
