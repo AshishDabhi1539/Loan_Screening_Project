@@ -24,6 +24,12 @@ import com.tss.loan.dto.request.ApplicantFinancialDetailsRequest;
 import com.tss.loan.dto.request.ApplicantPersonalDetailsRequest;
 import com.tss.loan.dto.request.LoanApplicationRequest;
 import com.tss.loan.dto.response.LoanApplicationResponse;
+import com.tss.loan.dto.response.LoanApplicationCreateResponse;
+import com.tss.loan.dto.response.ProfileStatusResponse;
+import com.tss.loan.dto.response.PersonalDetailsUpdateResponse;
+import com.tss.loan.dto.response.PersonalDetailsCreateResponse;
+import com.tss.loan.dto.response.FinancialDetailsCreateResponse;
+import com.tss.loan.dto.response.DocumentUploadResponse;
 import com.tss.loan.entity.loan.LoanApplication;
 import com.tss.loan.service.ProfileCompletionService;
 import com.tss.loan.entity.loan.LoanDocument;
@@ -62,23 +68,23 @@ public class LoanApplicationController {
      * Create new loan application
      */
     @PostMapping("/create")
-    public ResponseEntity<LoanApplicationResponse> createLoanApplication(
+    public ResponseEntity<LoanApplicationCreateResponse> createLoanApplication(
             @Valid @RequestBody LoanApplicationRequest request,
             Authentication authentication) {
         
         log.info("Creating loan application for: {}", authentication.getName());
         
         User user = getCurrentUser(authentication);
-        LoanApplicationResponse application = loanApplicationService.createLoanApplication(request, user);
+        LoanApplicationCreateResponse application = loanApplicationService.createLoanApplicationWithMinimalResponse(request, user);
         
         return ResponseEntity.status(HttpStatus.CREATED).body(application);
     }
     
     /**
-     * Update personal details (now creates/updates user's personal details directly)
+     * Update personal details for existing application (gets existing data from application context)
      */
     @PutMapping("/{applicationId}/personal-details")
-    public ResponseEntity<LoanApplication> updatePersonalDetails(
+    public ResponseEntity<PersonalDetailsUpdateResponse> updatePersonalDetailsForApplication(
             @PathVariable UUID applicationId,
             @Valid @RequestBody ApplicantPersonalDetailsRequest request,
             Authentication authentication) {
@@ -86,16 +92,33 @@ public class LoanApplicationController {
         log.info("Updating personal details for application: {}", applicationId);
         
         User user = getCurrentUser(authentication);
-        LoanApplication application = loanApplicationService.updatePersonalDetails(applicationId, request, user);
+        PersonalDetailsUpdateResponse response = loanApplicationService.updatePersonalDetailsFromApplication(applicationId, request, user);
         
-        return ResponseEntity.ok(application);
+        return ResponseEntity.ok(response);
+    }
+    
+    /**
+     * Create financial details for application
+     */
+    @PostMapping("/{applicationId}/financial-details")
+    public ResponseEntity<FinancialDetailsCreateResponse> createFinancialDetails(
+            @PathVariable UUID applicationId,
+            @Valid @RequestBody ApplicantFinancialDetailsRequest request,
+            Authentication authentication) {
+        
+        log.info("Creating financial details for application: {}", applicationId);
+        
+        User user = getCurrentUser(authentication);
+        FinancialDetailsCreateResponse response = loanApplicationService.createFinancialDetailsForApplication(applicationId, request, user);
+        
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
     
     /**
      * Update financial details
      */
     @PutMapping("/{applicationId}/financial-details")
-    public ResponseEntity<LoanApplication> updateFinancialDetails(
+    public ResponseEntity<FinancialDetailsCreateResponse> updateFinancialDetails(
             @PathVariable UUID applicationId,
             @Valid @RequestBody ApplicantFinancialDetailsRequest request,
             Authentication authentication) {
@@ -103,16 +126,16 @@ public class LoanApplicationController {
         log.info("Updating financial details for application: {}", applicationId);
         
         User user = getCurrentUser(authentication);
-        LoanApplication application = loanApplicationService.updateFinancialDetails(applicationId, request, user);
+        FinancialDetailsCreateResponse response = loanApplicationService.updateFinancialDetailsForApplication(applicationId, request, user);
         
-        return ResponseEntity.ok(application);
+        return ResponseEntity.ok(response);
     }
     
     /**
      * Upload document
      */
     @PostMapping("/{applicationId}/documents/upload")
-    public ResponseEntity<LoanDocument> uploadDocument(
+    public ResponseEntity<DocumentUploadResponse> uploadDocument(
             @PathVariable UUID applicationId,
             @RequestParam("file") MultipartFile file,
             @RequestParam("documentType") DocumentType documentType,
@@ -121,9 +144,9 @@ public class LoanApplicationController {
         log.info("Uploading document for application: {} - Type: {}", applicationId, documentType);
         
         User user = getCurrentUser(authentication);
-        LoanDocument document = documentUploadService.uploadDocument(file, documentType, applicationId, user);
+        DocumentUploadResponse response = documentUploadService.uploadDocumentWithResponse(file, documentType, applicationId, user);
         
-        return ResponseEntity.status(HttpStatus.CREATED).body(document);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
     
     /**
@@ -203,34 +226,29 @@ public class LoanApplicationController {
      * Check if user has completed personal details (required before loan application)
      */
     @GetMapping("/profile-status")
-    public ResponseEntity<Boolean> hasPersonalDetails(Authentication authentication) {
+    public ResponseEntity<ProfileStatusResponse> hasPersonalDetails(Authentication authentication) {
         log.info("Checking personal details completion for user: {}", authentication.getName());
         
         User user = getCurrentUser(authentication);
-        boolean hasDetails = profileCompletionService.hasPersonalDetails(user);
+        ProfileStatusResponse response = profileCompletionService.getProfileStatus(user);
         
-        return ResponseEntity.ok(hasDetails);
+        return ResponseEntity.ok(response);
     }
     
     /**
      * Create/Update personal details directly (not tied to specific loan application)
      */
     @PostMapping("/personal-details")
-    public ResponseEntity<String> createPersonalDetails(
+    public ResponseEntity<PersonalDetailsCreateResponse> createPersonalDetails(
             @Valid @RequestBody ApplicantPersonalDetailsRequest request,
             Authentication authentication) {
         
         log.info("Creating/updating personal details for user: {}", authentication.getName());
         
         User user = getCurrentUser(authentication);
+        PersonalDetailsCreateResponse response = personalDetailsService.createOrUpdatePersonalDetailsWithResponse(request, user);
         
-        try {
-            personalDetailsService.createOrUpdatePersonalDetails(request, user);
-            return ResponseEntity.ok("Personal details updated successfully. You can now apply for loans.");
-        } catch (Exception e) {
-            log.error("Error updating personal details: {}", e.getMessage());
-            return ResponseEntity.badRequest().body("Error updating personal details: " + e.getMessage());
-        }
+        return ResponseEntity.ok(response);
     }
     
     private User getCurrentUser(Authentication authentication) {

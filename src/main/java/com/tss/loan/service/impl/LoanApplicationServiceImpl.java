@@ -12,11 +12,15 @@ import com.tss.loan.dto.request.ApplicantFinancialDetailsRequest;
 import com.tss.loan.dto.request.ApplicantPersonalDetailsRequest;
 import com.tss.loan.dto.request.LoanApplicationRequest;
 import com.tss.loan.dto.response.LoanApplicationResponse;
+import com.tss.loan.dto.response.LoanApplicationCreateResponse;
+import com.tss.loan.dto.response.PersonalDetailsUpdateResponse;
+import com.tss.loan.dto.response.FinancialDetailsCreateResponse;
 import com.tss.loan.entity.loan.LoanApplication;
 import com.tss.loan.mapper.LoanApplicationMapper;
 import com.tss.loan.entity.financial.ApplicantFinancialProfile;
 import com.tss.loan.entity.applicant.ApplicantPersonalDetails;
 import com.tss.loan.entity.enums.ApplicationStatus;
+import com.tss.loan.entity.enums.RiskLevel;
 import com.tss.loan.entity.user.User;
 import com.tss.loan.exception.LoanApiException;
 import com.tss.loan.repository.ApplicantFinancialProfileRepository;
@@ -347,5 +351,270 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
         if (!application.getStatus().equals(expectedStatus)) {
             throw new LoanApiException("Application is not in " + expectedStatus + " status");
         }
+    }
+    
+    @Override
+    public LoanApplicationCreateResponse createLoanApplicationWithMinimalResponse(LoanApplicationRequest request, User applicant) {
+        log.info("Creating loan application with minimal response for user: {}", applicant.getId());
+        
+        // Validate user can apply for loan
+        if (!profileCompletionService.canApplyForLoan(applicant)) {
+            throw new LoanApiException("Please complete your personal details before applying for a loan");
+        }
+        
+        // Create loan application
+        LoanApplication application = new LoanApplication();
+        application.setApplicant(applicant);
+        // Use smart name resolution: PersonalDetails.fullName > User.email
+        application.setApplicantName(profileCompletionService.getDisplayName(applicant));
+        application.setApplicantEmail(applicant.getEmail());
+        application.setApplicantPhone(applicant.getPhone());
+        
+        // Set loan details
+        application.setLoanType(request.getLoanType());
+        application.setRequestedAmount(request.getLoanAmount());
+        application.setTenureMonths(request.getTenureMonths());
+        application.setPurpose(request.getPurpose());
+        application.setRemarks(request.getAdditionalNotes());
+        
+        // Set initial status
+        application.setStatus(ApplicationStatus.DRAFT);
+        application.setRiskLevel(RiskLevel.LOW); // Default risk level
+        
+        // Save application
+        LoanApplication savedApplication = loanApplicationRepository.save(application);
+        
+        // Create notification
+        notificationService.createNotification(
+            applicant,
+            "Loan Application Created",
+            "Your loan application has been created successfully. Please complete all required sections.",
+            "LOAN_APPLICATION"
+        );
+        
+        // Audit log
+        auditLogService.logAction(applicant, "LOAN_APPLICATION_CREATED", "LoanApplication", null,
+            "Loan application created: " + savedApplication.getId());
+        
+        log.info("Loan application created successfully: {}", savedApplication.getId());
+        
+        // Return minimal response
+        return LoanApplicationCreateResponse.builder()
+            .id(savedApplication.getId())
+            .loanType(savedApplication.getLoanType().toString())
+            .requestedAmount(savedApplication.getRequestedAmount())
+            .tenureMonths(savedApplication.getTenureMonths())
+            .status(savedApplication.getStatus().toString())
+            .message("✅ Loan application created successfully!")
+            .createdAt(savedApplication.getCreatedAt())
+            .nextStep("Add Financial Details")
+            .nextStepUrl("/api/loan-application/" + savedApplication.getId() + "/financial-details")
+            .build();
+    }
+    
+    @Override
+    public PersonalDetailsUpdateResponse updatePersonalDetailsFromApplication(UUID applicationId, 
+                                                                            ApplicantPersonalDetailsRequest request, User user) {
+        log.info("Updating personal details from application context: {}", applicationId);
+        
+        LoanApplication application = getLoanApplicationEntityById(applicationId);
+        validateApplicationOwnership(application, user);
+        validateApplicationStatus(application, ApplicationStatus.DRAFT);
+        
+        // Get existing personal details from the application's user
+        ApplicantPersonalDetails personalDetails = personalDetailsRepository
+            .findByUserId(application.getApplicant().getId())
+            .orElse(new ApplicantPersonalDetails());
+        
+        // Update personal details with new User-based relationship
+        personalDetails.setUser(application.getApplicant());
+        // Update name fields
+        personalDetails.setFirstName(request.getFirstName());
+        personalDetails.setLastName(request.getLastName());
+        personalDetails.setMiddleName(request.getMiddleName());
+        personalDetails.setDateOfBirth(request.getDateOfBirth());
+        personalDetails.setGender(request.getGender().toString());
+        personalDetails.setMaritalStatus(request.getMaritalStatus().toString());
+        personalDetails.setPanNumber(request.getPanNumber().toUpperCase());
+        personalDetails.setAadhaarNumber(request.getAadhaarNumber());
+        personalDetails.setFatherName(request.getFatherName());
+        personalDetails.setMotherName(request.getMotherName());
+        personalDetails.setEmailAddress(application.getApplicantEmail());
+        personalDetails.setPhoneNumber(application.getApplicantPhone());
+        
+        // Current Address - combine address lines
+        String currentFullAddress = request.getCurrentAddressLine1();
+        if (request.getCurrentAddressLine2() != null && !request.getCurrentAddressLine2().trim().isEmpty()) {
+            currentFullAddress += ", " + request.getCurrentAddressLine2();
+        }
+        personalDetails.setCurrentAddress(currentFullAddress);
+        personalDetails.setCurrentCity(request.getCurrentCity());
+        personalDetails.setCurrentState(request.getCurrentState());
+        personalDetails.setCurrentPincode(request.getCurrentPincode());
+        
+        // Permanent Address
+        if (request.isSameAsCurrent()) {
+            personalDetails.setPermanentAddress(currentFullAddress);
+            personalDetails.setPermanentCity(request.getCurrentCity());
+            personalDetails.setPermanentState(request.getCurrentState());
+            personalDetails.setPermanentPincode(request.getCurrentPincode());
+            personalDetails.setIsSameAddress(true);
+        } else {
+            String permanentFullAddress = request.getPermanentAddressLine1();
+            if (request.getPermanentAddressLine2() != null && !request.getPermanentAddressLine2().trim().isEmpty()) {
+                permanentFullAddress += ", " + request.getPermanentAddressLine2();
+            }
+            personalDetails.setPermanentAddress(permanentFullAddress);
+            personalDetails.setPermanentCity(request.getPermanentCity());
+            personalDetails.setPermanentState(request.getPermanentState());
+            personalDetails.setPermanentPincode(request.getPermanentPincode());
+            personalDetails.setIsSameAddress(false);
+        }
+        
+        personalDetails.setUpdatedAt(LocalDateTime.now());
+        personalDetailsRepository.save(personalDetails);
+        
+        // Update application timestamp
+        application.setUpdatedAt(LocalDateTime.now());
+        loanApplicationRepository.save(application);
+        
+        // Audit log
+        auditLogService.logAction(user, "PERSONAL_DETAILS_UPDATED", "LoanApplication", null,
+            "Personal details updated for application: " + applicationId);
+        
+        log.info("Personal details updated successfully for application: {}", applicationId);
+        
+        // Check if application is now complete
+        boolean isComplete = isApplicationComplete(applicationId);
+        
+        return PersonalDetailsUpdateResponse.builder()
+            .applicationId(applicationId)
+            .message("✅ Personal details updated successfully!")
+            .isComplete(isComplete)
+            .nextStep(isComplete ? "Submit Application" : "Complete Financial Details")
+            .nextStepUrl(isComplete ? 
+                "/api/loan-application/" + applicationId + "/submit" : 
+                "/api/loan-application/" + applicationId + "/financial-details")
+            .updatedAt(LocalDateTime.now())
+            .build();
+    }
+    
+    @Override
+    public FinancialDetailsCreateResponse createFinancialDetailsForApplication(UUID applicationId, 
+                                                                             ApplicantFinancialDetailsRequest request, User user) {
+        log.info("Creating financial details for application: {}", applicationId);
+        
+        LoanApplication application = getLoanApplicationEntityById(applicationId);
+        validateApplicationOwnership(application, user);
+        validateApplicationStatus(application, ApplicationStatus.DRAFT);
+        
+        // Check if financial profile already exists
+        if (financialProfileRepository.findByLoanApplicationId(applicationId).isPresent()) {
+            throw new LoanApiException("Financial details already exist for this application. Use PUT to update.");
+        }
+        
+        // Create new financial profile
+        ApplicantFinancialProfile financialProfile = new ApplicantFinancialProfile();
+        financialProfile.setLoanApplication(application);
+        
+        // Set employment details
+        financialProfile.setEmployerName(request.getCompanyName());
+        financialProfile.setDesignation(request.getJobTitle());
+        financialProfile.setEmploymentType(request.getEmploymentType());
+        financialProfile.setEmploymentStartDate(request.getEmploymentStartDate());
+        financialProfile.setWorkAddress(request.getCompanyAddress());
+        financialProfile.setWorkCity(request.getCompanyCity());
+        
+        // Set income details
+        financialProfile.setPrimaryMonthlyIncome(request.getMonthlyIncome());
+        financialProfile.setSecondaryIncome(request.getAdditionalIncome());
+        financialProfile.setExistingEmiAmount(request.getExistingLoanEmi());
+        financialProfile.setMonthlyExpenses(request.getMonthlyExpenses());
+        
+        // Set banking details
+        financialProfile.setPrimaryBankName(request.getBankName());
+        financialProfile.setPrimaryAccountNumber(request.getAccountNumber());
+        financialProfile.setIfscCode(request.getIfscCode());
+        financialProfile.setAccountType(request.getAccountType());
+        
+        financialProfile.setCreatedAt(LocalDateTime.now());
+        financialProfile.setUpdatedAt(LocalDateTime.now());
+        ApplicantFinancialProfile savedProfile = financialProfileRepository.save(financialProfile);
+        
+        // Update application timestamp
+        application.setUpdatedAt(LocalDateTime.now());
+        loanApplicationRepository.save(application);
+        
+        // Audit log
+        auditLogService.logAction(user, "FINANCIAL_DETAILS_CREATED", "LoanApplication", null,
+            "Financial details created for application: " + applicationId);
+        
+        log.info("Financial details created successfully for application: {}", applicationId);
+        
+        return FinancialDetailsCreateResponse.builder()
+            .applicationId(applicationId)
+            .message("✅ Financial details created successfully!")
+            .isComplete(false) // Always false until documents are uploaded
+            .nextStep("Upload Required Documents")
+            .nextStepUrl("/api/loan-application/" + applicationId + "/documents/upload")
+            .updatedAt(savedProfile.getUpdatedAt())
+            .build();
+    }
+    
+    @Override
+    public FinancialDetailsCreateResponse updateFinancialDetailsForApplication(UUID applicationId, 
+                                                                             ApplicantFinancialDetailsRequest request, User user) {
+        log.info("Updating financial details for application: {}", applicationId);
+        
+        LoanApplication application = getLoanApplicationEntityById(applicationId);
+        validateApplicationOwnership(application, user);
+        validateApplicationStatus(application, ApplicationStatus.DRAFT);
+        
+        // Get existing financial profile
+        ApplicantFinancialProfile financialProfile = financialProfileRepository
+            .findByLoanApplicationId(applicationId)
+            .orElseThrow(() -> new LoanApiException("Financial details not found for application: " + applicationId + ". Use POST to create."));
+        
+        // Update employment details
+        financialProfile.setEmployerName(request.getCompanyName());
+        financialProfile.setDesignation(request.getJobTitle());
+        financialProfile.setEmploymentType(request.getEmploymentType());
+        financialProfile.setEmploymentStartDate(request.getEmploymentStartDate());
+        financialProfile.setWorkAddress(request.getCompanyAddress());
+        financialProfile.setWorkCity(request.getCompanyCity());
+        
+        // Update income details
+        financialProfile.setPrimaryMonthlyIncome(request.getMonthlyIncome());
+        financialProfile.setSecondaryIncome(request.getAdditionalIncome());
+        financialProfile.setExistingEmiAmount(request.getExistingLoanEmi());
+        financialProfile.setMonthlyExpenses(request.getMonthlyExpenses());
+        
+        // Update banking details
+        financialProfile.setPrimaryBankName(request.getBankName());
+        financialProfile.setPrimaryAccountNumber(request.getAccountNumber());
+        financialProfile.setIfscCode(request.getIfscCode());
+        financialProfile.setAccountType(request.getAccountType());
+        
+        financialProfile.setUpdatedAt(LocalDateTime.now());
+        ApplicantFinancialProfile savedProfile = financialProfileRepository.save(financialProfile);
+        
+        // Update application timestamp
+        application.setUpdatedAt(LocalDateTime.now());
+        loanApplicationRepository.save(application);
+        
+        // Audit log
+        auditLogService.logAction(user, "FINANCIAL_DETAILS_UPDATED", "LoanApplication", null,
+            "Financial details updated for application: " + applicationId);
+        
+        log.info("Financial details updated successfully for application: {}", applicationId);
+        
+        return FinancialDetailsCreateResponse.builder()
+            .applicationId(applicationId)
+            .message("✅ Financial details updated successfully!")
+            .isComplete(false) // Check if documents are uploaded
+            .nextStep("Upload Required Documents")
+            .nextStepUrl("/api/loan-application/" + applicationId + "/documents/upload")
+            .updatedAt(savedProfile.getUpdatedAt())
+            .build();
     }
 }

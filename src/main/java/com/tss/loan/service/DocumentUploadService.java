@@ -9,6 +9,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.tss.loan.entity.loan.LoanDocument;
 import com.tss.loan.entity.enums.DocumentType;
 import com.tss.loan.entity.user.User;
+import com.tss.loan.dto.response.DocumentUploadResponse;
 
 public interface DocumentUploadService {
     
@@ -49,4 +50,10 @@ public interface DocumentUploadService {
      * Validate document type and size
      */
     boolean validateDocument(MultipartFile file, DocumentType documentType);
+    
+    /**
+     * Upload document with detailed response including progress tracking
+     */
+    DocumentUploadResponse uploadDocumentWithResponse(MultipartFile file, DocumentType documentType, 
+                                                     UUID loanApplicationId, User uploadedBy) throws IOException;
 }

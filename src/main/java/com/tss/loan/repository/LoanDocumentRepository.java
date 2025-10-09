@@ -11,6 +11,8 @@ import com.tss.loan.entity.loan.LoanDocument;
 @Repository
 public interface LoanDocumentRepository extends JpaRepository<LoanDocument, UUID> {
     
+    List<LoanDocument> findByLoanApplicationId(UUID loanApplicationId);
+    
     List<LoanDocument> findByLoanApplicationIdOrderByUploadedAtDesc(UUID loanApplicationId);
     
     long countByLoanApplicationId(UUID loanApplicationId);

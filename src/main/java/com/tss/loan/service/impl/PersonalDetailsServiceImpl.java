@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.tss.loan.dto.request.ApplicantPersonalDetailsRequest;
+import com.tss.loan.dto.response.PersonalDetailsCreateResponse;
 import com.tss.loan.entity.applicant.ApplicantPersonalDetails;
 import com.tss.loan.entity.user.User;
 import com.tss.loan.exception.LoanApiException;
@@ -103,5 +104,36 @@ public class PersonalDetailsServiceImpl implements PersonalDetailsService {
     public ApplicantPersonalDetails getPersonalDetailsByUser(User user) {
         return personalDetailsRepository.findByUserId(user.getId())
                 .orElseThrow(() -> new LoanApiException("Personal details not found for user: " + user.getEmail()));
+    }
+    
+    @Override
+    public PersonalDetailsCreateResponse createOrUpdatePersonalDetailsWithResponse(ApplicantPersonalDetailsRequest request, User user) {
+        log.info("Creating/updating personal details with response for user: {}", user.getEmail());
+        
+        try {
+            // Create or update personal details
+            ApplicantPersonalDetails savedDetails = createOrUpdatePersonalDetails(request, user);
+            
+            // Return success response
+            return PersonalDetailsCreateResponse.builder()
+                .message("✅ Personal details updated successfully! You can now apply for loans.")
+                .canApplyForLoan(true)
+                .nextAction("Apply for Loan")
+                .nextActionUrl("/api/loan-application/create")
+                .updatedAt(savedDetails.getUpdatedAt())
+                .build();
+                
+        } catch (Exception e) {
+            log.error("Error updating personal details for user {}: {}", user.getEmail(), e.getMessage());
+            
+            // Return error response
+            return PersonalDetailsCreateResponse.builder()
+                .message("❌ Error updating personal details: " + e.getMessage())
+                .canApplyForLoan(false)
+                .nextAction("Retry")
+                .nextActionUrl("/api/loan-application/personal-details")
+                .updatedAt(LocalDateTime.now())
+                .build();
+        }
     }
 }

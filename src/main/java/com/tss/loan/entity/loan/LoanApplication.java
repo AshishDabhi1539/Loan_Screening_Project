@@ -145,8 +145,8 @@ public class LoanApplication {
     private String fraudReasons;
     
     // ESSENTIAL RELATIONSHIPS ONLY
-    @OneToOne(mappedBy = "loanApplication", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private com.tss.loan.entity.applicant.ApplicantPersonalDetails personalDetails;
+    // NOTE: personalDetails now linked directly to User, not LoanApplication
+    // Use applicant.getPersonalDetails() via ProfileCompletionService
     
     @OneToOne(mappedBy = "loanApplication", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private com.tss.loan.entity.financial.ApplicantFinancialProfile financialProfile;
