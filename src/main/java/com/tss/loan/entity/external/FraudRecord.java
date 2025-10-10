@@ -23,16 +23,8 @@ import lombok.RequiredArgsConstructor;
 @Entity
 @Table(name = "fraud_records",
     indexes = {
-        @Index(name = "idx_fraud_aadhaar", columnList = "aadhaarNumber"),
-        @Index(name = "idx_fraud_pan", columnList = "panNumber"),
-        @Index(name = "idx_fraud_type", columnList = "fraudType"),
-        @Index(name = "idx_fraud_severity", columnList = "severityLevel"),
-        @Index(name = "idx_fraud_resolved", columnList = "resolvedFlag"),
-        @Index(name = "idx_fraud_reported", columnList = "reportedDate")
-    },
-    uniqueConstraints = {
-        @UniqueConstraint(name = "uk_fraud_records", 
-            columnNames = {"aadhaarNumber", "panNumber", "fraudType", "reportedDate"})
+        @Index(name = "idx_fraud_aadhaar", columnList = "aadhaar_number"),
+        @Index(name = "idx_fraud_pan", columnList = "pan_number")
     }
 )
 @RequiredArgsConstructor

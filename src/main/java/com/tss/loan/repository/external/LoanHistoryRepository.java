@@ -74,4 +74,19 @@ public interface LoanHistoryRepository extends JpaRepository<LoanHistory, UUID> 
      * Check if person has any defaults (for risk assessment)
      */
     boolean existsByAadhaarNumberOrPanNumberAndDefaultFlagTrue(String aadhaarNumber, String panNumber);
+    
+    /**
+     * Get all loan metrics in single optimized query for maximum speed
+     */
+    @Query(value = """
+        SELECT 
+            COALESCE(SUM(current_outstanding), 0) as totalOutstanding,
+            COUNT(CASE WHEN loan_status = 'Active' THEN 1 END) as activeLoans,
+            COALESCE(SUM(missed_payments), 0) as totalMissedPayments,
+            CASE WHEN COUNT(CASE WHEN default_flag = true THEN 1 END) > 0 THEN 1 ELSE 0 END as hasDefaults,
+            COUNT(*) as totalLoans
+        FROM loan_history 
+        WHERE aadhaar_number = :aadhaar OR pan_number = :pan
+        """, nativeQuery = true)
+    Object[] getLoanMetricsFast(@Param("aadhaar") String aadhaarNumber, @Param("pan") String panNumber);
 }

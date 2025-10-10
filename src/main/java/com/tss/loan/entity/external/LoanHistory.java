@@ -25,16 +25,8 @@ import lombok.RequiredArgsConstructor;
 @Entity
 @Table(name = "loan_history",
     indexes = {
-        @Index(name = "idx_loan_aadhaar", columnList = "aadhaarNumber"),
-        @Index(name = "idx_loan_pan", columnList = "panNumber"),
-        @Index(name = "idx_loan_type", columnList = "loanType"),
-        @Index(name = "idx_loan_status", columnList = "loanStatus"),
-        @Index(name = "idx_loan_default", columnList = "defaultFlag"),
-        @Index(name = "idx_loan_updated", columnList = "last_updated")
-    },
-    uniqueConstraints = {
-        @UniqueConstraint(name = "uk_loan_history", 
-            columnNames = {"aadhaarNumber", "panNumber", "loanType", "startDate"})
+        @Index(name = "idx_loan_aadhaar", columnList = "aadhaar_number"),
+        @Index(name = "idx_loan_pan", columnList = "pan_number")
     }
 )
 @RequiredArgsConstructor
