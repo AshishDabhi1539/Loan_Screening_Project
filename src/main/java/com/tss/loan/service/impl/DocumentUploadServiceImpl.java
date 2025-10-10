@@ -1,6 +1,7 @@
 package com.tss.loan.service.impl;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -22,6 +23,7 @@ import com.tss.loan.repository.LoanApplicationRepository;
 import com.tss.loan.repository.LoanDocumentRepository;
 import com.tss.loan.service.AuditLogService;
 import com.tss.loan.service.DocumentUploadService;
+import com.tss.loan.dto.response.DocumentUploadResponse;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -228,5 +230,59 @@ public class DocumentUploadServiceImpl implements DocumentUploadService {
             userId.toString().substring(0, 8),
             System.currentTimeMillis()
         );
+    }
+    
+    @Override
+    public DocumentUploadResponse uploadDocumentWithResponse(MultipartFile file, DocumentType documentType, 
+                                                           UUID loanApplicationId, User uploadedBy) throws IOException {
+        log.info("Uploading document with response for application: {} - Type: {}", loanApplicationId, documentType);
+        
+        // Upload the document first
+        LoanDocument document = uploadDocument(file, documentType, loanApplicationId, uploadedBy);
+        
+        // Get current document count for this application
+        List<LoanDocument> existingDocuments = documentRepository.findByLoanApplicationId(loanApplicationId);
+        int totalUploaded = existingDocuments.size();
+        
+        // Define required document types
+        List<DocumentType> requiredTypes = Arrays.asList(
+            DocumentType.PAN_CARD,
+            DocumentType.AADHAAR_CARD,
+            DocumentType.SALARY_SLIP,
+            DocumentType.BANK_STATEMENT,
+            DocumentType.EMPLOYMENT_CERTIFICATE
+        );
+        int requiredCount = requiredTypes.size();
+        
+        // Check if all required documents are uploaded
+        boolean canSubmit = existingDocuments.stream()
+            .map(LoanDocument::getDocumentType)
+            .collect(java.util.stream.Collectors.toSet())
+            .containsAll(requiredTypes);
+        
+        // Build response
+        DocumentUploadResponse.DocumentUploadResponseBuilder responseBuilder = DocumentUploadResponse.builder()
+            .documentId(document.getId())
+            .applicationId(loanApplicationId)
+            .documentType(documentType.toString())
+            .fileName(document.getFileName())
+            .uploadedAt(document.getUploadedAt())
+            .totalDocumentsUploaded(totalUploaded)
+            .requiredDocumentsCount(requiredCount)
+            .canSubmitApplication(canSubmit);
+        
+        if (canSubmit) {
+            responseBuilder
+                .message("✅ All required documents uploaded! Ready to submit application.")
+                .nextStep("Submit Application")
+                .nextStepUrl("/api/loan-application/" + loanApplicationId + "/submit");
+        } else {
+            responseBuilder
+                .message("✅ Document uploaded successfully!")
+                .nextStep("Upload More Documents")
+                .nextStepUrl("/api/loan-application/" + loanApplicationId + "/documents/upload");
+        }
+        
+        return responseBuilder.build();
     }
 }

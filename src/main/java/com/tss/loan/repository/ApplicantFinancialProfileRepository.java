@@ -12,4 +12,6 @@ import com.tss.loan.entity.financial.ApplicantFinancialProfile;
 public interface ApplicantFinancialProfileRepository extends JpaRepository<ApplicantFinancialProfile, UUID> {
     
     Optional<ApplicantFinancialProfile> findByLoanApplication(com.tss.loan.entity.loan.LoanApplication loanApplication);
+    
+    Optional<ApplicantFinancialProfile> findByLoanApplicationId(UUID loanApplicationId);
 }

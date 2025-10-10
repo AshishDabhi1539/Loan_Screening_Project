@@ -7,6 +7,9 @@ import com.tss.loan.dto.request.ApplicantFinancialDetailsRequest;
 import com.tss.loan.dto.request.ApplicantPersonalDetailsRequest;
 import com.tss.loan.dto.request.LoanApplicationRequest;
 import com.tss.loan.dto.response.LoanApplicationResponse;
+import com.tss.loan.dto.response.LoanApplicationCreateResponse;
+import com.tss.loan.dto.response.PersonalDetailsUpdateResponse;
+import com.tss.loan.dto.response.FinancialDetailsCreateResponse;
 import com.tss.loan.entity.loan.LoanApplication;
 import com.tss.loan.entity.user.User;
 
@@ -63,4 +66,27 @@ public interface LoanApplicationService {
      * Calculate application progress percentage
      */
     int calculateApplicationProgress(UUID applicationId);
+    
+    /**
+     * Create loan application with minimal response
+     */
+    LoanApplicationCreateResponse createLoanApplicationWithMinimalResponse(LoanApplicationRequest request, User applicant);
+    
+    /**
+     * Update personal details from application context and fetch existing data
+     */
+    PersonalDetailsUpdateResponse updatePersonalDetailsFromApplication(UUID applicationId, 
+                                                                     ApplicantPersonalDetailsRequest request, User user);
+    
+    /**
+     * Create financial details for application
+     */
+    FinancialDetailsCreateResponse createFinancialDetailsForApplication(UUID applicationId, 
+                                                                       ApplicantFinancialDetailsRequest request, User user);
+    
+    /**
+     * Update financial details for application
+     */
+    FinancialDetailsCreateResponse updateFinancialDetailsForApplication(UUID applicationId, 
+                                                                       ApplicantFinancialDetailsRequest request, User user);
 }
