@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import com.tss.loan.dto.request.OfficerCreationRequest;
 import com.tss.loan.dto.request.UserRegistrationRequest;
+import com.tss.loan.entity.enums.NotificationType;
 import com.tss.loan.entity.enums.RoleType;
 import com.tss.loan.entity.enums.UserStatus;
 import com.tss.loan.entity.user.User;
@@ -18,6 +19,7 @@ import com.tss.loan.exception.LoanApiException;
 import com.tss.loan.repository.UserRepository;
 import com.tss.loan.service.AuditLogService;
 import com.tss.loan.service.EmailService;
+import com.tss.loan.service.NotificationService;
 import com.tss.loan.service.UserService;
 
 @Service
@@ -34,6 +36,9 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private AuditLogService auditLogService;
+    
+    @Autowired
+    private NotificationService notificationService;
 
     @Override
     public User createUser(UserRegistrationRequest request) {
@@ -59,6 +64,14 @@ public class UserServiceImpl implements UserService {
         user.setUpdatedAt(LocalDateTime.now());
 
         User savedUser = userRepository.save(user);
+
+        // Create welcome notification
+        notificationService.createNotification(
+            savedUser,
+            NotificationType.IN_APP,
+            "Welcome to Loan Screening System",
+            "Welcome! Your account has been created successfully. Please verify your email to activate your account."
+        );
 
         auditLogService.logAction(savedUser, "USER_REGISTERED", "User", null,
                 "New user registered with email: " + request.getEmail());

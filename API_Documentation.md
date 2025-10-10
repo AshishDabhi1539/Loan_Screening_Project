@@ -591,7 +591,7 @@ true
 
 **Response (200 OK):**
 ```json
-"https://cloudinary.com/documents/abc123.pdf"
+"https://your-project.supabase.co/storage/v1/object/public/loan_documents/pan_card_12345678_1633024800000.pdf"
 ```
 
 ---

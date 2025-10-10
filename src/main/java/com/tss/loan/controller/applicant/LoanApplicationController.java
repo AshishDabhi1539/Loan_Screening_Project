@@ -30,9 +30,11 @@ import com.tss.loan.dto.response.PersonalDetailsUpdateResponse;
 import com.tss.loan.dto.response.PersonalDetailsCreateResponse;
 import com.tss.loan.dto.response.FinancialDetailsCreateResponse;
 import com.tss.loan.dto.response.DocumentUploadResponse;
+import com.tss.loan.dto.response.LoanDocumentResponse;
 import com.tss.loan.entity.loan.LoanApplication;
 import com.tss.loan.service.ProfileCompletionService;
 import com.tss.loan.entity.loan.LoanDocument;
+import com.tss.loan.mapper.LoanDocumentMapper;
 import com.tss.loan.entity.enums.DocumentType;
 import com.tss.loan.entity.user.User;
 import com.tss.loan.service.DocumentUploadService;
@@ -63,6 +65,9 @@ public class LoanApplicationController {
     
     @Autowired
     private PersonalDetailsService personalDetailsService;
+    
+    @Autowired
+    private LoanDocumentMapper loanDocumentMapper;
     
     /**
      * Create new loan application
@@ -153,11 +158,12 @@ public class LoanApplicationController {
      * Get all documents for application
      */
     @GetMapping("/{applicationId}/documents")
-    public ResponseEntity<List<LoanDocument>> getDocuments(@PathVariable UUID applicationId) {
+    public ResponseEntity<List<LoanDocumentResponse>> getDocuments(@PathVariable UUID applicationId) {
         log.info("Fetching documents for application: {}", applicationId);
         
         List<LoanDocument> documents = documentUploadService.getDocumentsByLoanApplication(applicationId);
-        return ResponseEntity.ok(documents);
+        List<LoanDocumentResponse> documentResponses = loanDocumentMapper.toResponseList(documents);
+        return ResponseEntity.ok(documentResponses);
     }
     
     /**

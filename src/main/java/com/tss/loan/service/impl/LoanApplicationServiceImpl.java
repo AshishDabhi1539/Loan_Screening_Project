@@ -20,6 +20,7 @@ import com.tss.loan.mapper.LoanApplicationMapper;
 import com.tss.loan.entity.financial.ApplicantFinancialProfile;
 import com.tss.loan.entity.applicant.ApplicantPersonalDetails;
 import com.tss.loan.entity.enums.ApplicationStatus;
+import com.tss.loan.entity.enums.NotificationType;
 import com.tss.loan.entity.enums.RiskLevel;
 import com.tss.loan.entity.user.User;
 import com.tss.loan.exception.LoanApiException;
@@ -27,6 +28,7 @@ import com.tss.loan.repository.ApplicantFinancialProfileRepository;
 import com.tss.loan.repository.ApplicantPersonalDetailsRepository;
 import com.tss.loan.repository.LoanApplicationRepository;
 import com.tss.loan.repository.LoanDocumentRepository;
+import com.tss.loan.service.ApplicationWorkflowService;
 import com.tss.loan.service.AuditLogService;
 import com.tss.loan.service.LoanApplicationService;
 import com.tss.loan.service.NotificationService;
@@ -62,6 +64,9 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
     
     @Autowired
     private ProfileCompletionService profileCompletionService;
+    
+    @Autowired
+    private ApplicationWorkflowService applicationWorkflowService;
 
     @Override
     public LoanApplicationResponse createLoanApplication(LoanApplicationRequest request, User applicant) {
@@ -91,9 +96,9 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
         // Create notification
         notificationService.createNotification(
             applicant,
+            NotificationType.IN_APP,
             "Loan Application Created",
-            "Your loan application has been created successfully. Please complete all sections to submit.",
-            "LOAN_APPLICATION"
+            "Your loan application has been created successfully. Please complete all sections to submit."
         );
         
         // Audit log
@@ -250,12 +255,21 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
         
         LoanApplication submittedApplication = loanApplicationRepository.save(application);
         
+        // Create workflow entry for DRAFT → SUBMITTED transition
+        applicationWorkflowService.createWorkflowEntry(
+            applicationId,
+            ApplicationStatus.DRAFT,
+            ApplicationStatus.SUBMITTED,
+            user,
+            "Application submitted by applicant"
+        );
+        
         // Create notification
         notificationService.createNotification(
             user,
+            NotificationType.EMAIL,
             "Loan Application Submitted",
-            "Your loan application has been submitted successfully and is under review.",
-            "LOAN_APPLICATION"
+            "Your loan application has been submitted successfully and is under review."
         );
         
         // Audit log
@@ -387,9 +401,9 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
         // Create notification
         notificationService.createNotification(
             applicant,
+            NotificationType.IN_APP,
             "Loan Application Created",
-            "Your loan application has been created successfully. Please complete all required sections.",
-            "LOAN_APPLICATION"
+            "Your loan application has been created successfully. Please complete all required sections."
         );
         
         // Audit log

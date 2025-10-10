@@ -2,10 +2,13 @@ package com.tss.loan.entity.system;
 
 import java.time.LocalDateTime;
 
+import com.tss.loan.entity.enums.NotificationType;
 import com.tss.loan.entity.user.User;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -40,8 +43,9 @@ public class Notification {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
     
-    @Column(nullable = false, length = 50)
-    private String type; // EMAIL, SMS, PUSH, IN_APP
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private NotificationType type; // EMAIL, SMS, PUSH, IN_APP
     
     @Column(nullable = false, length = 200)
     private String title;

@@ -22,6 +22,8 @@ import org.springframework.web.multipart.MultipartFile;
 import com.tss.loan.entity.loan.LoanDocument;
 import com.tss.loan.entity.enums.DocumentType;
 import com.tss.loan.entity.user.User;
+import com.tss.loan.dto.response.LoanDocumentResponse;
+import com.tss.loan.mapper.LoanDocumentMapper;
 import com.tss.loan.service.DocumentUploadService;
 import com.tss.loan.service.UserService;
 
@@ -39,11 +41,14 @@ public class DocumentController {
     @Autowired
     private UserService userService;
     
+    @Autowired
+    private LoanDocumentMapper loanDocumentMapper;
+    
     /**
      * Upload multiple documents
      */
     @PostMapping("/upload-multiple")
-    public ResponseEntity<List<LoanDocument>> uploadMultipleDocuments(
+    public ResponseEntity<List<LoanDocumentResponse>> uploadMultipleDocuments(
             @RequestParam("files") List<MultipartFile> files,
             @RequestParam("documentTypes") List<DocumentType> documentTypes,
             @RequestParam("loanApplicationId") UUID loanApplicationId,
@@ -54,19 +59,21 @@ public class DocumentController {
         User user = getCurrentUser(authentication);
         List<LoanDocument> documents = documentUploadService.uploadMultipleDocuments(
             files, documentTypes, loanApplicationId, user);
+        List<LoanDocumentResponse> documentResponses = loanDocumentMapper.toResponseList(documents);
         
-        return ResponseEntity.status(HttpStatus.CREATED).body(documents);
+        return ResponseEntity.status(HttpStatus.CREATED).body(documentResponses);
     }
     
     /**
      * Get document by ID
      */
     @GetMapping("/{documentId}")
-    public ResponseEntity<LoanDocument> getDocument(@PathVariable UUID documentId) {
+    public ResponseEntity<LoanDocumentResponse> getDocument(@PathVariable UUID documentId) {
         log.info("Fetching document: {}", documentId);
         
         LoanDocument document = documentUploadService.getDocumentById(documentId);
-        return ResponseEntity.ok(document);
+        LoanDocumentResponse documentResponse = loanDocumentMapper.toResponse(document);
+        return ResponseEntity.ok(documentResponse);
     }
     
     /**

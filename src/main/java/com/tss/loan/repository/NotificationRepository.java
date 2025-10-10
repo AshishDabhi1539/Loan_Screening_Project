@@ -12,6 +12,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.tss.loan.entity.enums.NotificationType;
 import com.tss.loan.entity.system.Notification;
 import com.tss.loan.entity.user.User;
 
@@ -35,7 +36,7 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     
     // Find notifications by type
     @Query("SELECT n FROM Notification n WHERE n.user = :user AND n.type = :type ORDER BY n.createdAt DESC")
-    List<Notification> findByUserAndType(@Param("user") User user, @Param("type") String type);
+    List<Notification> findByUserAndType(@Param("user") User user, @Param("type") NotificationType type);
     
     // Find notifications related to entity
     @Query("SELECT n FROM Notification n WHERE n.relatedEntityType = :entityType AND n.relatedEntityId = :entityId ORDER BY n.createdAt DESC")

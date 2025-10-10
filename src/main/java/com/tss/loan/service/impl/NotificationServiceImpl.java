@@ -6,6 +6,7 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.tss.loan.entity.enums.NotificationType;
 import com.tss.loan.entity.system.Notification;
 import com.tss.loan.entity.user.User;
 import com.tss.loan.exception.LoanApiException;
@@ -23,12 +24,12 @@ public class NotificationServiceImpl implements NotificationService {
     private AuditLogService auditLogService;
     
     @Override
-    public Notification createNotification(User user, String type, String title, String message) {
+    public Notification createNotification(User user, NotificationType type, String title, String message) {
         return createNotification(user, type, title, message, null, null);
     }
     
     @Override
-    public Notification createNotification(User user, String type, String title, String message, 
+    public Notification createNotification(User user, NotificationType type, String title, String message, 
                                          String relatedEntityType, Long relatedEntityId) {
         Notification notification = new Notification();
         notification.setUser(user);

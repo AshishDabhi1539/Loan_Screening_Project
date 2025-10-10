@@ -1,21 +1,21 @@
 package com.tss.loan.service.impl;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import com.tss.loan.entity.loan.LoanApplication;
 import com.tss.loan.entity.loan.LoanDocument;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.reactive.function.BodyInserters;
+import org.springframework.web.reactive.function.client.WebClient;
 
-import com.cloudinary.Cloudinary;
-import com.cloudinary.utils.ObjectUtils;
 import com.tss.loan.entity.enums.DocumentType;
 import com.tss.loan.entity.user.User;
 import com.tss.loan.exception.LoanApiException;
@@ -31,17 +31,29 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class DocumentUploadServiceImpl implements DocumentUploadService {
 
-    @Autowired
-    private Cloudinary cloudinary;
+    private final WebClient webClient;
+    private final LoanApplicationRepository loanApplicationRepository;
+    private final LoanDocumentRepository documentRepository;
+    private final AuditLogService auditLogService;
     
-    @Autowired
-    private LoanApplicationRepository loanApplicationRepository;
+    @Value("${supabase.url}")
+    private String supabaseUrl;
     
-    @Autowired
-    private LoanDocumentRepository documentRepository;
+    @Value("${supabase.service.key}")
+    private String serviceKey;
     
-    @Autowired
-    private AuditLogService auditLogService;
+    @Value("${supabase.bucket.name}")
+    private String bucketName;
+    
+    public DocumentUploadServiceImpl(WebClient webClient, 
+                                   LoanApplicationRepository loanApplicationRepository,
+                                   LoanDocumentRepository documentRepository,
+                                   AuditLogService auditLogService) {
+        this.webClient = webClient;
+        this.loanApplicationRepository = loanApplicationRepository;
+        this.documentRepository = documentRepository;
+        this.auditLogService = auditLogService;
+    }
     
     // Allowed file types for different document types
     private static final List<String> ALLOWED_IMAGE_TYPES = Arrays.asList(
@@ -67,17 +79,26 @@ public class DocumentUploadServiceImpl implements DocumentUploadService {
         }
         
         try {
-            // Upload to Cloudinary
-            @SuppressWarnings("unchecked")
-            Map<String, Object> uploadResult = cloudinary.uploader().upload(
-                file.getBytes(),
-                ObjectUtils.asMap(
-                    "resource_type", "auto",
-                    "folder", "loan-documents/" + loanApplicationId,
-                    "public_id", generatePublicId(documentType, uploadedBy.getId()),
-                    "overwrite", false
-                )
-            );
+            // Create unique filename
+            String originalFileName = file.getOriginalFilename();
+            String fileExtension = originalFileName != null && originalFileName.contains(".") 
+                ? originalFileName.substring(originalFileName.lastIndexOf(".")) : "";
+            String uniqueFileName = generatePublicId(documentType, uploadedBy.getId()) + fileExtension;
+            
+            // Upload to Supabase Storage
+            String uploadUrl = supabaseUrl + "/storage/v1/object/" + bucketName + "/" + uniqueFileName;
+            
+            webClient.post()
+                .uri(uploadUrl)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + serviceKey)
+                .header(HttpHeaders.CONTENT_TYPE, file.getContentType())
+                .body(BodyInserters.fromResource(new ByteArrayResource(file.getBytes())))
+                .retrieve()
+                .bodyToMono(String.class)
+                .block();
+            
+            // Generate public URL
+            String fileUrl = supabaseUrl + "/storage/v1/object/public/" + bucketName + "/" + uniqueFileName;
             
             // Get the loan application
             LoanApplication loanApplication = loanApplicationRepository.findById(loanApplicationId)
@@ -88,7 +109,10 @@ public class DocumentUploadServiceImpl implements DocumentUploadService {
             document.setLoanApplication(loanApplication);
             document.setDocumentType(documentType);
             document.setFileName(file.getOriginalFilename());
-            document.setFilePath(uploadResult.get("secure_url").toString());
+            document.setFilePath(fileUrl);
+            document.setPublicId(uniqueFileName);
+            document.setFileType(file.getContentType());
+            document.setFileSize(file.getSize());
             document.setUploadedBy(uploadedBy);
             document.setVerificationStatus(com.tss.loan.entity.enums.VerificationStatus.PENDING);
             
@@ -143,9 +167,19 @@ public class DocumentUploadServiceImpl implements DocumentUploadService {
             .orElseThrow(() -> new LoanApiException("Document not found"));
         
         try {
-            // Note: LoanDocument entity doesn't have cloudinaryPublicId field
-            // We'll need to extract it from the filePath or store it separately
-            // For now, skip Cloudinary deletion and just delete from database
+            // Delete from Supabase Storage if publicId exists
+            if (document.getPublicId() != null && !document.getPublicId().isEmpty()) {
+                String deleteUrl = supabaseUrl + "/storage/v1/object/" + bucketName + "/" + document.getPublicId();
+                
+                webClient.delete()
+                    .uri(deleteUrl)
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + serviceKey)
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block();
+                    
+                log.info("File deleted from Supabase: {}", document.getPublicId());
+            }
             
             // Delete from database
             documentRepository.delete(document);
@@ -222,7 +256,7 @@ public class DocumentUploadServiceImpl implements DocumentUploadService {
     }
     
     /**
-     * Generate unique public ID for Cloudinary
+     * Generate unique public ID for Supabase Storage
      */
     private String generatePublicId(DocumentType documentType, UUID userId) {
         return String.format("%s_%s_%d", 
@@ -235,7 +269,6 @@ public class DocumentUploadServiceImpl implements DocumentUploadService {
     @Override
     public DocumentUploadResponse uploadDocumentWithResponse(MultipartFile file, DocumentType documentType, 
                                                            UUID loanApplicationId, User uploadedBy) throws IOException {
-        log.info("Uploading document with response for application: {} - Type: {}", loanApplicationId, documentType);
         
         // Upload the document first
         LoanDocument document = uploadDocument(file, documentType, loanApplicationId, uploadedBy);

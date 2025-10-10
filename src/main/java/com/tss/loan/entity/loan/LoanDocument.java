@@ -54,6 +54,15 @@ public class LoanDocument {
     @Column(nullable = false, length = 500)
     private String filePath;
     
+    @Column(length = 255)
+    private String publicId; // Supabase file identifier for deletion
+    
+    @Column(length = 100)
+    private String fileType; // MIME type
+    
+    @Column
+    private Long fileSize; // File size in bytes
+    
     @Column(nullable = false)
     private LocalDateTime uploadedAt;
     
