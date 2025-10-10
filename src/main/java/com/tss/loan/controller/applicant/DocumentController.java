@@ -68,7 +68,7 @@ public class DocumentController {
      * Get document by ID
      */
     @GetMapping("/{documentId}")
-    public ResponseEntity<LoanDocumentResponse> getDocument(@PathVariable UUID documentId) {
+    public ResponseEntity<LoanDocumentResponse> getDocument(@PathVariable Long documentId) {
         log.info("Fetching document: {}", documentId);
         
         LoanDocument document = documentUploadService.getDocumentById(documentId);
@@ -80,7 +80,7 @@ public class DocumentController {
      * Get document URL for viewing/downloading
      */
     @GetMapping("/{documentId}/url")
-    public ResponseEntity<String> getDocumentUrl(@PathVariable UUID documentId) {
+    public ResponseEntity<String> getDocumentUrl(@PathVariable Long documentId) {
         log.info("Fetching URL for document: {}", documentId);
         
         String url = documentUploadService.getDocumentUrl(documentId);
@@ -92,7 +92,7 @@ public class DocumentController {
      */
     @DeleteMapping("/{documentId}")
     public ResponseEntity<String> deleteDocument(
-            @PathVariable UUID documentId,
+            @PathVariable Long documentId,
             Authentication authentication) throws IOException {
         
         log.info("Deleting document: {}", documentId);

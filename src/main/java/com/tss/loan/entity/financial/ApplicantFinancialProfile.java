@@ -77,6 +77,22 @@ public class ApplicantFinancialProfile {
     @Column(length = 150)
     private String workEmail;
     
+    // ========== COMPANY CONTACT DETAILS ==========
+    @Column(length = 15)
+    private String hrPhone;
+    
+    @Column(length = 150)
+    private String hrEmail;
+    
+    @Column(length = 100)
+    private String managerName;
+    
+    @Column(length = 15)
+    private String managerPhone;
+    
+    @Column(length = 200)
+    private String companyAddress;
+    
     // ========== INCOME DETAILS ==========
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal primaryMonthlyIncome; // From employment
@@ -106,6 +122,9 @@ public class ApplicantFinancialProfile {
     
     @Column(length = 20)
     private String ifscCode;
+    
+    @Column(length = 100)
+    private String branchName;
     
     // ========== BANK STATEMENT ANALYSIS ==========
     @Column(precision = 15, scale = 2)

@@ -9,7 +9,7 @@ import org.springframework.stereotype.Repository;
 import com.tss.loan.entity.loan.LoanDocument;
 
 @Repository
-public interface LoanDocumentRepository extends JpaRepository<LoanDocument, UUID> {
+public interface LoanDocumentRepository extends JpaRepository<LoanDocument, Long> {
     
     List<LoanDocument> findByLoanApplicationId(UUID loanApplicationId);
     

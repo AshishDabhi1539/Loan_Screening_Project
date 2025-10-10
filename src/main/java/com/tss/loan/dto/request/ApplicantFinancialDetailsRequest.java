@@ -43,6 +43,14 @@ public class ApplicantFinancialDetailsRequest {
     @NotBlank(message = "Company pincode is required")
     private String companyPincode;
     
+    // Company Contact Details
+    private String workPhone;
+    private String workEmail;
+    private String hrPhone;
+    private String hrEmail;
+    private String managerName;
+    private String managerPhone;
+    
     // Income Details
     @NotNull(message = "Income type is required")
     private IncomeType incomeType;
@@ -82,4 +90,7 @@ public class ApplicantFinancialDetailsRequest {
     
     @NotBlank(message = "Account type is required")
     private String accountType;
+    
+    @NotBlank(message = "Branch name is required")
+    private String branchName;
 }

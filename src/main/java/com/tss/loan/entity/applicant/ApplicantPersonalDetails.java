@@ -119,6 +119,22 @@ public class ApplicantPersonalDetails {
     @Column(length = 100)
     private String spouseName;
     
+    // ========== VERIFICATION STATUS ==========
+    @Column(nullable = false)
+    private Boolean identityVerified = false;
+    
+    @Column(nullable = false)
+    private Boolean addressVerified = false;
+    
+    @Column(columnDefinition = "TEXT")
+    private String identityVerificationNotes;
+    
+    @Column(columnDefinition = "TEXT")
+    private String addressVerificationNotes;
+    
+    private LocalDateTime identityVerifiedAt;
+    private LocalDateTime addressVerifiedAt;
+    
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
     

@@ -57,4 +57,8 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     
     @Query("SELECT COUNT(u) FROM User u WHERE u.role = :role")
     long countByRole(@Param("role") com.tss.loan.entity.enums.RoleType role);
+    
+    // Officer assignment queries
+    @Query("SELECT u FROM User u WHERE u.role = :role AND u.status = :status")
+    List<User> findByRoleAndStatus(@Param("role") com.tss.loan.entity.enums.RoleType role, @Param("status") UserStatus status);
 }

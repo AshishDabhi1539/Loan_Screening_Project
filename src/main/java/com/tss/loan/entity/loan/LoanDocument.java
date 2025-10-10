@@ -79,6 +79,10 @@ public class LoanDocument {
     
     private LocalDateTime verifiedAt;
     
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "verified_by_id")
+    private com.tss.loan.entity.user.User verifiedBy;
+    
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
     

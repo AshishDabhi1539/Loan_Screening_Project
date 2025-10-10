@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 
 import com.tss.loan.entity.enums.ApplicationStatus;
 import com.tss.loan.entity.loan.LoanApplication;
+import com.tss.loan.entity.user.User;
 
 @Repository
 public interface LoanApplicationRepository extends JpaRepository<LoanApplication, UUID> {
@@ -26,4 +27,9 @@ public interface LoanApplicationRepository extends JpaRepository<LoanApplication
     long countByStatus(ApplicationStatus status);
     
     long countByApplicantId(UUID applicantId);
+    
+    // Methods needed for assignment service
+    int countByAssignedOfficerAndStatusIn(User assignedOfficer, List<ApplicationStatus> statuses);
+    
+    List<LoanApplication> findByAssignedOfficerOrderByCreatedAtDesc(User assignedOfficer);
 }

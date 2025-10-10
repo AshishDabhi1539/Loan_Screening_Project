@@ -35,6 +35,7 @@ import com.tss.loan.entity.loan.LoanApplication;
 import com.tss.loan.service.ProfileCompletionService;
 import com.tss.loan.entity.loan.LoanDocument;
 import com.tss.loan.mapper.LoanDocumentMapper;
+import com.tss.loan.mapper.LoanApplicationMapper;
 import com.tss.loan.entity.enums.DocumentType;
 import com.tss.loan.entity.user.User;
 import com.tss.loan.service.DocumentUploadService;
@@ -68,6 +69,9 @@ public class LoanApplicationController {
     
     @Autowired
     private LoanDocumentMapper loanDocumentMapper;
+    
+    @Autowired
+    private LoanApplicationMapper loanApplicationMapper;
     
     /**
      * Create new loan application
@@ -170,7 +174,7 @@ public class LoanApplicationController {
      * Submit loan application
      */
     @PostMapping("/{applicationId}/submit")
-    public ResponseEntity<LoanApplication> submitApplication(
+    public ResponseEntity<LoanApplicationResponse> submitApplication(
             @PathVariable UUID applicationId,
             Authentication authentication) {
         
@@ -179,7 +183,9 @@ public class LoanApplicationController {
         User user = getCurrentUser(authentication);
         LoanApplication application = loanApplicationService.submitLoanApplication(applicationId, user);
         
-        return ResponseEntity.ok(application);
+        // Use mapper to prevent circular reference
+        LoanApplicationResponse response = loanApplicationMapper.toResponse(application);
+        return ResponseEntity.ok(response);
     }
     
     /**
@@ -255,6 +261,23 @@ public class LoanApplicationController {
         PersonalDetailsCreateResponse response = personalDetailsService.createOrUpdatePersonalDetailsWithResponse(request, user);
         
         return ResponseEntity.ok(response);
+    }
+    
+    /**
+     * Get resubmission requirements for applicant
+     */
+    @GetMapping("/{applicationId}/resubmission-requirements")
+    public ResponseEntity<com.tss.loan.dto.response.ApplicantResubmissionRequirementsResponse> getResubmissionRequirements(
+            @PathVariable UUID applicationId,
+            Authentication authentication) {
+        
+        log.info("Getting resubmission requirements for application: {}", applicationId);
+        
+        User user = getCurrentUser(authentication);
+        com.tss.loan.dto.response.ApplicantResubmissionRequirementsResponse requirements = 
+            loanApplicationService.getResubmissionRequirements(applicationId, user);
+        
+        return ResponseEntity.ok(requirements);
     }
     
     private User getCurrentUser(Authentication authentication) {

@@ -1,0 +1,879 @@
+package com.tss.loan.service.impl;
+
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import com.tss.loan.repository.LoanApplicationRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.tss.loan.dto.request.DocumentResubmissionRequest;
+import com.tss.loan.dto.request.DocumentVerificationRequest;
+import com.tss.loan.dto.response.CompleteApplicationDetailsResponse;
+import com.tss.loan.dto.response.DocumentResubmissionResponse;
+import com.tss.loan.dto.response.LoanApplicationResponse;
+import com.tss.loan.dto.response.OfficerDashboardResponse;
+import com.tss.loan.entity.enums.ApplicationStatus;
+import com.tss.loan.entity.enums.NotificationType;
+import com.tss.loan.entity.loan.LoanApplication;
+import com.tss.loan.entity.loan.LoanDocument;
+import com.tss.loan.entity.user.User;
+import com.tss.loan.exception.LoanApiException;
+import com.tss.loan.mapper.LoanApplicationMapper;
+import com.tss.loan.repository.ApplicantFinancialProfileRepository;
+import com.tss.loan.repository.ApplicantPersonalDetailsRepository;
+import com.tss.loan.repository.LoanDocumentRepository;
+import com.tss.loan.service.ApplicationWorkflowService;
+import com.tss.loan.service.AuditLogService;
+import com.tss.loan.service.LoanOfficerService;
+import com.tss.loan.service.NotificationService;
+import com.tss.loan.service.UserDisplayService;
+
+import lombok.extern.slf4j.Slf4j;
+
+@Service
+@Transactional
+@Slf4j
+public class LoanOfficerServiceImpl implements LoanOfficerService {
+    
+    @Autowired
+    private LoanApplicationRepository loanApplicationRepository;
+    
+    @Autowired
+    private LoanDocumentRepository loanDocumentRepository;
+    
+    @Autowired
+    private ApplicantPersonalDetailsRepository personalDetailsRepository;
+    
+    @Autowired
+    private ApplicantFinancialProfileRepository financialProfileRepository;
+    
+    @Autowired
+    private LoanApplicationMapper loanApplicationMapper;
+    
+    @Autowired
+    private UserDisplayService userDisplayService;
+    
+    @Autowired
+    private NotificationService notificationService;
+    
+    @Autowired
+    private AuditLogService auditLogService;
+    
+    @Autowired
+    private ApplicationWorkflowService applicationWorkflowService;
+    
+    @Override
+    public OfficerDashboardResponse getDashboard(User officer) {
+        log.info("Building dashboard for officer: {}", officer.getEmail());
+        
+        // Get all applications assigned to this officer
+        List<LoanApplication> assignedApplications = loanApplicationRepository
+            .findByAssignedOfficerOrderByCreatedAtDesc(officer);
+        
+        // Calculate statistics
+        int totalAssigned = assignedApplications.size();
+        int pendingReview = (int) assignedApplications.stream()
+            .filter(app -> app.getStatus() == ApplicationStatus.UNDER_REVIEW)
+            .count();
+        int underDocumentVerification = (int) assignedApplications.stream()
+            .filter(app -> app.getStatus() == ApplicationStatus.DOCUMENT_VERIFICATION)
+            .count();
+        int pendingExternalVerification = (int) assignedApplications.stream()
+            .filter(app -> app.getStatus() == ApplicationStatus.PENDING_EXTERNAL_VERIFICATION)
+            .count();
+        int readyForDecision = (int) assignedApplications.stream()
+            .filter(app -> app.getStatus() == ApplicationStatus.READY_FOR_DECISION)
+            .count();
+        
+        // Today's statistics
+        LocalDateTime startOfDay = LocalDateTime.now().truncatedTo(ChronoUnit.DAYS);
+        int completedToday = (int) assignedApplications.stream()
+            .filter(app -> (app.getStatus() == ApplicationStatus.APPROVED || 
+                           app.getStatus() == ApplicationStatus.REJECTED) &&
+                          app.getUpdatedAt().isAfter(startOfDay))
+            .count();
+        
+        // Week statistics
+        LocalDateTime startOfWeek = LocalDateTime.now().minusDays(7);
+        int completedThisWeek = (int) assignedApplications.stream()
+            .filter(app -> (app.getStatus() == ApplicationStatus.APPROVED || 
+                           app.getStatus() == ApplicationStatus.REJECTED) &&
+                          app.getUpdatedAt().isAfter(startOfWeek))
+            .count();
+        
+        // Month statistics
+        LocalDateTime startOfMonth = LocalDateTime.now().minusDays(30);
+        int completedThisMonth = (int) assignedApplications.stream()
+            .filter(app -> (app.getStatus() == ApplicationStatus.APPROVED || 
+                           app.getStatus() == ApplicationStatus.REJECTED) &&
+                          app.getUpdatedAt().isAfter(startOfMonth))
+            .count();
+        
+        // Calculate average processing time
+        double averageProcessingTimeHours = calculateAverageProcessingTime(assignedApplications);
+        
+        // High priority applications
+        int urgentApplications = (int) assignedApplications.stream()
+            .filter(app -> app.getRequestedAmount().doubleValue() > 1000000 && 
+                          app.getStatus() == ApplicationStatus.UNDER_REVIEW)
+            .count();
+        
+        int highValueApplications = (int) assignedApplications.stream()
+            .filter(app -> app.getRequestedAmount().doubleValue() > 500000)
+            .count();
+        
+        // Build response
+        return OfficerDashboardResponse.builder()
+            .officerId(officer.getId())
+            .officerName(userDisplayService.getDisplayName(officer))
+            .officerEmail(officer.getEmail())
+            .role(officer.getRole().toString())
+            .totalAssignedApplications(totalAssigned)
+            .pendingReview(pendingReview)
+            .underDocumentVerification(underDocumentVerification)
+            .pendingExternalVerification(pendingExternalVerification)
+            .readyForDecision(readyForDecision)
+            .completedToday(completedToday)
+            .completedThisWeek(completedThisWeek)
+            .completedThisMonth(completedThisMonth)
+            .averageProcessingTimeHours(averageProcessingTimeHours)
+            .applicationsProcessedToday(completedToday)
+            .applicationsProcessedThisWeek(completedThisWeek)
+            .lastLoginAt(officer.getLastLoginAt())
+            .lastActivityAt(LocalDateTime.now())
+            .hasCapacityForNewApplications(totalAssigned < 10)
+            .maxWorkloadCapacity(10)
+            .currentWorkload(totalAssigned)
+            .urgentApplications(urgentApplications)
+            .highValueApplications(highValueApplications)
+            .flaggedApplications(0) // TODO: Implement flagged applications
+            .build();
+    }
+    
+    @Override
+    public List<LoanApplicationResponse> getAssignedApplications(User officer) {
+        log.info("Fetching assigned applications for officer: {}", officer.getEmail());
+        
+        List<LoanApplication> applications = loanApplicationRepository
+            .findByAssignedOfficerOrderByCreatedAtDesc(officer);
+        
+        return applications.stream()
+            .map(loanApplicationMapper::toResponse)
+            .collect(Collectors.toList());
+    }
+    
+    @Override
+    public LoanApplicationResponse getApplicationForReview(UUID applicationId, User officer) {
+        log.info("Officer {} requesting application {} for review", officer.getEmail(), applicationId);
+        
+        LoanApplication application = loanApplicationRepository.findById(applicationId)
+            .orElseThrow(() -> new LoanApiException("Application not found: " + applicationId));
+        
+        // Security check - ensure officer is assigned to this application
+        if (!application.getAssignedOfficer().getId().equals(officer.getId())) {
+            throw new LoanApiException("You are not authorized to review this application");
+        }
+        
+        // Audit log
+        auditLogService.logAction(officer, "APPLICATION_REVIEWED", "LoanApplication", 
+            null, "Officer accessed application for review: " + applicationId);
+        
+        return loanApplicationMapper.toResponse(application);
+    }
+    
+    @Override
+    public CompleteApplicationDetailsResponse getCompleteApplicationDetails(UUID applicationId, User officer) {
+        log.info("Officer {} requesting complete details for application: {}", officer.getEmail(), applicationId);
+        
+        LoanApplication application = getApplicationAndValidateOfficer(applicationId, officer);
+        
+        // Build complete application details response
+        CompleteApplicationDetailsResponse response = buildCompleteApplicationDetails(application);
+        
+        // Audit log
+        auditLogService.logAction(officer, "COMPLETE_APPLICATION_DETAILS_ACCESSED", "LoanApplication", 
+            null, "Officer accessed complete application details for verification: " + applicationId);
+        
+        return response;
+    }
+    
+    @Override
+    public void startDocumentVerification(UUID applicationId, User officer) {
+        log.info("Starting document verification for application: {}", applicationId);
+        
+        LoanApplication application = getApplicationAndValidateOfficer(applicationId, officer);
+        
+        // Update status to document verification
+        application.setStatus(ApplicationStatus.DOCUMENT_VERIFICATION);
+        application.setUpdatedAt(LocalDateTime.now());
+        loanApplicationRepository.save(application);
+        
+        // Create workflow entry
+        applicationWorkflowService.createWorkflowEntry(
+            applicationId,
+            ApplicationStatus.UNDER_REVIEW,
+            ApplicationStatus.DOCUMENT_VERIFICATION,
+            officer,
+            "Document verification started by loan officer"
+        );
+        
+        // Notify applicant
+        notificationService.createNotification(
+            application.getApplicant(),
+            NotificationType.IN_APP,
+            "Document Verification Started",
+            "Your loan application documents are being verified by our loan officer."
+        );
+        
+        // Audit log
+        auditLogService.logAction(officer, "DOCUMENT_VERIFICATION_STARTED", "LoanApplication", 
+            null, "Document verification process initiated: " + applicationId);
+        
+        log.info("Document verification started for application: {}", applicationId);
+    }
+    
+    @Override
+    public void completeDocumentVerification(UUID applicationId, DocumentVerificationRequest request, User officer) {
+        log.info("Completing document verification for application: {}", applicationId);
+        
+        LoanApplication application = getApplicationAndValidateOfficer(applicationId, officer);
+        
+        // Process document verifications
+        for (DocumentVerificationRequest.DocumentVerificationItem docVerification : request.getDocumentVerifications()) {
+            Long documentId = Long.parseLong(docVerification.getDocumentId());
+            LoanDocument document = loanDocumentRepository.findById(documentId)
+                .orElseThrow(() -> new LoanApiException("Document not found: " + documentId));
+            
+            // Update document verification status
+            if (docVerification.getVerified()) {
+                document.setVerificationStatus(com.tss.loan.entity.enums.VerificationStatus.VERIFIED);
+                document.setVerificationNotes(docVerification.getVerificationNotes());
+            } else {
+                document.setVerificationStatus(com.tss.loan.entity.enums.VerificationStatus.REJECTED);
+                document.setVerificationNotes(docVerification.getRejectionReason());
+            }
+            document.setVerifiedAt(LocalDateTime.now());
+            document.setVerifiedBy(officer);
+            loanDocumentRepository.save(document);
+        }
+        
+        // Update personal details verification status
+        if (application.getApplicant() != null) {
+            com.tss.loan.entity.applicant.ApplicantPersonalDetails personalDetails = 
+                personalDetailsRepository.findByUserId(application.getApplicant().getId()).orElse(null);
+            if (personalDetails != null) {
+                personalDetails.setIdentityVerified(request.getIdentityVerified());
+                personalDetails.setIdentityVerificationNotes(request.getIdentityVerificationNotes());
+                personalDetails.setAddressVerified(request.getAddressVerified());
+                personalDetails.setIdentityVerifiedAt(LocalDateTime.now());
+                personalDetails.setAddressVerifiedAt(LocalDateTime.now());
+                personalDetailsRepository.save(personalDetails);
+            }
+        }
+        
+        // Update financial profile verification status
+        com.tss.loan.entity.financial.ApplicantFinancialProfile financialProfile = 
+            financialProfileRepository.findByLoanApplicationId(applicationId).orElse(null);
+        if (financialProfile != null) {
+            financialProfile.setEmploymentVerificationStatus(
+                request.getEmploymentVerified() ? com.tss.loan.entity.enums.VerificationStatus.VERIFIED : 
+                com.tss.loan.entity.enums.VerificationStatus.REJECTED);
+            financialProfile.setIncomeVerificationStatus(
+                request.getIncomeVerified() ? com.tss.loan.entity.enums.VerificationStatus.VERIFIED : 
+                com.tss.loan.entity.enums.VerificationStatus.REJECTED);
+            financialProfile.setBankVerificationStatus(
+                request.getBankAccountVerified() ? com.tss.loan.entity.enums.VerificationStatus.VERIFIED : 
+                com.tss.loan.entity.enums.VerificationStatus.REJECTED);
+            financialProfile.setEmploymentVerifiedAt(LocalDateTime.now());
+            financialProfile.setIncomeVerifiedAt(LocalDateTime.now());
+            financialProfile.setBankVerifiedAt(LocalDateTime.now());
+            
+            // Set specific verification notes
+            String combinedNotes = buildVerificationNotes(request);
+            financialProfile.setVerificationNotes(combinedNotes);
+            financialProfileRepository.save(financialProfile);
+        }
+        
+        // Update application status based on overall verification
+        if (request.getOverallVerificationPassed()) {
+            application.setStatus(ApplicationStatus.PENDING_EXTERNAL_VERIFICATION);
+            
+            // Create workflow entry
+            applicationWorkflowService.createWorkflowEntry(
+                applicationId,
+                ApplicationStatus.DOCUMENT_VERIFICATION,
+                ApplicationStatus.PENDING_EXTERNAL_VERIFICATION,
+                officer,
+                "Document verification completed successfully - ready for external verification"
+            );
+            
+            // Notify applicant of successful verification
+            notificationService.createNotification(
+                application.getApplicant(),
+                NotificationType.EMAIL,
+                "Documents Verified Successfully",
+                "Your documents have been verified successfully. Your application is now being processed for external verification."
+            );
+            
+        } else {
+            // Some documents failed verification - request resubmission
+            application.setStatus(ApplicationStatus.DOCUMENT_INCOMPLETE);
+            
+            // Create workflow entry
+            applicationWorkflowService.createWorkflowEntry(
+                applicationId,
+                ApplicationStatus.DOCUMENT_VERIFICATION,
+                ApplicationStatus.DOCUMENT_INCOMPLETE,
+                officer,
+                "Document verification failed - resubmission required: " + request.getGeneralNotes()
+            );
+            
+            // Notify applicant to resubmit documents
+            notificationService.createNotification(
+                application.getApplicant(),
+                NotificationType.EMAIL,
+                "Document Resubmission Required",
+                "Some of your documents need to be resubmitted. Please check your application and upload the required documents."
+            );
+        }
+        
+        application.setUpdatedAt(LocalDateTime.now());
+        loanApplicationRepository.save(application);
+        
+        // Audit log
+        auditLogService.logAction(officer, "DOCUMENT_VERIFICATION_COMPLETED", "LoanApplication", 
+            null, "Document verification completed with result: " + request.getOverallVerificationPassed() + " for application: " + applicationId);
+        
+        log.info("Document verification completed for application: {} with result: {}", 
+            applicationId, request.getOverallVerificationPassed());
+    }
+    
+    @Override
+    public void triggerExternalVerification(UUID applicationId, User officer) {
+        log.info("Triggering external verification for application: {}", applicationId);
+        
+        LoanApplication application = getApplicationAndValidateOfficer(applicationId, officer);
+        
+        // Validate application is ready for external verification
+        if (application.getStatus() != ApplicationStatus.PENDING_EXTERNAL_VERIFICATION) {
+            throw new LoanApiException("Application is not ready for external verification. Current status: " + application.getStatus());
+        }
+        
+        // Update status to indicate external verification is in progress
+        application.setStatus(ApplicationStatus.FRAUD_CHECK);
+        application.setUpdatedAt(LocalDateTime.now());
+        loanApplicationRepository.save(application);
+        
+        // Create workflow entry
+        applicationWorkflowService.createWorkflowEntry(
+            applicationId,
+            ApplicationStatus.PENDING_EXTERNAL_VERIFICATION,
+            ApplicationStatus.FRAUD_CHECK,
+            officer,
+            "External verification (fraud detection) triggered by loan officer"
+        );
+        
+        // TODO: Implement actual external API calls here
+        // For now, we'll simulate the process
+        
+        // Notify applicant
+        notificationService.createNotification(
+            application.getApplicant(),
+            NotificationType.IN_APP,
+            "External Verification Started",
+            "Your application is being verified through external agencies. This may take a few minutes."
+        );
+        
+        // Audit log
+        auditLogService.logAction(officer, "EXTERNAL_VERIFICATION_TRIGGERED", "LoanApplication", 
+            null, "External verification process initiated: " + applicationId);
+        
+        log.info("External verification triggered for application: {}", applicationId);
+    }
+    
+    @Override
+    public List<LoanApplicationResponse> getApplicationsReadyForDecision(User officer) {
+        log.info("Fetching applications ready for decision for officer: {}", officer.getEmail());
+        
+        List<LoanApplication> applications = loanApplicationRepository
+            .findByAssignedOfficerOrderByCreatedAtDesc(officer)
+            .stream()
+            .filter(app -> app.getStatus() == ApplicationStatus.READY_FOR_DECISION)
+            .collect(Collectors.toList());
+        
+        return applications.stream()
+            .map(loanApplicationMapper::toResponse)
+            .collect(Collectors.toList());
+    }
+    
+    @Override
+    public DocumentResubmissionResponse requestDocumentResubmission(UUID applicationId, DocumentResubmissionRequest request, User officer) {
+        log.info("Officer {} requesting document resubmission for application: {}", officer.getEmail(), applicationId);
+        
+        LoanApplication application = getApplicationAndValidateOfficer(applicationId, officer);
+        
+        // Update application status to DOCUMENT_INCOMPLETE
+        application.setStatus(ApplicationStatus.DOCUMENT_INCOMPLETE);
+        application.setUpdatedAt(LocalDateTime.now());
+        loanApplicationRepository.save(application);
+        
+        // Create workflow entry
+        applicationWorkflowService.createWorkflowEntry(
+            applicationId,
+            ApplicationStatus.DOCUMENT_VERIFICATION,
+            ApplicationStatus.DOCUMENT_INCOMPLETE,
+            officer,
+            "Document resubmission requested: " + request.getRejectedDocuments().size() + " documents need resubmission"
+        );
+        
+        // Mark rejected documents in database
+        for (DocumentResubmissionRequest.RejectedDocumentItem rejectedDoc : request.getRejectedDocuments()) {
+            List<LoanDocument> documents = loanDocumentRepository.findByLoanApplicationId(applicationId);
+            documents.stream()
+                .filter(doc -> doc.getDocumentType().toString().equals(rejectedDoc.getDocumentType()))
+                .forEach(doc -> {
+                    doc.setVerificationStatus(com.tss.loan.entity.enums.VerificationStatus.REJECTED);
+                    doc.setVerificationNotes(rejectedDoc.getRejectionReason());
+                    doc.setVerifiedAt(LocalDateTime.now());
+                    doc.setVerifiedBy(officer);
+                    loanDocumentRepository.save(doc);
+                });
+        }
+        
+        // AUTOMATIC SAME-OFFICER REASSIGNMENT: Keep the same officer assigned
+        // No need to change assignedOfficer - it remains the same for continuity
+        log.info("Application {} will remain assigned to same officer {} after resubmission", applicationId, officer.getEmail());
+        
+        // Notify applicant about document resubmission requirement
+        notificationService.createNotification(
+            application.getApplicant(),
+            NotificationType.EMAIL,
+            "Document Resubmission Required",
+            String.format("Your loan application requires document resubmission. Please resubmit %d documents by %s. Additional instructions: %s", 
+                request.getRejectedDocuments().size(),
+                request.getResubmissionDeadline().toString(),
+                request.getAdditionalInstructions() != null ? request.getAdditionalInstructions() : "Please check the application for details.")
+        );
+        
+        // Audit log
+        auditLogService.logAction(officer, "DOCUMENT_RESUBMISSION_REQUESTED", "LoanApplication", 
+            null, 
+            String.format("Requested resubmission of %d documents for application %s. Same officer reassignment maintained.", request.getRejectedDocuments().size(), applicationId));
+        
+        // Build response
+        List<DocumentResubmissionResponse.RejectedDocumentInfo> rejectedDocuments = request.getRejectedDocuments().stream()
+            .map(item -> DocumentResubmissionResponse.RejectedDocumentInfo.builder()
+                .documentType(item.getDocumentType())
+                .rejectionReason(item.getRejectionReason())
+                .requiredAction(item.getRequiredAction())
+                .specificInstructions(item.getSpecificInstructions())
+                .isRequired(item.getIsRequired())
+                .build())
+            .collect(Collectors.toList());
+        
+        DocumentResubmissionResponse response = DocumentResubmissionResponse.builder()
+            .applicationId(applicationId)
+            .applicationStatus(ApplicationStatus.DOCUMENT_INCOMPLETE.toString())
+            .rejectedDocuments(rejectedDocuments)
+            .resubmissionDeadline(request.getResubmissionDeadline())
+            .additionalInstructions(request.getAdditionalInstructions())
+            .notificationSent(true)
+            .message("Document resubmission requested successfully. Application remains assigned to same officer for continuity.")
+            .requestedAt(LocalDateTime.now())
+            .requestedByOfficer(officer.getEmail())
+            .build();
+        
+        log.info("Document resubmission requested successfully for application: {} with same-officer reassignment", applicationId);
+        return response;
+    }
+    
+    private LoanApplication getApplicationAndValidateOfficer(UUID applicationId, User officer) {
+        LoanApplication application = loanApplicationRepository.findById(applicationId)
+            .orElseThrow(() -> new LoanApiException("Application not found: " + applicationId));
+        
+        // Security check
+        if (!application.getAssignedOfficer().getId().equals(officer.getId())) {
+            throw new LoanApiException("You are not authorized to perform this action on this application");
+        }
+        
+        return application;
+    }
+    
+    private double calculateAverageProcessingTime(List<LoanApplication> applications) {
+        List<LoanApplication> completedApps = applications.stream()
+            .filter(app -> app.getStatus() == ApplicationStatus.APPROVED || 
+                          app.getStatus() == ApplicationStatus.REJECTED)
+            .filter(app -> app.getSubmittedAt() != null && app.getFinalDecisionAt() != null)
+            .collect(Collectors.toList());
+        
+        if (completedApps.isEmpty()) {
+            return 0.0;
+        }
+        
+        double totalHours = completedApps.stream()
+            .mapToDouble(app -> ChronoUnit.HOURS.between(app.getSubmittedAt(), app.getFinalDecisionAt()))
+            .sum();
+        
+        return totalHours / completedApps.size();
+    }
+    
+    private CompleteApplicationDetailsResponse buildCompleteApplicationDetails(LoanApplication application) {
+        // Get related entities
+        com.tss.loan.entity.applicant.ApplicantPersonalDetails personalDetails = 
+            personalDetailsRepository.findByUserId(application.getApplicant().getId()).orElse(null);
+        
+        com.tss.loan.entity.financial.ApplicantFinancialProfile financialProfile = 
+            financialProfileRepository.findByLoanApplicationId(application.getId()).orElse(null);
+        
+        List<LoanDocument> documents = loanDocumentRepository.findByLoanApplicationId(application.getId());
+        
+        // Build application info
+        CompleteApplicationDetailsResponse.ApplicationInfo applicationInfo = 
+            CompleteApplicationDetailsResponse.ApplicationInfo.builder()
+                .id(application.getId())
+                .status(application.getStatus().toString())
+                .loanAmount(application.getRequestedAmount())
+                .tenureMonths(application.getTenureMonths())
+                .purpose(application.getPurpose())
+                .loanType(application.getLoanType().toString())
+                .submittedAt(application.getSubmittedAt())
+                .assignedAt(application.getCreatedAt()) // TODO: Add actual assignment timestamp
+                .assignedOfficerName(application.getAssignedOfficer() != null ? 
+                    application.getAssignedOfficer().getEmail() : null)
+                .priority(application.getRequestedAmount().doubleValue() > 1000000 ? "HIGH" : "MEDIUM")
+                .daysInReview((int) ChronoUnit.DAYS.between(application.getSubmittedAt(), LocalDateTime.now()))
+                .build();
+        
+        // Build applicant identity
+        CompleteApplicationDetailsResponse.ApplicantIdentity applicantIdentity = buildApplicantIdentity(application, personalDetails);
+        
+        // Build employment details
+        CompleteApplicationDetailsResponse.EmploymentDetails employmentDetails = buildEmploymentDetails(financialProfile);
+        
+        // Build document information
+        List<CompleteApplicationDetailsResponse.DocumentInfo> documentInfos = buildDocumentInfos(documents);
+        
+        // Build financial assessment
+        CompleteApplicationDetailsResponse.FinancialAssessment financialAssessment = buildFinancialAssessment(application, financialProfile);
+        
+        // Build verification summary
+        CompleteApplicationDetailsResponse.VerificationSummary verificationSummary = buildVerificationSummary(application, documents, personalDetails, financialProfile);
+        
+        return CompleteApplicationDetailsResponse.builder()
+            .applicationInfo(applicationInfo)
+            .applicantIdentity(applicantIdentity)
+            .employmentDetails(employmentDetails)
+            .documents(documentInfos)
+            .financialAssessment(financialAssessment)
+            .verificationSummary(verificationSummary)
+            .build();
+    }
+    
+    private CompleteApplicationDetailsResponse.ApplicantIdentity buildApplicantIdentity(
+            LoanApplication application, com.tss.loan.entity.applicant.ApplicantPersonalDetails personalDetails) {
+        
+        User applicant = application.getApplicant();
+        
+        // Personal details
+        CompleteApplicationDetailsResponse.ApplicantIdentity.PersonalDetails personalDetailsDto = 
+            CompleteApplicationDetailsResponse.ApplicantIdentity.PersonalDetails.builder()
+                .firstName(personalDetails != null ? personalDetails.getFirstName() : null)
+                .lastName(personalDetails != null ? personalDetails.getLastName() : null)
+                .middleName(personalDetails != null ? personalDetails.getMiddleName() : null)
+                .fullName(personalDetails != null ? personalDetails.getFullName() : applicant.getEmail())
+                .panNumber(personalDetails != null ? personalDetails.getPanNumber() : null)
+                .aadhaarNumber(personalDetails != null ? personalDetails.getAadhaarNumber() : null)
+                .dateOfBirth(personalDetails != null ? personalDetails.getDateOfBirth().toString() : null)
+                .addresses(personalDetails != null ? 
+                    CompleteApplicationDetailsResponse.ApplicantIdentity.AddressInfo.builder()
+                        .permanentAddress(personalDetails.getPermanentAddress())
+                        .currentAddress(personalDetails.getCurrentAddress())
+                        .city(personalDetails.getCurrentCity())
+                        .state(personalDetails.getCurrentState())
+                        .pincode(personalDetails.getCurrentPincode())
+                        .build() : null)
+                .build();
+        
+        // Contact info
+        CompleteApplicationDetailsResponse.ApplicantIdentity.ContactInfo contactInfo = 
+            CompleteApplicationDetailsResponse.ApplicantIdentity.ContactInfo.builder()
+                .phone(applicant.getPhone())
+                .email(applicant.getEmail())
+                .alternatePhone(personalDetails != null ? personalDetails.getAlternatePhoneNumber() : null)
+                .build();
+        
+        // Verification status
+        CompleteApplicationDetailsResponse.ApplicantIdentity.VerificationStatus verificationStatus = 
+            CompleteApplicationDetailsResponse.ApplicantIdentity.VerificationStatus.builder()
+                .identityVerified(personalDetails != null ? personalDetails.getIdentityVerified() : false)
+                .addressVerified(personalDetails != null ? personalDetails.getAddressVerified() : false)
+                .phoneVerified(applicant.getIsPhoneVerified())
+                .emailVerified(applicant.getIsEmailVerified())
+                .identityVerificationNotes(personalDetails != null ? personalDetails.getIdentityVerificationNotes() : null)
+                .build();
+        
+        return CompleteApplicationDetailsResponse.ApplicantIdentity.builder()
+            .personalDetails(personalDetailsDto)
+            .contactInfo(contactInfo)
+            .verificationStatus(verificationStatus)
+            .build();
+    }
+    
+    private CompleteApplicationDetailsResponse.EmploymentDetails buildEmploymentDetails(
+            com.tss.loan.entity.financial.ApplicantFinancialProfile financialProfile) {
+        
+        if (financialProfile == null) {
+            return CompleteApplicationDetailsResponse.EmploymentDetails.builder().build();
+        }
+        
+        // Company contact info
+        CompleteApplicationDetailsResponse.EmploymentDetails.CompanyContact companyContact = 
+            CompleteApplicationDetailsResponse.EmploymentDetails.CompanyContact.builder()
+                .companyPhone(financialProfile.getWorkPhone())
+                .companyEmail(financialProfile.getWorkEmail())
+                .hrPhone(financialProfile.getHrPhone())
+                .hrEmail(financialProfile.getHrEmail())
+                .managerName(financialProfile.getManagerName())
+                .managerPhone(financialProfile.getManagerPhone())
+                .companyAddress(financialProfile.getCompanyAddress())
+                .build();
+        
+        // Bank details
+        CompleteApplicationDetailsResponse.EmploymentDetails.BankDetails bankDetails = 
+            CompleteApplicationDetailsResponse.EmploymentDetails.BankDetails.builder()
+                .bankName(financialProfile.getPrimaryBankName())
+                .accountNumber(financialProfile.getPrimaryAccountNumber())
+                .ifscCode(financialProfile.getIfscCode())
+                .accountType(financialProfile.getAccountType())
+                .branchName(financialProfile.getBranchName())
+                .build();
+        
+        // Verification status
+        CompleteApplicationDetailsResponse.EmploymentDetails.EmploymentVerificationStatus verificationStatus = 
+            CompleteApplicationDetailsResponse.EmploymentDetails.EmploymentVerificationStatus.builder()
+                .employmentVerified(financialProfile.getEmploymentVerificationStatus() == com.tss.loan.entity.enums.VerificationStatus.VERIFIED)
+                .incomeVerified(financialProfile.getIncomeVerificationStatus() == com.tss.loan.entity.enums.VerificationStatus.VERIFIED)
+                .bankAccountVerified(financialProfile.getBankVerificationStatus() == com.tss.loan.entity.enums.VerificationStatus.VERIFIED)
+                .employmentVerificationNotes(financialProfile.getVerificationNotes())
+                .incomeVerificationNotes(financialProfile.getVerificationNotes())
+                .lastVerificationDate(financialProfile.getEmploymentVerifiedAt())
+                .build();
+        
+        return CompleteApplicationDetailsResponse.EmploymentDetails.builder()
+            .companyName(financialProfile.getEmployerName())
+            .designation(financialProfile.getDesignation())
+            .workExperience(financialProfile.getExperienceInYears() + " years")
+            .employmentType(financialProfile.getEmploymentType().toString())
+            .monthlyIncome(financialProfile.getTotalMonthlyIncome()) // Using business logic method
+            .annualIncome(financialProfile.getAnnualIncome())
+            .companyContact(companyContact)
+            .bankDetails(bankDetails)
+            .verificationStatus(verificationStatus)
+            .build();
+    }
+    
+    private List<CompleteApplicationDetailsResponse.DocumentInfo> buildDocumentInfos(List<LoanDocument> documents) {
+        return documents.stream()
+            .map(doc -> {
+                return CompleteApplicationDetailsResponse.DocumentInfo.builder()
+                    .documentId(doc.getId())
+                    .documentType(doc.getDocumentType().toString())
+                    .fileName(doc.getFileName())
+                    .fileUrl(doc.getFilePath())
+                    .uploadDate(doc.getUploadedAt())
+                    .verificationStatus(doc.getVerificationStatus().toString())
+                    .verificationNotes(doc.getVerificationNotes())
+                    .rejectionReason(doc.getVerificationStatus() == com.tss.loan.entity.enums.VerificationStatus.REJECTED ? 
+                        doc.getVerificationNotes() : null)
+                    .isRequired(true) // TODO: Implement required document logic
+                    .isResubmitted(false) // TODO: Implement resubmission tracking
+                    .verifiedAt(doc.getVerifiedAt())
+                    .verifiedByName(doc.getVerifiedBy() != null ? 
+                        userDisplayService.getDisplayName(doc.getVerifiedBy()) : null)
+                    .fileSizeBytes(doc.getFileSize())
+                    .fileType(doc.getFileType())
+                    .build();
+            })
+            .collect(Collectors.toList());
+    }
+    
+    private CompleteApplicationDetailsResponse.FinancialAssessment buildFinancialAssessment(
+            LoanApplication application, com.tss.loan.entity.financial.ApplicantFinancialProfile financialProfile) {
+        
+        // Loan details
+        CompleteApplicationDetailsResponse.FinancialAssessment.LoanDetails loanDetails = 
+            CompleteApplicationDetailsResponse.FinancialAssessment.LoanDetails.builder()
+                .requestedAmount(application.getRequestedAmount())
+                .tenureMonths(application.getTenureMonths())
+                .purpose(application.getPurpose())
+                .estimatedEmi(calculateEMI(application.getRequestedAmount(), application.getTenureMonths()))
+                .estimatedInterestRate(java.math.BigDecimal.valueOf(12.0)) // TODO: Implement dynamic interest rate
+                .build();
+        
+        // Existing loans (TODO: Implement existing loans tracking)
+        List<CompleteApplicationDetailsResponse.FinancialAssessment.ExistingLoan> existingLoans = 
+            java.util.Collections.emptyList();
+        
+        // Calculated ratios
+        CompleteApplicationDetailsResponse.FinancialAssessment.CalculatedRatios calculatedRatios = null;
+        if (financialProfile != null) {
+            java.math.BigDecimal emi = calculateEMI(application.getRequestedAmount(), application.getTenureMonths());
+            double emiRatio = emi.doubleValue() / financialProfile.getTotalMonthlyIncome().doubleValue() * 100;
+            
+            calculatedRatios = CompleteApplicationDetailsResponse.FinancialAssessment.CalculatedRatios.builder()
+                .emiToIncomeRatio(emiRatio)
+                .debtToIncomeRatio(0.0) // TODO: Calculate based on existing loans
+                .loanToIncomeRatio(application.getRequestedAmount().doubleValue() / financialProfile.getAnnualIncome().doubleValue() * 100)
+                .affordabilityStatus(emiRatio <= 40 ? "AFFORDABLE" : "HIGH_RISK")
+                .recommendation(emiRatio <= 40 ? "APPROVE" : "REVIEW_REQUIRED")
+                .build();
+        }
+        
+        // Risk assessment
+        CompleteApplicationDetailsResponse.FinancialAssessment.RiskAssessment riskAssessment = 
+            CompleteApplicationDetailsResponse.FinancialAssessment.RiskAssessment.builder()
+                .riskLevel(application.getRiskLevel() != null ? application.getRiskLevel().toString() : "LOW")
+                .riskScore(application.getRiskScore() != null ? application.getRiskScore() : 0)
+                .fraudScore(application.getFraudScore() != null ? application.getFraudScore() : 0)
+                .riskFactors(java.util.Collections.emptyList()) // TODO: Implement risk factors
+                .overallAssessment("PENDING_EXTERNAL_VERIFICATION")
+                .build();
+        
+        return CompleteApplicationDetailsResponse.FinancialAssessment.builder()
+            .loanDetails(loanDetails)
+            .existingLoans(existingLoans)
+            .calculatedRatios(calculatedRatios)
+            .riskAssessment(riskAssessment)
+            .build();
+    }
+    
+    private CompleteApplicationDetailsResponse.VerificationSummary buildVerificationSummary(
+            LoanApplication application, List<LoanDocument> documents, 
+            com.tss.loan.entity.applicant.ApplicantPersonalDetails personalDetails,
+            com.tss.loan.entity.financial.ApplicantFinancialProfile financialProfile) {
+        
+        // Calculate completion percentages
+        boolean identityComplete = personalDetails != null && personalDetails.getPanNumber() != null && personalDetails.getAadhaarNumber() != null;
+        boolean documentsComplete = documents.stream().allMatch(doc -> doc.getVerificationStatus() == com.tss.loan.entity.enums.VerificationStatus.VERIFIED);
+        boolean employmentComplete = financialProfile != null && financialProfile.getEmployerName() != null;
+        boolean financialComplete = financialProfile != null && financialProfile.getTotalMonthlyIncome() != null;
+        boolean externalComplete = application.getStatus() == ApplicationStatus.READY_FOR_DECISION;
+        
+        int completionPercentage = 0;
+        if (identityComplete) completionPercentage += 20;
+        if (documentsComplete) completionPercentage += 30;
+        if (employmentComplete) completionPercentage += 20;
+        if (financialComplete) completionPercentage += 15;
+        if (externalComplete) completionPercentage += 15;
+        
+        // Determine current stage and next action
+        String currentStage = application.getStatus().toString();
+        String nextAction = determineNextAction(application.getStatus());
+        
+        // Build pending and rejected items lists
+        List<String> pendingItems = new java.util.ArrayList<>();
+        List<String> rejectedItems = new java.util.ArrayList<>();
+        
+        if (!identityComplete) pendingItems.add("Identity Verification");
+        if (!documentsComplete) {
+            documents.stream()
+                .filter(doc -> doc.getVerificationStatus() == com.tss.loan.entity.enums.VerificationStatus.PENDING)
+                .forEach(doc -> pendingItems.add("Document: " + doc.getDocumentType()));
+            
+            documents.stream()
+                .filter(doc -> doc.getVerificationStatus() == com.tss.loan.entity.enums.VerificationStatus.REJECTED)
+                .forEach(doc -> rejectedItems.add("Document: " + doc.getDocumentType()));
+        }
+        if (!employmentComplete) pendingItems.add("Employment Verification");
+        if (!financialComplete) pendingItems.add("Financial Verification");
+        
+        return CompleteApplicationDetailsResponse.VerificationSummary.builder()
+            .identityVerificationComplete(identityComplete)
+            .documentVerificationComplete(documentsComplete)
+            .employmentVerificationComplete(employmentComplete)
+            .financialVerificationComplete(financialComplete)
+            .externalVerificationComplete(externalComplete)
+            .overallCompletionPercentage(completionPercentage)
+            .currentStage(currentStage)
+            .nextAction(nextAction)
+            .pendingItems(pendingItems)
+            .rejectedItems(rejectedItems)
+            .readyForExternalVerification(identityComplete && documentsComplete && employmentComplete && financialComplete)
+            .readyForDecision(externalComplete)
+            .build();
+    }
+    
+    private String determineNextAction(ApplicationStatus status) {
+        switch (status) {
+            case UNDER_REVIEW:
+                return "START_DOCUMENT_VERIFICATION";
+            case DOCUMENT_VERIFICATION:
+                return "COMPLETE_DOCUMENT_VERIFICATION";
+            case PENDING_EXTERNAL_VERIFICATION:
+                return "TRIGGER_EXTERNAL_VERIFICATION";
+            case FRAUD_CHECK:
+                return "WAIT_FOR_EXTERNAL_VERIFICATION";
+            case READY_FOR_DECISION:
+                return "MAKE_FINAL_DECISION";
+            default:
+                return "REVIEW_APPLICATION";
+        }
+    }
+    
+    private java.math.BigDecimal calculateEMI(java.math.BigDecimal principal, Integer tenureMonths) {
+        if (principal == null || tenureMonths == null || tenureMonths == 0) {
+            return java.math.BigDecimal.ZERO;
+        }
+        
+        double monthlyRate = 12.0 / 100 / 12; // Assuming 12% annual interest rate
+        double emi = principal.doubleValue() * monthlyRate * Math.pow(1 + monthlyRate, tenureMonths) / 
+                    (Math.pow(1 + monthlyRate, tenureMonths) - 1);
+        
+        return java.math.BigDecimal.valueOf(emi).setScale(2, java.math.RoundingMode.HALF_UP);
+    }
+    
+    /**
+     * Build comprehensive verification notes from all verification fields
+     */
+    private String buildVerificationNotes(DocumentVerificationRequest request) {
+        StringBuilder notes = new StringBuilder();
+        
+        // Identity verification
+        if (request.getIdentityVerificationNotes() != null && !request.getIdentityVerificationNotes().trim().isEmpty()) {
+            notes.append("Identity: ").append(request.getIdentityVerificationNotes()).append("; ");
+        }
+        
+        // Employment verification
+        if (request.getEmploymentVerificationNotes() != null && !request.getEmploymentVerificationNotes().trim().isEmpty()) {
+            notes.append("Employment: ").append(request.getEmploymentVerificationNotes()).append("; ");
+        }
+        
+        // Income verification
+        if (request.getIncomeVerificationNotes() != null && !request.getIncomeVerificationNotes().trim().isEmpty()) {
+            notes.append("Income: ").append(request.getIncomeVerificationNotes()).append("; ");
+        }
+        
+        // Bank account verification
+        if (request.getBankAccountVerificationNotes() != null && !request.getBankAccountVerificationNotes().trim().isEmpty()) {
+            notes.append("Bank Account: ").append(request.getBankAccountVerificationNotes()).append("; ");
+        }
+        
+        // General notes
+        if (request.getGeneralNotes() != null && !request.getGeneralNotes().trim().isEmpty()) {
+            notes.append("General: ").append(request.getGeneralNotes()).append("; ");
+        }
+        
+        // Remove trailing "; " if present
+        String result = notes.toString();
+        if (result.endsWith("; ")) {
+            result = result.substring(0, result.length() - 2);
+        }
+        
+        return result.isEmpty() ? "Verification completed" : result;
+    }
+}

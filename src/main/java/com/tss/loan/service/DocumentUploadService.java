@@ -29,12 +29,12 @@ public interface DocumentUploadService {
     /**
      * Delete a document by ID
      */
-    boolean deleteDocument(UUID documentId, User user) throws IOException;
+    boolean deleteDocument(Long documentId, User user) throws IOException;
     
     /**
      * Get document by ID
      */
-    LoanDocument getDocumentById(UUID documentId);
+    LoanDocument getDocumentById(Long documentId);
     
     /**
      * Get all documents for a loan application
@@ -44,7 +44,7 @@ public interface DocumentUploadService {
     /**
      * Get document URL for viewing/downloading
      */
-    String getDocumentUrl(UUID documentId);
+    String getDocumentUrl(Long documentId);
     
     /**
      * Validate document type and size

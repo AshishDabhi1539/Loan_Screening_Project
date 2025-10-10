@@ -44,11 +44,11 @@ public class ApplicationWorkflow {
     private LoanApplication loanApplication;
     
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 50)
     private ApplicationStatus fromStatus;
     
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 50)
     private ApplicationStatus toStatus;
     
     @Enumerated(EnumType.STRING)

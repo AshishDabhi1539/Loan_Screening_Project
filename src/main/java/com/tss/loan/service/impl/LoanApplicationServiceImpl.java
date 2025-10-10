@@ -28,6 +28,7 @@ import com.tss.loan.repository.ApplicantFinancialProfileRepository;
 import com.tss.loan.repository.ApplicantPersonalDetailsRepository;
 import com.tss.loan.repository.LoanApplicationRepository;
 import com.tss.loan.repository.LoanDocumentRepository;
+import com.tss.loan.service.ApplicationAssignmentService;
 import com.tss.loan.service.ApplicationWorkflowService;
 import com.tss.loan.service.AuditLogService;
 import com.tss.loan.service.LoanApplicationService;
@@ -67,6 +68,9 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
     
     @Autowired
     private ApplicationWorkflowService applicationWorkflowService;
+    
+    @Autowired
+    private ApplicationAssignmentService applicationAssignmentService;
 
     @Override
     public LoanApplicationResponse createLoanApplication(LoanApplicationRequest request, User applicant) {
@@ -264,12 +268,40 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
             "Application submitted by applicant"
         );
         
-        // Create notification
+        // AUTO-ASSIGN TO LOAN OFFICER (Your requested workflow)
+        try {
+            User assignedOfficer = applicationAssignmentService.assignToLoanOfficer(submittedApplication);
+            
+            // Create workflow entry for SUBMITTED → UNDER_REVIEW transition
+            applicationWorkflowService.createWorkflowEntry(
+                applicationId,
+                ApplicationStatus.SUBMITTED,
+                ApplicationStatus.UNDER_REVIEW,
+                assignedOfficer,
+                "Application auto-assigned to loan officer: " + assignedOfficer.getEmail()
+            );
+            
+            // Notify the assigned loan officer
+            notificationService.createNotification(
+                assignedOfficer,
+                NotificationType.IN_APP,
+                "New Loan Application Assigned",
+                "A new loan application has been assigned to you for review. Application ID: " + applicationId
+            );
+            
+            log.info("Application {} auto-assigned to officer: {}", applicationId, assignedOfficer.getEmail());
+            
+        } catch (Exception e) {
+            log.error("Failed to auto-assign application {}: {}", applicationId, e.getMessage());
+            // Don't fail the submission, just log the error
+        }
+        
+        // Create notification for applicant
         notificationService.createNotification(
             user,
             NotificationType.EMAIL,
             "Loan Application Submitted",
-            "Your loan application has been submitted successfully and is under review."
+            "Your loan application has been submitted successfully and assigned to a loan officer for review."
         );
         
         // Audit log
@@ -630,5 +662,145 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
             .nextStepUrl("/api/loan-application/" + applicationId + "/documents/upload")
             .updatedAt(savedProfile.getUpdatedAt())
             .build();
+    }
+    
+    @Override
+    public com.tss.loan.dto.response.ApplicantResubmissionRequirementsResponse getResubmissionRequirements(UUID applicationId, User user) {
+        log.info("Getting resubmission requirements for application: {} by user: {}", applicationId, user.getEmail());
+        
+        try {
+        
+        // Get application and validate ownership
+        LoanApplication application = loanApplicationRepository.findById(applicationId)
+            .orElseThrow(() -> new LoanApiException("Application not found"));
+        
+        if (!application.getApplicant().getId().equals(user.getId())) {
+            throw new LoanApiException("You can only view your own applications");
+        }
+        
+        // Get all documents for the application
+        List<com.tss.loan.entity.loan.LoanDocument> documents = documentRepository.findByLoanApplicationIdOrderByUploadedAtDesc(applicationId);
+        
+        // Get all required document types (you may want to make this configurable)
+        com.tss.loan.entity.enums.DocumentType[] requiredDocTypes = com.tss.loan.entity.enums.DocumentType.values();
+        
+        List<com.tss.loan.dto.response.ApplicantResubmissionRequirementsResponse.DocumentRequirement> documentRequirements = 
+            java.util.Arrays.stream(requiredDocTypes)
+                .map(docType -> {
+                    // Find the latest document of this type
+                    com.tss.loan.entity.loan.LoanDocument latestDoc = documents.stream()
+                        .filter(doc -> doc.getDocumentType() == docType)
+                        .findFirst()
+                        .orElse(null);
+                    
+                    String status;
+                    boolean canReupload;
+                    String rejectionReason = null;
+                    String fileName = null;
+                    Long documentId = null;
+                    LocalDateTime lastUploadedAt = null;
+                    
+                    if (latestDoc == null) {
+                        status = "MISSING";
+                        canReupload = true;
+                    } else {
+                        documentId = latestDoc.getId();
+                        fileName = latestDoc.getFileName();
+                        lastUploadedAt = latestDoc.getUploadedAt();
+                        
+                        com.tss.loan.entity.enums.VerificationStatus verificationStatus = latestDoc.getVerificationStatus();
+                        if (verificationStatus == null) {
+                            status = "PENDING";
+                            canReupload = true;
+                        } else {
+                            switch (verificationStatus) {
+                                case VERIFIED:
+                                    status = "VERIFIED";
+                                    canReupload = false; // Cannot reupload verified documents
+                                    break;
+                                case REJECTED:
+                                    status = "REJECTED";
+                                    canReupload = true;
+                                    rejectionReason = latestDoc.getVerificationNotes();
+                                    break;
+                                case PENDING:
+                                default:
+                                    status = "PENDING";
+                                    canReupload = true; // Can reupload pending documents
+                                    break;
+                            }
+                        }
+                    }
+                    
+                    return com.tss.loan.dto.response.ApplicantResubmissionRequirementsResponse.DocumentRequirement.builder()
+                        .documentType(docType.toString())
+                        .documentTypeName(getDocumentTypeName(docType))
+                        .currentStatus(status)
+                        .canReupload(canReupload)
+                        .rejectionReason(rejectionReason)
+                        .requiredAction(status.equals("REJECTED") ? "RESUBMIT_RECENT" : "UPLOAD")
+                        .specificInstructions(getDocumentInstructions(docType))
+                        .isRequired(true) // All document types are required for now
+                        .lastUploadedAt(lastUploadedAt)
+                        .fileName(fileName)
+                        .currentDocumentId(documentId)
+                        .build();
+                })
+                .collect(java.util.stream.Collectors.toList());
+        
+        // Count statistics
+        long verifiedCount = documentRequirements.stream()
+            .filter(req -> "VERIFIED".equals(req.getCurrentStatus()))
+            .count();
+        
+        boolean hasResubmissionRequirements = application.getStatus() == ApplicationStatus.DOCUMENT_INCOMPLETE ||
+            documentRequirements.stream().anyMatch(req -> req.getCanReupload() && 
+                ("REJECTED".equals(req.getCurrentStatus()) || "MISSING".equals(req.getCurrentStatus())));
+        
+        return com.tss.loan.dto.response.ApplicantResubmissionRequirementsResponse.builder()
+            .applicationId(applicationId)
+            .applicationStatus(application.getStatus().toString())
+            .hasResubmissionRequirements(hasResubmissionRequirements)
+            .resubmissionDeadline(null) // You may want to store this in the application
+            .additionalInstructions("Please upload clear, recent documents. Verified documents cannot be changed.")
+            .documentRequirements(documentRequirements)
+            .requestedAt(LocalDateTime.now())
+            .requestedByOfficer(application.getAssignedOfficer() != null ? application.getAssignedOfficer().getEmail() : null)
+            .totalDocumentsRequired(documentRequirements.size())
+            .documentsAlreadyVerified((int) verifiedCount)
+            .build();
+            
+        } catch (Exception e) {
+            log.error("Error getting resubmission requirements for application: {} by user: {}", applicationId, user.getEmail(), e);
+            throw new LoanApiException("Failed to get resubmission requirements: " + e.getMessage());
+        }
+    }
+    
+    private String getDocumentTypeName(com.tss.loan.entity.enums.DocumentType docType) {
+        if (docType == null) {
+            return "Unknown Document";
+        }
+        switch (docType) {
+            case PAN_CARD: return "PAN Card";
+            case AADHAAR_CARD: return "Aadhaar Card";
+            case SALARY_SLIP: return "Salary Slip";
+            case BANK_STATEMENT: return "Bank Statement";
+            case EMPLOYMENT_CERTIFICATE: return "Employment Certificate";
+            default: return docType.toString().replace("_", " ");
+        }
+    }
+    
+    private String getDocumentInstructions(com.tss.loan.entity.enums.DocumentType docType) {
+        if (docType == null) {
+            return "Upload clear, recent document";
+        }
+        switch (docType) {
+            case PAN_CARD: return "Upload clear photo of PAN card (both sides if applicable)";
+            case AADHAAR_CARD: return "Upload clear photo of Aadhaar card (both sides)";
+            case SALARY_SLIP: return "Upload latest 3 months salary slips";
+            case BANK_STATEMENT: return "Upload latest 6 months bank statements";
+            case EMPLOYMENT_CERTIFICATE: return "Upload employment certificate or offer letter";
+            default: return "Upload clear, recent document";
+        }
     }
 }

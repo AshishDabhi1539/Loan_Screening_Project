@@ -58,6 +58,11 @@ public interface LoanApplicationService {
     LoanApplication getLoanApplicationEntityById(UUID applicationId);
     
     /**
+     * Get resubmission requirements for applicant
+     */
+    com.tss.loan.dto.response.ApplicantResubmissionRequirementsResponse getResubmissionRequirements(UUID applicationId, User user);
+    
+    /**
      * Check if application is complete (all required fields filled)
      */
     boolean isApplicationComplete(UUID applicationId);

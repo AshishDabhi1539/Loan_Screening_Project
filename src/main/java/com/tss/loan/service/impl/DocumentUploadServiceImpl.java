@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import com.tss.loan.entity.loan.LoanApplication;
 import com.tss.loan.entity.loan.LoanDocument;
@@ -104,6 +105,9 @@ public class DocumentUploadServiceImpl implements DocumentUploadService {
             LoanApplication loanApplication = loanApplicationRepository.findById(loanApplicationId)
                 .orElseThrow(() -> new LoanApiException("Loan application not found"));
             
+            // Check if document can be uploaded (prevent overwriting verified documents)
+            validateDocumentUpload(loanApplicationId, documentType, uploadedBy);
+            
             // Create document entity
             LoanDocument document = new LoanDocument();
             document.setLoanApplication(loanApplication);
@@ -128,7 +132,12 @@ public class DocumentUploadServiceImpl implements DocumentUploadService {
             
             return savedDocument;
             
+        } catch (LoanApiException e) {
+            // Re-throw business logic exceptions without wrapping
+            log.error("Failed to upload document: {}", e.getMessage());
+            throw e;
         } catch (Exception e) {
+            // Only wrap technical exceptions in IOException
             log.error("Failed to upload document: {}", e.getMessage());
             throw new IOException("Failed to upload document: " + e.getMessage());
         }
@@ -144,23 +153,37 @@ public class DocumentUploadServiceImpl implements DocumentUploadService {
         }
         
         List<LoanDocument> uploadedDocuments = new ArrayList<>();
+        StringBuilder errorMessages = new StringBuilder();
         
         for (int i = 0; i < files.size(); i++) {
             try {
                 LoanDocument document = uploadDocument(files.get(i), documentTypes.get(i), 
                                                      loanApplicationId, uploadedBy);
                 uploadedDocuments.add(document);
+            } catch (LoanApiException e) {
+                // For business logic errors (like verified document protection), throw immediately
+                log.error("Failed to upload document {}: {}", i, e.getMessage());
+                throw e; // Re-throw to provide proper error response
             } catch (Exception e) {
                 log.error("Failed to upload document {}: {}", i, e.getMessage());
-                // Continue with other documents, but log the failure
+                if (errorMessages.length() > 0) {
+                    errorMessages.append("; ");
+                }
+                errorMessages.append(String.format("Document %d (%s): %s", 
+                    i + 1, documentTypes.get(i), e.getMessage()));
             }
+        }
+        
+        // If there were any technical errors (not business logic errors), throw with details
+        if (errorMessages.length() > 0 && uploadedDocuments.isEmpty()) {
+            throw new IOException("Failed to upload documents: " + errorMessages.toString());
         }
         
         return uploadedDocuments;
     }
 
     @Override
-    public boolean deleteDocument(UUID documentId, User user) throws IOException {
+    public boolean deleteDocument(Long documentId, User user) throws IOException {
         log.info("Deleting document: {}", documentId);
         
         LoanDocument document = documentRepository.findById(documentId)
@@ -198,7 +221,7 @@ public class DocumentUploadServiceImpl implements DocumentUploadService {
     }
 
     @Override
-    public LoanDocument getDocumentById(UUID documentId) {
+    public LoanDocument getDocumentById(Long documentId) {
         return documentRepository.findById(documentId)
             .orElseThrow(() -> new LoanApiException("Document not found with ID: " + documentId));
     }
@@ -209,7 +232,7 @@ public class DocumentUploadServiceImpl implements DocumentUploadService {
     }
 
     @Override
-    public String getDocumentUrl(UUID documentId) {
+    public String getDocumentUrl(Long documentId) {
         LoanDocument document = getDocumentById(documentId);
         return document.getFilePath();
     }
@@ -317,5 +340,42 @@ public class DocumentUploadServiceImpl implements DocumentUploadService {
         }
         
         return responseBuilder.build();
+    }
+    
+    /**
+     * Validate if a document can be uploaded (prevent overwriting verified documents)
+     */
+    private void validateDocumentUpload(UUID loanApplicationId, DocumentType documentType, User uploadedBy) {
+        // Find existing documents of this type for the application
+        List<LoanDocument> existingDocs = documentRepository.findByLoanApplicationId(loanApplicationId)
+            .stream()
+            .filter(doc -> doc.getDocumentType() == documentType)
+            .collect(Collectors.toList());
+        
+        // Check if any existing document is verified
+        boolean hasVerifiedDocument = existingDocs.stream()
+            .anyMatch(doc -> doc.getVerificationStatus() == com.tss.loan.entity.enums.VerificationStatus.VERIFIED);
+        
+        if (hasVerifiedDocument) {
+            throw new LoanApiException(
+                org.springframework.http.HttpStatus.CONFLICT,
+                String.format(
+                    "Cannot upload %s document. A verified document of this type already exists. " +
+                    "Verified documents cannot be replaced. Please contact support if you need to update a verified document.",
+                    documentType.toString().replace("_", " ")
+                )
+            );
+        }
+        
+        // Additional validation: Check if user owns the application
+        LoanApplication application = loanApplicationRepository.findById(loanApplicationId)
+            .orElseThrow(() -> new LoanApiException("Application not found"));
+        
+        if (!application.getApplicant().getId().equals(uploadedBy.getId())) {
+            throw new LoanApiException("You can only upload documents to your own applications");
+        }
+        
+        log.info("Document upload validation passed for {} document type {} by user {}", 
+            loanApplicationId, documentType, uploadedBy.getEmail());
     }
 }
