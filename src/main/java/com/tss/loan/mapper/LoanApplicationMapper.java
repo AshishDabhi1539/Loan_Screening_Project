@@ -1,17 +1,19 @@
 package com.tss.loan.mapper;
 
+import java.util.UUID;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.tss.loan.dto.response.LoanApplicationResponse;
 import com.tss.loan.entity.loan.LoanApplication;
-import com.tss.loan.service.ProfileCompletionService;
+import com.tss.loan.repository.ApplicantPersonalDetailsRepository;
 
 @Component
 public class LoanApplicationMapper {
     
     @Autowired
-    private ProfileCompletionService profileCompletionService;
+    private ApplicantPersonalDetailsRepository personalDetailsRepository;
     
     public LoanApplicationResponse toResponse(LoanApplication entity) {
         if (entity == null) {
@@ -63,10 +65,19 @@ public class LoanApplicationMapper {
                 .documentsCount(entity.getDocuments() != null ? entity.getDocuments().size() : 0)
                 .fraudCheckResultsCount(entity.getFraudCheckResults() != null ? entity.getFraudCheckResults().size() : 0)
                 
-                // Status flags - using new architecture
-                .hasPersonalDetails(entity.getApplicant() != null ? 
-                    profileCompletionService.hasPersonalDetails(entity.getApplicant()) : false)
+                // Status flags
+                .hasPersonalDetails(entity.getApplicant() != null && hasPersonalDetails(entity.getApplicant().getId()))
                 .hasFinancialProfile(entity.getFinancialProfile() != null)
                 .build();
+    }
+    
+    /**
+     * Helper method to check if user has personal details
+     */
+    private boolean hasPersonalDetails(UUID userId) {
+        if (userId == null) {
+            return false;
+        }
+        return personalDetailsRepository.existsByUserId(userId);
     }
 }
