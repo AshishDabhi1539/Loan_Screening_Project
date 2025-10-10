@@ -50,4 +50,37 @@ public interface BankDetailsRepository extends JpaRepository<BankDetails, UUID> 
      * Check if person exists in banking system
      */
     boolean existsByAadhaarNumberOrPanNumber(String aadhaarNumber, String panNumber);
+    
+    /**
+     * Get average account balance for credit scoring
+     */
+    @Query("SELECT AVG(bd.averageMonthlyBalance) FROM BankDetails bd " +
+           "WHERE (bd.aadhaarNumber = :aadhaar OR bd.panNumber = :pan)")
+    Double getAverageAccountBalance(@Param("aadhaar") String aadhaarNumber, @Param("pan") String panNumber);
+    
+    /**
+     * Count total cheque bounces for risk assessment
+     */
+    @Query("SELECT COALESCE(SUM(bd.chequeBounceCount), 0) FROM BankDetails bd " +
+           "WHERE (bd.aadhaarNumber = :aadhaar OR bd.panNumber = :pan)")
+    Long getTotalChequeBounces(@Param("aadhaar") String aadhaarNumber, @Param("pan") String panNumber);
+    
+    /**
+     * Check if person has salary account (positive indicator)
+     */
+    boolean existsByAadhaarNumberOrPanNumberAndSalaryAccountFlagTrue(String aadhaarNumber, String panNumber);
+    
+    /**
+     * Get all bank metrics in single optimized query for maximum speed
+     */
+    @Query(value = """
+        SELECT 
+            COALESCE(AVG(average_monthly_balance), 0) as avgBalance,
+            COALESCE(SUM(cheque_bounce_count), 0) as totalBounces,
+            CASE WHEN COUNT(CASE WHEN salary_account_flag = true THEN 1 END) > 0 THEN 1 ELSE 0 END as hasSalaryAccount,
+            COUNT(*) as totalAccounts
+        FROM bank_details 
+        WHERE aadhaar_number = :aadhaar OR pan_number = :pan
+        """, nativeQuery = true)
+    Object[] getBankMetricsFast(@Param("aadhaar") String aadhaarNumber, @Param("pan") String panNumber);
 }

@@ -24,14 +24,8 @@ import lombok.RequiredArgsConstructor;
 @Entity
 @Table(name = "bank_details", 
     indexes = {
-        @Index(name = "idx_bank_aadhaar", columnList = "aadhaarNumber"),
-        @Index(name = "idx_bank_pan", columnList = "panNumber"),
-        @Index(name = "idx_bank_account", columnList = "accountNumber", unique = true),
-        @Index(name = "idx_bank_updated", columnList = "lastUpdated")
-    },
-    uniqueConstraints = {
-        @UniqueConstraint(name = "uk_bank_details", 
-            columnNames = {"aadhaarNumber", "panNumber", "bankName"})
+        @Index(name = "idx_bank_aadhaar", columnList = "aadhaar_number"),
+        @Index(name = "idx_bank_pan", columnList = "pan_number")
     }
 )
 @RequiredArgsConstructor

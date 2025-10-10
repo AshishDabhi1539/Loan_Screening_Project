@@ -24,11 +24,8 @@ import lombok.RequiredArgsConstructor;
 @Entity
 @Table(name = "credit_score_history",
     indexes = {
-        @Index(name = "idx_credit_aadhaar", columnList = "aadhaarNumber"),
-        @Index(name = "idx_credit_pan", columnList = "panNumber"),
-        @Index(name = "idx_credit_score", columnList = "creditScore"),
-        @Index(name = "idx_credit_risk", columnList = "riskScore"),
-        @Index(name = "idx_credit_computed", columnList = "computedDate")
+        @Index(name = "idx_credit_aadhaar", columnList = "aadhaar_number"),
+        @Index(name = "idx_credit_pan", columnList = "pan_number")
     }
 )
 @RequiredArgsConstructor

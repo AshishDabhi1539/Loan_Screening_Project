@@ -2,6 +2,7 @@ package com.tss.loan.repository.external;
 
 import com.tss.loan.entity.external.CreditScoreHistory;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -14,7 +15,7 @@ import java.util.UUID;
 
 @Repository
 @Transactional(transactionManager = "externalTransactionManager")
-public interface CreditScoreHistoryRepository extends JpaRepository<CreditScoreHistory, UUID> {
+public interface CreditScoreHistoryRepository extends JpaRepository<CreditScoreHistory, UUID>, CreditScoreHistoryRepositoryCustom {
     
     /**
      * Find credit score history by Aadhaar number
@@ -32,18 +33,18 @@ public interface CreditScoreHistoryRepository extends JpaRepository<CreditScoreH
     List<CreditScoreHistory> findByAadhaarNumberOrPanNumber(String aadhaarNumber, String panNumber);
     
     /**
-     * Find latest credit score for a person
+     * Find previous calculations for this person (if any)
      */
     @Query("SELECT csh FROM CreditScoreHistory csh WHERE (csh.aadhaarNumber = :aadhaar OR csh.panNumber = :pan) " +
            "ORDER BY csh.computedDate DESC")
-    List<CreditScoreHistory> findLatestCreditScore(@Param("aadhaar") String aadhaarNumber, @Param("pan") String panNumber);
+    List<CreditScoreHistory> findPreviousCalculations(@Param("aadhaar") String aadhaarNumber, @Param("pan") String panNumber);
     
     /**
-     * Find most recent credit score (single record)
+     * Find most recent calculation (if person was scored before)
      */
-    @Query("SELECT csh FROM CreditScoreHistory csh WHERE (csh.aadhaarNumber = :aadhaar OR csh.panNumber = :pan) " +
-           "ORDER BY csh.computedDate DESC LIMIT 1")
-    Optional<CreditScoreHistory> findMostRecentCreditScore(@Param("aadhaar") String aadhaarNumber, @Param("pan") String panNumber);
+    @Query(value = "SELECT * FROM credit_score_history WHERE (aadhaar_number = :aadhaar OR pan_number = :pan) " +
+           "ORDER BY computed_date DESC LIMIT 1", nativeQuery = true)
+    Optional<CreditScoreHistory> findMostRecentCalculation(@Param("aadhaar") String aadhaarNumber, @Param("pan") String panNumber);
     
     /**
      * Find credit scores within a specific range
@@ -72,7 +73,15 @@ public interface CreditScoreHistoryRepository extends JpaRepository<CreditScoreH
                                                      @Param("fromDate") LocalDateTime fromDate);
     
     /**
-     * Check if person has credit history
+     * Get previous credit score (if person was scored before) - for trend analysis
+     */
+    @Query("SELECT csh.creditScore FROM CreditScoreHistory csh WHERE (csh.aadhaarNumber = :aadhaar OR csh.panNumber = :pan) " +
+           "ORDER BY csh.computedDate DESC")
+    List<Integer> getPreviousCreditScores(@Param("aadhaar") String aadhaarNumber, @Param("pan") String panNumber);
+    
+    /**
+     * Check if person has been scored before (for comparison)
      */
     boolean existsByAadhaarNumberOrPanNumber(String aadhaarNumber, String panNumber);
+    
 }

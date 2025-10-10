@@ -41,6 +41,11 @@ public interface FraudRecordRepository extends JpaRepository<FraudRecord, UUID> 
     List<FraudRecord> findByAadhaarNumberAndSeverityLevel(String aadhaarNumber, FraudRecord.SeverityLevel severityLevel);
     
     /**
+     * Find high severity fraud cases by Aadhaar or PAN
+     */
+    List<FraudRecord> findByAadhaarNumberOrPanNumberAndSeverityLevel(String aadhaarNumber, String panNumber, FraudRecord.SeverityLevel severityLevel);
+    
+    /**
      * Find recent fraud cases (within specified days)
      */
     @Query("SELECT fr FROM FraudRecord fr WHERE (fr.aadhaarNumber = :aadhaar OR fr.panNumber = :pan) " +
@@ -67,4 +72,18 @@ public interface FraudRecordRepository extends JpaRepository<FraudRecord, UUID> 
     @Query("SELECT fr FROM FraudRecord fr WHERE (fr.aadhaarNumber = :aadhaar OR fr.panNumber = :pan) " +
            "AND (LOWER(fr.fraudType) LIKE '%financial%' OR LOWER(fr.fraudType) LIKE '%loan%' OR LOWER(fr.fraudType) LIKE '%credit%')")
     List<FraudRecord> findFinancialFraudCases(@Param("aadhaar") String aadhaarNumber, @Param("pan") String panNumber);
+    
+    /**
+     * Get all fraud metrics in single optimized query for maximum speed
+     */
+    @Query(value = """
+        SELECT 
+            COUNT(CASE WHEN resolved_flag = false THEN 1 END) as activeFraudCases,
+            COUNT(CASE WHEN severity_level = 'HIGH' THEN 1 END) as highSeverityCases,
+            COUNT(*) as totalFraudCases,
+            CASE WHEN COUNT(*) > 0 THEN 1 ELSE 0 END as hasFraudHistory
+        FROM fraud_records 
+        WHERE aadhaar_number = :aadhaar OR pan_number = :pan
+        """, nativeQuery = true)
+    Object[] getFraudMetricsFast(@Param("aadhaar") String aadhaarNumber, @Param("pan") String panNumber);
 }
