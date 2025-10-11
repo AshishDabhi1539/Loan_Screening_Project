@@ -65,7 +65,7 @@ public class ExternalScoreController {
                 log.error("System error occurred during score calculation for Aadhaar: {} and PAN: {}", 
                           request.getAadhaarNumber(), request.getPanNumber());
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-            } else if (!response.getDataFound()) {
+            } else if ("UNKNOWN".equals(response.getRiskScore())) {
                 log.info("No external data found for Aadhaar: {} and PAN: {}", 
                          request.getAadhaarNumber(), request.getPanNumber());
                 return ResponseEntity.ok(response);
@@ -85,7 +85,6 @@ public class ExternalScoreController {
                     .riskScore("ERROR")
                     .riskScoreNumeric(100)
                     .redAlertFlag(true)
-                    .dataFound(false)
                     .riskFactors("Unexpected system error: " + e.getMessage())
                     .creditScoreReason("Unable to calculate due to system error")
                     .build();
