@@ -128,6 +128,12 @@ public class LoanApplication {
     @Column(columnDefinition = "TEXT")
     private String decisionReason;
     
+    @Column(columnDefinition = "TEXT")
+    private String rejectionReason;
+    
+    @Column(columnDefinition = "TEXT")
+    private String complianceNotes;
+    
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "decided_by")
     private User decidedBy;
@@ -137,6 +143,9 @@ public class LoanApplication {
     // RISK SCORING FIELDS (Merged from RiskScore entity)
     @Column
     private Integer riskScore; // 0-1000
+    
+    @Column
+    private Integer creditScore; // External credit score from ExternalScoreService
     
     @Column
     private Integer fraudScore; // 0-100

@@ -7,6 +7,7 @@ import com.tss.loan.dto.request.DocumentResubmissionRequest;
 import com.tss.loan.dto.request.DocumentVerificationRequest;
 import com.tss.loan.dto.response.CompleteApplicationDetailsResponse;
 import com.tss.loan.dto.response.DocumentResubmissionResponse;
+import com.tss.loan.dto.response.ExternalVerificationResponse;
 import com.tss.loan.dto.response.LoanApplicationResponse;
 import com.tss.loan.dto.response.OfficerDashboardResponse;
 import com.tss.loan.entity.user.User;
@@ -67,6 +68,14 @@ public interface LoanOfficerService {
      * @param officer The loan officer
      */
     void triggerExternalVerification(UUID applicationId, User officer);
+    
+    /**
+     * Complete external verification (fraud check) with credit scoring and move directly to READY_FOR_DECISION
+     * @param applicationId The application ID
+     * @param officer The loan officer
+     * @return Enhanced response with credit scoring details
+     */
+    ExternalVerificationResponse completeExternalVerification(UUID applicationId, User officer);
     
     /**
      * Get applications ready for final decision

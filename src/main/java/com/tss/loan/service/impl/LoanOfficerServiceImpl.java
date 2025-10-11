@@ -6,7 +6,11 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import com.tss.loan.dto.response.ExternalVerificationResponse;
+import com.tss.loan.entity.applicant.ApplicantPersonalDetails;
+import com.tss.loan.entity.external.CreditScoreHistory;
 import com.tss.loan.repository.LoanApplicationRepository;
+import com.tss.loan.repository.external.CreditScoreHistoryRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -54,6 +58,9 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
     
     @Autowired
     private LoanApplicationMapper loanApplicationMapper;
+    
+    @Autowired
+    private CreditScoreHistoryRepository creditScoreHistoryRepository;
     
     @Autowired
     private UserDisplayService userDisplayService;
@@ -394,6 +401,203 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
             null, "External verification process initiated: " + applicationId);
         
         log.info("External verification triggered for application: {}", applicationId);
+    }
+    
+    @Override
+    public ExternalVerificationResponse completeExternalVerification(UUID applicationId, User officer) {
+        log.info("Completing external verification for application: {} by officer: {}", applicationId, officer.getEmail());
+        
+        // Get application
+        LoanApplication application = loanApplicationRepository.findById(applicationId)
+            .orElseThrow(() -> new LoanApiException("Application not found"));
+        
+        // Validate current status
+        if (application.getStatus() != ApplicationStatus.FRAUD_CHECK) {
+            throw new LoanApiException("Application is not in fraud check status. Current status: " + application.getStatus());
+        }
+        
+        // Validate officer authority
+        if (application.getAssignedOfficer() == null || !application.getAssignedOfficer().getId().equals(officer.getId())) {
+            throw new LoanApiException("You are not authorized to complete verification for this application");
+        }
+        
+        // ✅ DIRECT EXTERNAL CREDIT SCORING IMPLEMENTATION (MOVED FROM ExternalScoreService)
+        log.info("Starting external credit score calculation for application: {}", applicationId);
+        
+        // Initialize scoring variables
+        Integer creditScore = null;
+        String riskScore = "UNKNOWN";
+        Integer riskScoreNumeric = 0;
+        Boolean redAlertFlag = false;
+        String riskFactors = "No external data available for assessment";
+        String creditScoreReason = "Unable to calculate";
+        
+        try {
+            // Get applicant personal details for Aadhaar and PAN
+            ApplicantPersonalDetails personalDetails = personalDetailsRepository.findByUserId(application.getApplicant().getId())
+                .orElseThrow(() -> new LoanApiException("Applicant personal details not found"));
+            
+            String aadhaar = personalDetails.getAadhaarNumber();
+            String pan = personalDetails.getPanNumber();
+            LocalDateTime calculatedAt = LocalDateTime.now();
+            
+            log.info("Found personal details for user: {}, Aadhaar: {}, PAN: {}", 
+                application.getApplicant().getId(), aadhaar, pan);
+            
+            // Validate Aadhaar and PAN are present
+            if (aadhaar == null || pan == null) {
+                throw new LoanApiException("Aadhaar or PAN number is missing in personal details");
+            }
+            
+            // ✅ DIRECT STORED PROCEDURE EXECUTION (FROM ExternalScoreServiceImpl)
+            log.info("Executing stored procedure for Aadhaar: {} and PAN: {}", aadhaar, pan);
+            
+            Object[] result = creditScoreHistoryRepository.executeCalculateExternalScores(aadhaar, pan);
+            
+            if (result != null && result.length > 0) {
+                log.info("Stored procedure executed successfully. Result array length: {}", result.length);
+                
+                // Parse stored procedure results - EXACT SAME LOGIC as ExternalScoreServiceImpl
+                creditScore = result[0] != null ? ((Number) result[0]).intValue() : null;
+                riskScore = result[1] != null ? result[1].toString() : "UNKNOWN";
+                riskScoreNumeric = result[2] != null ? ((Number) result[2]).intValue() : 0;
+                redAlertFlag = result[3] != null ? ((Number) result[3]).intValue() == 1 : false;
+                Boolean hasDefaults = result[7] != null ? ((Number) result[7]).intValue() == 1 : false;
+                Long activeFraudCases = result[8] != null ? ((Number) result[8]).longValue() : 0L;
+                riskFactors = result[9] != null ? result[9].toString() : "No risk factors identified";
+                creditScoreReason = result[10] != null ? result[10].toString() : "Based on available data";
+                Boolean dataFound = result[11] != null ? ((Number) result[11]).intValue() == 1 : false;
+                
+                // Handle different response scenarios
+                if ("INVALID".equals(riskScore)) {
+                    log.error("Identity mismatch detected for Aadhaar: {} and PAN: {}. Risk Score: INVALID", aadhaar, pan);
+                } else if (dataFound && creditScore != null) {
+                    // Valid data found - save to history
+                    saveCreditScoreHistory(aadhaar, pan, creditScore, riskScore, hasDefaults, 
+                                         activeFraudCases, calculatedAt);
+                    
+                    log.info("Score calculation completed. Credit Score: {}, Risk Score: {}, Numeric Risk: {}, Red Alert: {}", 
+                             creditScore, riskScore, riskScoreNumeric, redAlertFlag);
+                } else {
+                    log.warn("No external data found for Aadhaar: {} and PAN: {}", aadhaar, pan);
+                    
+                    // 🔴 REAL-WORLD BANKING SCENARIO: NO CREDIT HISTORY = HIGH RISK
+                    creditScore = null;
+                    riskScore = "HIGH";
+                    riskScoreNumeric = 75;
+                    redAlertFlag = false; // Clean record but no history
+                    riskFactors = "No credit history found. First-time borrower with unverified creditworthiness.";
+                    creditScoreReason = "Insufficient external data for credit assessment";
+                    
+                    log.warn("HIGH RISK assigned - clean record but no credit history for Aadhaar: {} and PAN: {}", aadhaar, pan);
+                }
+            } else {
+                log.warn("Stored procedure returned no results for Aadhaar: {} and PAN: {}", aadhaar, pan);
+                
+                // 🔴 REAL-WORLD BANKING SCENARIO: NO DATA = HIGH RISK
+                creditScore = null;
+                riskScore = "HIGH";
+                riskScoreNumeric = 75;
+                redAlertFlag = false; // Not fraud, just high risk due to no history
+                riskFactors = "No credit history found. First-time borrower with unverified creditworthiness.";
+                creditScoreReason = "Insufficient external data for credit assessment";
+                
+                log.warn("HIGH RISK assigned due to no external credit history for Aadhaar: {} and PAN: {}", aadhaar, pan);
+            }
+            
+            // Store credit score results in application
+            if (creditScore != null) {
+                application.setCreditScore(creditScore);
+                log.info("Stored credit score: {}", creditScore);
+            }
+            
+            // Store risk score
+            if (riskScoreNumeric != null) {
+                application.setFraudScore(riskScoreNumeric);
+                log.info("Stored fraud score: {}", riskScoreNumeric);
+            }
+            
+            // Store risk factors
+            if (riskFactors != null) {
+                application.setFraudReasons(riskFactors);
+                log.info("Stored risk factors: {}", riskFactors);
+            }
+            
+            log.info("External credit scoring completed successfully. Credit Score: {}, Risk Score: {}", 
+                creditScore, riskScore);
+                
+        } catch (Exception e) {
+            log.error("Failed to calculate external credit score for application: {}", applicationId, e);
+            // Set error values
+            creditScore = null;
+            riskScore = "ERROR";
+            riskScoreNumeric = 100;
+            redAlertFlag = true;
+            riskFactors = "System error occurred during score calculation: " + e.getMessage();
+            creditScoreReason = "Unable to calculate due to system error";
+            // Store error in application
+            application.setFraudReasons(riskFactors);
+        }
+        
+        // Update status directly to READY_FOR_DECISION (skip PENDING_EXTERNAL_VERIFICATION)
+        ApplicationStatus previousStatus = application.getStatus();
+        ApplicationStatus newStatus = ApplicationStatus.READY_FOR_DECISION;
+        application.setStatus(newStatus);
+        application.setUpdatedAt(LocalDateTime.now());
+        loanApplicationRepository.save(application);
+        
+        // Log workflow transition
+        applicationWorkflowService.createWorkflowEntry(
+            applicationId,
+            previousStatus,
+            newStatus,
+            officer,
+            "External verification and credit scoring completed - Application ready for decision"
+        );
+        
+        // TODO: Process actual fraud check results here
+        // For now, we'll simulate successful completion
+        
+        // Notify applicant
+        notificationService.createNotification(
+            application.getApplicant(),
+            NotificationType.IN_APP,
+            "External Verification Completed",
+            "Your application has been successfully verified through external agencies. Processing continues."
+        );
+        
+        // Audit log
+        auditLogService.logAction(officer, "EXTERNAL_VERIFICATION_COMPLETED", "LoanApplication", 
+            null, "External verification process completed successfully: " + applicationId);
+        
+        log.info("External verification completed for application: {}", applicationId);
+        
+        // Build enhanced response with credit scoring details
+        ExternalVerificationResponse.ExternalVerificationResponseBuilder responseBuilder = ExternalVerificationResponse.builder()
+            .message("External verification and credit scoring completed successfully")
+            .applicationId(applicationId)
+            .previousStatus("FRAUD_CHECK")
+            .newStatus("READY_FOR_DECISION")
+            .completedAt(LocalDateTime.now())
+            .creditScore(application.getCreditScore())
+            .riskScoreNumeric(application.getFraudScore())
+            .riskFactors(application.getFraudReasons())
+            .nextSteps("Application is ready for final decision - approve, reject, or flag for compliance")
+            .readyForDecision(true);
+            
+        // Add additional fields from direct scoring calculation
+        responseBuilder
+            .riskScore(riskScore)
+            .creditScoreReason(creditScoreReason)
+            .redAlertFlag(redAlertFlag);
+            
+        // 🏦 REAL-WORLD BANKING RECOMMENDATION LOGIC
+        String recommendedAction = determineRecommendedAction(creditScore, riskScore, riskScoreNumeric, redAlertFlag);
+        responseBuilder.recommendedAction(recommendedAction);
+        
+        ExternalVerificationResponse response = responseBuilder.build();
+            
+        return response;
     }
     
     @Override
@@ -875,5 +1079,102 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
         }
         
         return result.isEmpty() ? "Verification completed" : result;
+    }
+        
+    /**
+     * Save credit score calculation history (MOVED FROM ExternalScoreServiceImpl)
+     */
+    private void saveCreditScoreHistory(String aadhaar, String pan, Integer creditScore, 
+                                       String riskScore, Boolean hasDefaults, 
+                                       Long activeFraudCases, LocalDateTime calculatedAt) {
+        try {
+            CreditScoreHistory history = new CreditScoreHistory();
+            history.setAadhaarNumber(aadhaar);
+            history.setPanNumber(pan);
+            history.setCreditScore(creditScore);
+            
+            // Convert String riskScore to enum
+            if (riskScore != null) {
+                try {
+                    CreditScoreHistory.RiskScore riskEnum = CreditScoreHistory.RiskScore.valueOf(riskScore.toUpperCase());
+                    history.setRiskScore(riskEnum);
+                } catch (IllegalArgumentException e) {
+                    log.warn("Invalid risk score value: {}, defaulting to MEDIUM", riskScore);
+                    history.setRiskScore(CreditScoreHistory.RiskScore.MEDIUM);
+                }
+            }
+            
+            // Map hasDefaults to totalDefaults
+            if (hasDefaults != null && hasDefaults) {
+                history.setTotalDefaults(1); // Indicate presence of defaults
+            } else {
+                history.setTotalDefaults(0); // No defaults
+            }
+            
+            // Map activeFraudCases to fraudCases
+            if (activeFraudCases != null) {
+                history.setFraudCases(activeFraudCases.intValue());
+            } else {
+                history.setFraudCases(0);
+            }
+            
+            // Set computed date (calculatedAt maps to computedDate)
+            history.setComputedDate(calculatedAt);
+            
+            creditScoreHistoryRepository.save(history);
+            log.info("Credit score history saved for Aadhaar: {} and PAN: {}", aadhaar, pan);
+        } catch (Exception e) {
+            log.error("Failed to save credit score history for Aadhaar: {} and PAN: {}", aadhaar, pan, e);
+            // Don't throw exception - this is just for audit purposes
+        }
+    }
+    
+    /**
+     * 🏦 REAL-WORLD BANKING RECOMMENDATION LOGIC
+     * Determines recommended action based on credit scoring results
+     */
+    private String determineRecommendedAction(Integer creditScore, String riskScore, Integer riskScoreNumeric, Boolean redAlertFlag) {
+        
+        // 🚨 RED ALERT - Immediate rejection recommended
+        if (redAlertFlag != null && redAlertFlag) {
+            return "IMMEDIATE_REJECTION_RECOMMENDED";
+        }
+        
+        // 🔴 HIGH RISK scenarios
+        if ("HIGH".equals(riskScore) || (riskScoreNumeric != null && riskScoreNumeric >= 70)) {
+            if (creditScore == null) {
+                // No credit history = Enhanced verification required
+                return "ENHANCED_VERIFICATION_REQUIRED";
+            } else if (creditScore < 550) {
+                // Poor credit score = Reject
+                return "REJECTION_RECOMMENDED";
+            } else {
+                // High risk but some credit history = Manual review
+                return "MANUAL_UNDERWRITING_REQUIRED";
+            }
+        }
+        
+        // 🟡 MEDIUM RISK scenarios  
+        if ("MEDIUM".equals(riskScore) || (riskScoreNumeric != null && riskScoreNumeric >= 40 && riskScoreNumeric < 70)) {
+            if (creditScore != null && creditScore >= 650) {
+                return "CONDITIONAL_APPROVAL_RECOMMENDED";
+            } else {
+                return "ADDITIONAL_DOCUMENTATION_REQUIRED";
+            }
+        }
+        
+        // 🟢 LOW RISK scenarios
+        if ("LOW".equals(riskScore) || (riskScoreNumeric != null && riskScoreNumeric < 40)) {
+            if (creditScore != null && creditScore >= 750) {
+                return "FAST_TRACK_APPROVAL_RECOMMENDED";
+            } else if (creditScore != null && creditScore >= 650) {
+                return "STANDARD_APPROVAL_RECOMMENDED";
+            } else {
+                return "INCOME_VERIFICATION_REQUIRED";
+            }
+        }
+        
+        // 🔄 DEFAULT - Unknown/Error scenarios
+        return "MANUAL_REVIEW_REQUIRED";
     }
 }

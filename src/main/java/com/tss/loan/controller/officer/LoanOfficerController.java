@@ -15,13 +15,18 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.tss.loan.dto.request.ComplianceFlagRequest;
 import com.tss.loan.dto.request.DocumentResubmissionRequest;
 import com.tss.loan.dto.request.DocumentVerificationRequest;
+import com.tss.loan.dto.request.LoanDecisionRequest;
 import com.tss.loan.dto.response.CompleteApplicationDetailsResponse;
 import com.tss.loan.dto.response.DocumentResubmissionResponse;
+import com.tss.loan.dto.response.ExternalVerificationResponse;
 import com.tss.loan.dto.response.LoanApplicationResponse;
+import com.tss.loan.dto.response.LoanDecisionResponse;
 import com.tss.loan.dto.response.OfficerDashboardResponse;
 import com.tss.loan.entity.user.User;
+import com.tss.loan.service.DecisionManagementService;
 import com.tss.loan.service.LoanOfficerService;
 import com.tss.loan.service.UserService;
 
@@ -36,6 +41,9 @@ public class LoanOfficerController {
     
     @Autowired
     private LoanOfficerService loanOfficerService;
+    
+    @Autowired
+    private DecisionManagementService decisionManagementService;
     
     @Autowired
     private UserService userService;
@@ -148,6 +156,22 @@ public class LoanOfficerController {
     }
     
     /**
+     * Complete external verification (fraud check) with credit scoring
+     */
+    @PostMapping("/applications/{applicationId}/complete-external-verification")
+    public ResponseEntity<ExternalVerificationResponse> completeExternalVerification(
+            @PathVariable UUID applicationId,
+            Authentication authentication) {
+        
+        log.info("Officer {} completing external verification for application: {}", authentication.getName(), applicationId);
+        
+        User officer = getCurrentUser(authentication);
+        ExternalVerificationResponse response = loanOfficerService.completeExternalVerification(applicationId, officer);
+        
+        return ResponseEntity.ok(response);
+    }
+    
+    /**
      * Get applications ready for final decision
      */
     @GetMapping("/ready-for-decision")
@@ -173,6 +197,57 @@ public class LoanOfficerController {
         
         User officer = getCurrentUser(authentication);
         DocumentResubmissionResponse response = loanOfficerService.requestDocumentResubmission(applicationId, request, officer);
+        
+        return ResponseEntity.ok(response);
+    }
+    
+    /**
+     * Approve loan application
+     */
+    @PostMapping("/applications/{applicationId}/approve")
+    public ResponseEntity<LoanDecisionResponse> approveLoanApplication(
+            @PathVariable UUID applicationId,
+            @Valid @RequestBody LoanDecisionRequest request,
+            Authentication authentication) {
+        
+        log.info("Officer {} approving application: {}", authentication.getName(), applicationId);
+        
+        User officer = getCurrentUser(authentication);
+        LoanDecisionResponse response = decisionManagementService.approveLoanApplication(applicationId, request, officer);
+        
+        return ResponseEntity.ok(response);
+    }
+    
+    /**
+     * Reject loan application
+     */
+    @PostMapping("/applications/{applicationId}/reject")
+    public ResponseEntity<LoanDecisionResponse> rejectLoanApplication(
+            @PathVariable UUID applicationId,
+            @Valid @RequestBody LoanDecisionRequest request,
+            Authentication authentication) {
+        
+        log.info("Officer {} rejecting application: {}", authentication.getName(), applicationId);
+        
+        User officer = getCurrentUser(authentication);
+        LoanDecisionResponse response = decisionManagementService.rejectLoanApplication(applicationId, request, officer);
+        
+        return ResponseEntity.ok(response);
+    }
+    
+    /**
+     * Flag application for compliance review
+     */
+    @PostMapping("/applications/{applicationId}/flag-for-compliance")
+    public ResponseEntity<LoanDecisionResponse> flagForCompliance(
+            @PathVariable UUID applicationId,
+            @Valid @RequestBody ComplianceFlagRequest request,
+            Authentication authentication) {
+        
+        log.info("Officer {} flagging application for compliance: {}", authentication.getName(), applicationId);
+        
+        User officer = getCurrentUser(authentication);
+        LoanDecisionResponse response = decisionManagementService.flagForCompliance(applicationId, request, officer);
         
         return ResponseEntity.ok(response);
     }
