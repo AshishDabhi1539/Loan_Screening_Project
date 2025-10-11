@@ -210,6 +210,19 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
     }
     
     @Override
+    public CompleteApplicationDetailsResponse getCompleteApplicationDetailsInternal(UUID applicationId) {
+        log.info("Internal service requesting complete details for application: {}", applicationId);
+        
+        LoanApplication application = loanApplicationRepository.findById(applicationId)
+            .orElseThrow(() -> new LoanApiException("Application not found: " + applicationId));
+        
+        // Build complete application details response without officer validation
+        CompleteApplicationDetailsResponse response = buildCompleteApplicationDetails(application);
+        
+        return response;
+    }
+    
+    @Override
     public void startDocumentVerification(UUID applicationId, User officer) {
         log.info("Starting document verification for application: {}", applicationId);
         

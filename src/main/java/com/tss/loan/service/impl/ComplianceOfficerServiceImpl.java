@@ -145,8 +145,14 @@ public class ComplianceOfficerServiceImpl implements ComplianceOfficerService {
             throw new LoanApiException("You do not have authority to view this application");
         }
         
-        // Reuse the loan officer service method for getting complete details
-        return loanOfficerService.getCompleteApplicationDetails(applicationId, complianceOfficer);
+        // Use internal method to bypass security restrictions
+        CompleteApplicationDetailsResponse response = loanOfficerService.getCompleteApplicationDetailsInternal(applicationId);
+        
+        // Log audit event for compliance officer access
+        auditLogService.logAction(complianceOfficer, "COMPLIANCE_COMPLETE_APPLICATION_DETAILS_ACCESSED", "LoanApplication", 
+            null, "Compliance officer accessed complete application details for review: " + applicationId);
+        
+        return response;
     }
     
     @Override

@@ -48,6 +48,13 @@ public interface LoanOfficerService {
     CompleteApplicationDetailsResponse getCompleteApplicationDetails(UUID applicationId, User officer);
     
     /**
+     * Get complete application details without officer validation (for internal service use)
+     * @param applicationId The application ID
+     * @return Complete application details with all verification sections
+     */
+    CompleteApplicationDetailsResponse getCompleteApplicationDetailsInternal(UUID applicationId);
+    
+    /**
      * Start document verification process
      * @param applicationId The application ID
      * @param officer The loan officer
