@@ -38,7 +38,6 @@ public class ExternalScoreServiceIntegrationTest {
     private static final String TEST_AADHAAR = "123456789012";
     private static final String TEST_PAN = "ABCDE1234F";
     private static final String DIFFERENT_AADHAAR = "987654321098";
-    private static final String DIFFERENT_PAN = "ZZZZZ9999Z";
 
     @BeforeEach
     void setUp() {
