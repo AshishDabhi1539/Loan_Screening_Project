@@ -61,10 +61,6 @@ public class LoanApplicationMapper {
                 .updatedAt(entity.getUpdatedAt())
                 .version(entity.getVersion())
                 
-                // Counts (NO circular reference)
-                .documentsCount(entity.getDocuments() != null ? entity.getDocuments().size() : 0)
-                .fraudCheckResultsCount(entity.getFraudCheckResults() != null ? entity.getFraudCheckResults().size() : 0)
-                
                 // Status flags
                 .hasPersonalDetails(entity.getApplicant() != null && hasPersonalDetails(entity.getApplicant().getId()))
                 .hasFinancialProfile(entity.getFinancialProfile() != null)

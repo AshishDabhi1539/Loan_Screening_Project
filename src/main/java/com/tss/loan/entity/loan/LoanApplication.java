@@ -101,7 +101,9 @@ public class LoanApplication {
     @JoinColumn(name = "assigned_officer_id")
     private User assignedOfficer;
     
-    // Removed complianceOfficer - use assignedOfficer for all reviews
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assigned_compliance_officer_id")
+    private User assignedComplianceOfficer;
     
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -162,9 +164,6 @@ public class LoanApplication {
     
     @OneToMany(mappedBy = "loanApplication", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<LoanDocument> documents;
-    
-    @OneToMany(mappedBy = "loanApplication", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<com.tss.loan.entity.fraud.FraudCheckResult> fraudCheckResults;
     
     @PrePersist
     protected void onCreate() {

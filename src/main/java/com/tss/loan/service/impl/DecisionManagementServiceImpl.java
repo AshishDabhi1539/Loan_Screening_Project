@@ -10,6 +10,7 @@ import com.tss.loan.entity.loan.LoanApplication;
 import com.tss.loan.entity.user.User;
 import com.tss.loan.exception.LoanApiException;
 import com.tss.loan.repository.LoanApplicationRepository;
+import com.tss.loan.service.ApplicationAssignmentService;
 import com.tss.loan.service.ApplicationWorkflowService;
 import com.tss.loan.service.AuditLogService;
 import com.tss.loan.service.DecisionManagementService;
@@ -38,6 +39,9 @@ public class DecisionManagementServiceImpl implements DecisionManagementService 
     
     @Autowired
     private AuditLogService auditLogService;
+    
+    @Autowired
+    private ApplicationAssignmentService assignmentService;
     
     @Override
     public LoanDecisionResponse approveLoanApplication(UUID applicationId, LoanDecisionRequest request, User decisionMaker) {
@@ -174,6 +178,23 @@ public class DecisionManagementServiceImpl implements DecisionManagementService 
             (request.getAdditionalDetails() != null ? " | " + request.getAdditionalDetails() : ""));
         application.setUpdatedAt(LocalDateTime.now());
         
+        // Auto-assign compliance officer
+        try {
+            User assignedComplianceOfficer = assignmentService.assignToComplianceOfficer(
+                application, request.getFlagReason(), request.getPriorityLevel());
+            
+            if (assignedComplianceOfficer != null) {
+                application.setAssignedComplianceOfficer(assignedComplianceOfficer);
+                log.info("Auto-assigned compliance officer {} to application {}", 
+                    assignedComplianceOfficer.getEmail(), applicationId);
+            } else {
+                log.warn("No available compliance officer found for application {}", applicationId);
+            }
+        } catch (Exception e) {
+            log.error("Failed to auto-assign compliance officer for application {}: {}", applicationId, e.getMessage());
+            // Continue processing even if assignment fails
+        }
+        
         // Save application
         LoanApplication savedApplication = loanApplicationRepository.save(application);
         
@@ -186,9 +207,11 @@ public class DecisionManagementServiceImpl implements DecisionManagementService 
         }
         
         // Log audit event
+        String assignmentInfo = savedApplication.getAssignedComplianceOfficer() != null ? 
+            " Assigned to: " + savedApplication.getAssignedComplianceOfficer().getEmail() : " No officer assigned";
         auditLogService.logAction(officer, "APPLICATION_FLAGGED_FOR_COMPLIANCE", "LoanApplication", null,
-            String.format("Application flagged for compliance review. Reason: %s. Priority: %s",
-                request.getFlagReason(), request.getPriorityLevel()));
+            String.format("Application flagged for compliance review. Reason: %s. Priority: %s.%s",
+                request.getFlagReason(), request.getPriorityLevel(), assignmentInfo));
         
         // Send notification to compliance officers (placeholder)
         // notificationService.sendComplianceFlagNotification(savedApplication, officer, request);

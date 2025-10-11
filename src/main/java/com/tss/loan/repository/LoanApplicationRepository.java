@@ -31,5 +31,10 @@ public interface LoanApplicationRepository extends JpaRepository<LoanApplication
     // Methods needed for assignment service
     int countByAssignedOfficerAndStatusIn(User assignedOfficer, List<ApplicationStatus> statuses);
     
+    // Methods needed for compliance officer assignment service
+    int countByAssignedComplianceOfficerAndStatusIn(User assignedComplianceOfficer, List<ApplicationStatus> statuses);
+    
     List<LoanApplication> findByAssignedOfficerOrderByCreatedAtDesc(User assignedOfficer);
+    
+    List<LoanApplication> findByAssignedComplianceOfficerOrderByCreatedAtDesc(User assignedComplianceOfficer);
 }

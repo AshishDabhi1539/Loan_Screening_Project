@@ -116,4 +116,90 @@ public class ApplicationAssignmentServiceImpl implements ApplicationAssignmentSe
             .filter(this::hasCapacity)
             .min(Comparator.comparing(this::getCurrentWorkload));
     }
+    
+    // =====================================================
+    // COMPLIANCE OFFICER ASSIGNMENT METHODS
+    // =====================================================
+    
+    @Override
+    public User assignToComplianceOfficer(LoanApplication application, String flagReason, String priorityLevel) {
+        log.info("Auto-assigning application {} to compliance officer. Priority: {}, Reason: {}", 
+            application.getId(), priorityLevel, flagReason);
+        
+        User assignedComplianceOfficer = getBestAvailableComplianceOfficer(priorityLevel);
+        
+        if (assignedComplianceOfficer == null) {
+            log.error("No available compliance officer found for application {}", application.getId());
+            throw new RuntimeException("No available compliance officer found");
+        }
+        
+        // Update application with assigned compliance officer
+        application.setAssignedComplianceOfficer(assignedComplianceOfficer);
+        loanApplicationRepository.save(application);
+        
+        log.info("Application {} assigned to compliance officer {} ({})", 
+            application.getId(), assignedComplianceOfficer.getId(), assignedComplianceOfficer.getEmail());
+        
+        return assignedComplianceOfficer;
+    }
+    
+    @Override
+    public User getBestAvailableComplianceOfficer(String priorityLevel) {
+        log.debug("Finding best available compliance officer for priority: {}", priorityLevel);
+        
+        // For HIGH priority cases, prefer senior compliance officers
+        if ("HIGH".equals(priorityLevel)) {
+            Optional<User> seniorComplianceOfficer = findAvailableSeniorComplianceOfficer();
+            if (seniorComplianceOfficer.isPresent()) {
+                log.debug("Assigned senior compliance officer for high priority case");
+                return seniorComplianceOfficer.get();
+            }
+        }
+        
+        // Find regular compliance officer with least workload
+        List<User> availableComplianceOfficers = userRepository.findByRoleAndStatus(
+            RoleType.COMPLIANCE_OFFICER, UserStatus.ACTIVE);
+        
+        return availableComplianceOfficers.stream()
+            .filter(this::hasComplianceCapacity)
+            .min(Comparator.comparing(this::getCurrentComplianceWorkload))
+            .orElse(null);
+    }
+    
+    @Override
+    public int getCurrentComplianceWorkload(User complianceOfficer) {
+        // Count applications in compliance-related statuses
+        List<ApplicationStatus> complianceStatuses = List.of(
+            ApplicationStatus.FLAGGED_FOR_COMPLIANCE,
+            ApplicationStatus.COMPLIANCE_REVIEW,
+            ApplicationStatus.PENDING_COMPLIANCE_DOCS
+        );
+        
+        return loanApplicationRepository.countByAssignedComplianceOfficerAndStatusIn(complianceOfficer, complianceStatuses);
+    }
+    
+    /**
+     * Check if compliance officer has capacity for new cases
+     */
+    private boolean hasComplianceCapacity(User complianceOfficer) {
+        int currentWorkload = getCurrentComplianceWorkload(complianceOfficer);
+        boolean hasCapacity = currentWorkload < MAX_WORKLOAD_PER_OFFICER; // Same limit as loan officers
+        
+        log.debug("Compliance Officer {} has workload: {}/{}, hasCapacity: {}", 
+            complianceOfficer.getEmail(), currentWorkload, MAX_WORKLOAD_PER_OFFICER, hasCapacity);
+        
+        return hasCapacity;
+    }
+    
+    /**
+     * Find available senior compliance officer for high-priority cases
+     */
+    private Optional<User> findAvailableSeniorComplianceOfficer() {
+        List<User> seniorComplianceOfficers = userRepository.findByRoleAndStatus(
+            RoleType.SENIOR_COMPLIANCE_OFFICER, UserStatus.ACTIVE);
+        
+        return seniorComplianceOfficers.stream()
+            .filter(this::hasComplianceCapacity)
+            .min(Comparator.comparing(this::getCurrentComplianceWorkload));
+    }
 }
