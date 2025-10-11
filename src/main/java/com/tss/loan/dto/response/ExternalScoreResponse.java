@@ -1,8 +1,5 @@
 package com.tss.loan.dto.response;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -10,7 +7,7 @@ import lombok.NoArgsConstructor;
 
 /**
  * External Score Response DTO
- * Contains calculated credit score and risk assessment from external database
+ * Contains only essential credit score and risk assessment information
  */
 @Data
 @NoArgsConstructor
@@ -24,9 +21,9 @@ public class ExternalScoreResponse {
     private Integer creditScore;
     
     /**
-     * Risk level assessment
+     * Risk level assessment (HIGH, MEDIUM, LOW)
      */
-    private String riskScore; // HIGH, MEDIUM, LOW
+    private String riskScore;
     
     /**
      * Numeric risk score (0-100 scale)
@@ -37,41 +34,6 @@ public class ExternalScoreResponse {
      * Red alert flag for extremely high risk (≥90)
      */
     private Boolean redAlertFlag;
-    
-    /**
-     * Timestamp when scores were calculated
-     */
-    private LocalDateTime calculatedAt;
-    
-    /**
-     * Whether any data was found for the provided Aadhaar/PAN
-     */
-    private Boolean dataFound;
-    
-    /**
-     * Total outstanding loan amount
-     */
-    private BigDecimal totalOutstanding;
-    
-    /**
-     * Number of active loans
-     */
-    private Long activeLoansCount;
-    
-    /**
-     * Number of missed payments
-     */
-    private Long totalMissedPayments;
-    
-    /**
-     * Whether person has any defaults
-     */
-    private Boolean hasDefaults;
-    
-    /**
-     * Number of active fraud cases
-     */
-    private Long activeFraudCases;
     
     /**
      * Additional risk factors found

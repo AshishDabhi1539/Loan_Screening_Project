@@ -12,7 +12,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
@@ -49,14 +48,12 @@ public class ExternalScoreServiceImpl implements ExternalScoreService {
             
             log.info("Stored procedure executed successfully. Result array length: {}", result.length);
             
-            // Parse stored procedure results (updated with new fields)
+            // Parse stored procedure results - only required fields
             Integer creditScore = result[0] != null ? ((Number) result[0]).intValue() : null;
             String riskScore = result[1] != null ? result[1].toString() : "UNKNOWN";
             Integer riskScoreNumeric = result[2] != null ? ((Number) result[2]).intValue() : 0;
             Boolean redAlertFlag = result[3] != null ? ((Number) result[3]).intValue() == 1 : false;
-            BigDecimal totalOutstanding = result[4] != null ? new BigDecimal(result[4].toString()) : BigDecimal.ZERO;
-            Long activeLoansCount = result[5] != null ? ((Number) result[5]).longValue() : 0L;
-            Long totalMissedPayments = result[6] != null ? ((Number) result[6]).longValue() : 0L;
+            // Skip indices 4-8 (totalOutstanding, activeLoansCount, totalMissedPayments, hasDefaults, activeFraudCases)
             Boolean hasDefaults = result[7] != null ? ((Number) result[7]).intValue() == 1 : false;
             Long activeFraudCases = result[8] != null ? ((Number) result[8]).longValue() : 0L;
             String riskFactors = result[9] != null ? result[9].toString() : "No risk factors identified";
@@ -78,19 +75,12 @@ public class ExternalScoreServiceImpl implements ExternalScoreService {
                 log.warn("No external data found for Aadhaar: {} and PAN: {}", aadhaar, pan);
             }
             
-            // Build response from stored procedure results
+            // Build response with only required fields
             return ExternalScoreResponse.builder()
                     .creditScore(creditScore)
                     .riskScore(riskScore)
                     .riskScoreNumeric(riskScoreNumeric)
                     .redAlertFlag(redAlertFlag)
-                    .calculatedAt(calculatedAt)
-                    .dataFound(dataFound)
-                    .totalOutstanding(totalOutstanding)
-                    .activeLoansCount(activeLoansCount)
-                    .totalMissedPayments(totalMissedPayments)
-                    .hasDefaults(hasDefaults)
-                    .activeFraudCases(activeFraudCases)
                     .riskFactors(riskFactors)
                     .creditScoreReason(creditScoreReason)
                     .build();
@@ -105,13 +95,6 @@ public class ExternalScoreServiceImpl implements ExternalScoreService {
                     .riskScore("ERROR")
                     .riskScoreNumeric(100)
                     .redAlertFlag(true)
-                    .calculatedAt(calculatedAt)
-                    .dataFound(false)
-                    .totalOutstanding(BigDecimal.ZERO)
-                    .activeLoansCount(0L)
-                    .totalMissedPayments(0L)
-                    .hasDefaults(false)
-                    .activeFraudCases(0L)
                     .riskFactors("System error occurred during score calculation: " + e.getMessage())
                     .creditScoreReason("Unable to calculate due to system error")
                     .build();
@@ -151,13 +134,6 @@ public class ExternalScoreServiceImpl implements ExternalScoreService {
                 .riskScore("UNKNOWN")
                 .riskScoreNumeric(0)
                 .redAlertFlag(false)
-                .calculatedAt(calculatedAt)
-                .dataFound(false)
-                .totalOutstanding(BigDecimal.ZERO)
-                .activeLoansCount(0L)
-                .totalMissedPayments(0L)
-                .hasDefaults(false)
-                .activeFraudCases(0L)
                 .riskFactors("No external data available for assessment")
                 .creditScoreReason("Insufficient data for credit score calculation")
                 .build();
