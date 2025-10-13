@@ -25,7 +25,7 @@ public class ExternalVerificationResponse {
     
     // Credit Scoring Results
     private Integer creditScore;
-    private String riskScore;
+    private String riskType;
     private Integer riskScoreNumeric;
     private String riskFactors;
     private String creditScoreReason;

@@ -57,21 +57,21 @@ public class ExternalScoreController {
             ExternalScoreResponse response = externalScoreService.calculateScores(request);
             
             // Log different response scenarios
-            if ("INVALID".equals(response.getRiskScore())) {
+            if ("INVALID".equals(response.getRiskType())) {
                 log.warn("Identity mismatch detected in score calculation for Aadhaar: {} and PAN: {}", 
                          request.getAadhaarNumber(), request.getPanNumber());
                 return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
-            } else if ("ERROR".equals(response.getRiskScore())) {
+            } else if ("ERROR".equals(response.getRiskType())) {
                 log.error("System error occurred during score calculation for Aadhaar: {} and PAN: {}", 
                           request.getAadhaarNumber(), request.getPanNumber());
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-            } else if ("UNKNOWN".equals(response.getRiskScore())) {
+            } else if ("UNKNOWN".equals(response.getRiskType())) {
                 log.info("No external data found for Aadhaar: {} and PAN: {}", 
                          request.getAadhaarNumber(), request.getPanNumber());
                 return ResponseEntity.ok(response);
             } else {
                 log.info("External score calculation completed successfully. Credit Score: {}, Risk Score: {}, Numeric Risk: {}", 
-                         response.getCreditScore(), response.getRiskScore(), response.getRiskScoreNumeric());
+                         response.getCreditScore(), response.getRiskType(), response.getRiskScoreNumeric());
                 return ResponseEntity.ok(response);
             }
             
@@ -82,7 +82,7 @@ public class ExternalScoreController {
             // Return error response
             ExternalScoreResponse errorResponse = ExternalScoreResponse.builder()
                     .creditScore(null)
-                    .riskScore("ERROR")
+                    .riskType("ERROR")
                     .riskScoreNumeric(100)
                     .redAlertFlag(true)
                     .riskFactors("Unexpected system error: " + e.getMessage())

@@ -78,7 +78,7 @@ public class ExternalScoreServiceImpl implements ExternalScoreService {
             // Build response with only required fields
             return ExternalScoreResponse.builder()
                     .creditScore(creditScore)
-                    .riskScore(riskScore)
+                    .riskType(riskScore)
                     .riskScoreNumeric(riskScoreNumeric)
                     .redAlertFlag(redAlertFlag)
                     .riskFactors(riskFactors)
@@ -92,7 +92,7 @@ public class ExternalScoreServiceImpl implements ExternalScoreService {
             // Return error response with red alert for system errors
             return ExternalScoreResponse.builder()
                     .creditScore(null)
-                    .riskScore("ERROR")
+                    .riskType("ERROR")
                     .riskScoreNumeric(100)
                     .redAlertFlag(true)
                     .riskFactors("System error occurred during score calculation: " + e.getMessage())
@@ -131,7 +131,7 @@ public class ExternalScoreServiceImpl implements ExternalScoreService {
     private ExternalScoreResponse buildNoDataResponse(LocalDateTime calculatedAt) {
         return ExternalScoreResponse.builder()
                 .creditScore(null)
-                .riskScore("UNKNOWN")
+                .riskType("UNKNOWN")
                 .riskScoreNumeric(0)
                 .redAlertFlag(false)
                 .riskFactors("No external data available for assessment")

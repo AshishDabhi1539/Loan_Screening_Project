@@ -439,8 +439,8 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
         
         // Initialize scoring variables
         Integer creditScore = null;
-        String riskScore = "UNKNOWN";
-        Integer riskScoreNumeric = 0;
+        String riskType = "UNKNOWN";
+        Integer riskTypeNumeric = 0;
         Boolean redAlertFlag = false;
         String riskFactors = "No external data available for assessment";
         String creditScoreReason = "Unable to calculate";
@@ -472,8 +472,8 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
                 
                 // Parse stored procedure results - EXACT SAME LOGIC as ExternalScoreServiceImpl
                 creditScore = result[0] != null ? ((Number) result[0]).intValue() : null;
-                riskScore = result[1] != null ? result[1].toString() : "UNKNOWN";
-                riskScoreNumeric = result[2] != null ? ((Number) result[2]).intValue() : 0;
+                riskType = result[1] != null ? result[1].toString() : "UNKNOWN";
+                riskTypeNumeric = result[2] != null ? ((Number) result[2]).intValue() : 0;
                 redAlertFlag = result[3] != null ? ((Number) result[3]).intValue() == 1 : false;
                 Boolean hasDefaults = result[7] != null ? ((Number) result[7]).intValue() == 1 : false;
                 Long activeFraudCases = result[8] != null ? ((Number) result[8]).longValue() : 0L;
@@ -482,23 +482,23 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
                 Boolean dataFound = result[11] != null ? ((Number) result[11]).intValue() == 1 : false;
                 
                 // Handle different response scenarios
-                if ("INVALID".equals(riskScore)) {
+                if ("INVALID".equals(riskType)) {
                     log.error("Identity mismatch detected for Aadhaar: {} and PAN: {}. Risk Score: INVALID", aadhaar, pan);
                 } else if (dataFound && creditScore != null) {
                     // Valid data found - save to history
-                    saveCreditScoreHistory(aadhaar, pan, creditScore, riskScore, hasDefaults, 
+                    saveCreditScoreHistory(aadhaar, pan, creditScore, riskType, hasDefaults, 
                                          activeFraudCases, calculatedAt);
                     
                     log.info("Score calculation completed. Credit Score: {}, Risk Score: {}, Numeric Risk: {}, Red Alert: {}", 
-                             creditScore, riskScore, riskScoreNumeric, redAlertFlag);
+                             creditScore, riskType, riskTypeNumeric, redAlertFlag);
                 } else {
                     log.warn("No external data found for Aadhaar: {} and PAN: {}", aadhaar, pan);
                     
                     // 🔴 REAL-WORLD BANKING SCENARIO: NO CREDIT HISTORY = HIGH RISK
                     creditScore = null;
-                    riskScore = "HIGH";
-                    riskScoreNumeric = 75;
-                    redAlertFlag = false; // Clean record but no history
+                    riskType = "HIGH";
+                    riskTypeNumeric = 75;
+                    redAlertFlag = true; // Clean record but no history
                     riskFactors = "No credit history found. First-time borrower with unverified creditworthiness.";
                     creditScoreReason = "Insufficient external data for credit assessment";
                     
@@ -509,8 +509,8 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
                 
                 // 🔴 REAL-WORLD BANKING SCENARIO: NO DATA = HIGH RISK
                 creditScore = null;
-                riskScore = "HIGH";
-                riskScoreNumeric = 75;
+                riskType = "HIGH";
+                riskTypeNumeric = 75;
                 redAlertFlag = false; // Not fraud, just high risk due to no history
                 riskFactors = "No credit history found. First-time borrower with unverified creditworthiness.";
                 creditScoreReason = "Insufficient external data for credit assessment";
@@ -525,9 +525,9 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
             }
             
             // Store risk score
-            if (riskScoreNumeric != null) {
-                application.setFraudScore(riskScoreNumeric);
-                log.info("Stored fraud score: {}", riskScoreNumeric);
+            if (riskTypeNumeric != null) {
+                application.setFraudScore(riskTypeNumeric);
+                log.info("Stored fraud score: {}", riskTypeNumeric);
             }
             
             // Store risk factors
@@ -537,14 +537,14 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
             }
             
             log.info("External credit scoring completed successfully. Credit Score: {}, Risk Score: {}", 
-                creditScore, riskScore);
+                creditScore, riskType);
                 
         } catch (Exception e) {
             log.error("Failed to calculate external credit score for application: {}", applicationId, e);
             // Set error values
             creditScore = null;
-            riskScore = "ERROR";
-            riskScoreNumeric = 100;
+            riskType = "ERROR";
+            riskTypeNumeric = 100;
             redAlertFlag = true;
             riskFactors = "System error occurred during score calculation: " + e.getMessage();
             creditScoreReason = "Unable to calculate due to system error";
@@ -600,12 +600,12 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
             
         // Add additional fields from direct scoring calculation
         responseBuilder
-            .riskScore(riskScore)
+            .riskType(riskType)
             .creditScoreReason(creditScoreReason)
             .redAlertFlag(redAlertFlag);
             
         // 🏦 REAL-WORLD BANKING RECOMMENDATION LOGIC
-        String recommendedAction = determineRecommendedAction(creditScore, riskScore, riskScoreNumeric, redAlertFlag);
+        String recommendedAction = determineRecommendedAction(creditScore, riskType, riskTypeNumeric, redAlertFlag);
         responseBuilder.recommendedAction(recommendedAction);
         
         ExternalVerificationResponse response = responseBuilder.build();
@@ -1098,7 +1098,7 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
      * Save credit score calculation history (MOVED FROM ExternalScoreServiceImpl)
      */
     private void saveCreditScoreHistory(String aadhaar, String pan, Integer creditScore, 
-                                       String riskScore, Boolean hasDefaults, 
+                                       String riskType, Boolean hasDefaults, 
                                        Long activeFraudCases, LocalDateTime calculatedAt) {
         try {
             CreditScoreHistory history = new CreditScoreHistory();
@@ -1106,13 +1106,13 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
             history.setPanNumber(pan);
             history.setCreditScore(creditScore);
             
-            // Convert String riskScore to enum
-            if (riskScore != null) {
+            // Convert String riskType to enum
+            if (riskType != null) {
                 try {
-                    CreditScoreHistory.RiskScore riskEnum = CreditScoreHistory.RiskScore.valueOf(riskScore.toUpperCase());
+                    CreditScoreHistory.RiskScore riskEnum = CreditScoreHistory.RiskScore.valueOf(riskType.toUpperCase());
                     history.setRiskScore(riskEnum);
                 } catch (IllegalArgumentException e) {
-                    log.warn("Invalid risk score value: {}, defaulting to MEDIUM", riskScore);
+                    log.warn("Invalid risk score value: {}, defaulting to MEDIUM", riskType);
                     history.setRiskScore(CreditScoreHistory.RiskScore.MEDIUM);
                 }
             }
@@ -1146,7 +1146,7 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
      * 🏦 REAL-WORLD BANKING RECOMMENDATION LOGIC
      * Determines recommended action based on credit scoring results
      */
-    private String determineRecommendedAction(Integer creditScore, String riskScore, Integer riskScoreNumeric, Boolean redAlertFlag) {
+    private String determineRecommendedAction(Integer creditScore, String riskType, Integer riskTypeNumeric, Boolean redAlertFlag) {
         
         // 🚨 RED ALERT - Immediate rejection recommended
         if (redAlertFlag != null && redAlertFlag) {
@@ -1154,7 +1154,7 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
         }
         
         // 🔴 HIGH RISK scenarios
-        if ("HIGH".equals(riskScore) || (riskScoreNumeric != null && riskScoreNumeric >= 70)) {
+        if ("HIGH".equals(riskType) || (riskTypeNumeric != null && riskTypeNumeric >= 70)) {
             if (creditScore == null) {
                 // No credit history = Enhanced verification required
                 return "ENHANCED_VERIFICATION_REQUIRED";
@@ -1168,7 +1168,7 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
         }
         
         // 🟡 MEDIUM RISK scenarios  
-        if ("MEDIUM".equals(riskScore) || (riskScoreNumeric != null && riskScoreNumeric >= 40 && riskScoreNumeric < 70)) {
+        if ("MEDIUM".equals(riskType) || (riskTypeNumeric != null && riskTypeNumeric >= 40 && riskTypeNumeric < 70)) {
             if (creditScore != null && creditScore >= 650) {
                 return "CONDITIONAL_APPROVAL_RECOMMENDED";
             } else {
@@ -1177,7 +1177,7 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
         }
         
         // 🟢 LOW RISK scenarios
-        if ("LOW".equals(riskScore) || (riskScoreNumeric != null && riskScoreNumeric < 40)) {
+        if ("LOW".equals(riskType) || (riskTypeNumeric != null && riskTypeNumeric < 40)) {
             if (creditScore != null && creditScore >= 750) {
                 return "FAST_TRACK_APPROVAL_RECOMMENDED";
             } else if (creditScore != null && creditScore >= 650) {

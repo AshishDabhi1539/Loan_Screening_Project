@@ -23,7 +23,7 @@ public class ExternalScoreResponse {
     /**
      * Risk level assessment (HIGH, MEDIUM, LOW)
      */
-    private String riskScore;
+    private String riskType;
     
     /**
      * Numeric risk score (0-100 scale)

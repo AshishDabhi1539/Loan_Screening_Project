@@ -9,7 +9,7 @@ CREATE PROCEDURE CalculateExternalScores(
     IN p_aadhaar_number VARCHAR(12),
     IN p_pan_number VARCHAR(10),
     OUT p_credit_score INT,
-    OUT p_risk_score VARCHAR(10),
+    OUT p_risk_type VARCHAR(10),
     OUT p_risk_score_numeric INT,
     OUT p_red_alert_flag BOOLEAN,
     OUT p_total_outstanding DECIMAL(15,2),
@@ -37,7 +37,7 @@ BEGIN
     
     -- Initialize all output parameters first
     SET p_credit_score = NULL;
-    SET p_risk_score = 'UNKNOWN';
+    SET p_risk_type = 'UNKNOWN';
     SET p_risk_score_numeric = 0;
     SET p_red_alert_flag = FALSE;
     SET p_total_outstanding = 0;
@@ -86,7 +86,7 @@ BEGIN
         IF v_aadhaar_exists > 0 AND v_pan_exists > 0 THEN
             SET v_identity_valid = FALSE;
             SET p_data_found = FALSE;
-            SET p_risk_score = 'INVALID';
+            SET p_risk_type = 'INVALID';
             SET p_risk_score_numeric = 100;
             SET p_red_alert_flag = TRUE;
             SET p_risk_factors = '🚨 CRITICAL ERROR: Aadhaar and PAN belong to different persons. Identity verification failed.';
@@ -296,13 +296,13 @@ BEGIN
             -- Set risk level and red alert
             IF v_risk_points >= 90 THEN
                 SET p_red_alert_flag = TRUE;
-                SET p_risk_score = 'HIGH';
+                SET p_risk_type = 'HIGH';
             ELSEIF v_risk_points >= 60 THEN
-                SET p_risk_score = 'HIGH';
+                SET p_risk_type = 'HIGH';
             ELSEIF v_risk_points >= 25 THEN
-                SET p_risk_score = 'MEDIUM';
+                SET p_risk_type = 'MEDIUM';
             ELSE
-                SET p_risk_score = 'LOW';
+                SET p_risk_type = 'LOW';
             END IF;
             
             -- Build risk factors explanation
@@ -384,4 +384,4 @@ BEGIN
     
 END //
 
-DELIMITER ;
+DELIMITER ;  
