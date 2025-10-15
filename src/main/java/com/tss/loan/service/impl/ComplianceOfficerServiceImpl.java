@@ -13,6 +13,7 @@ import com.tss.loan.dto.request.ComplianceDecisionRequest;
 import com.tss.loan.dto.request.ComplianceDocumentRequest;
 import com.tss.loan.dto.response.ComplianceDashboardResponse;
 import com.tss.loan.dto.response.ComplianceDecisionResponse;
+import com.tss.loan.dto.response.ComplianceInvestigationResponse;
 import com.tss.loan.dto.response.CompleteApplicationDetailsResponse;
 import com.tss.loan.dto.response.LoanApplicationResponse;
 import com.tss.loan.entity.enums.ApplicationStatus;
@@ -21,6 +22,8 @@ import com.tss.loan.entity.loan.LoanApplication;
 import com.tss.loan.entity.user.User;
 import com.tss.loan.exception.LoanApiException;
 import com.tss.loan.mapper.LoanApplicationMapper;
+import com.tss.loan.repository.ApplicantPersonalDetailsRepository;
+import com.tss.loan.repository.ComplianceInvestigationRepository;
 import com.tss.loan.repository.LoanApplicationRepository;
 import com.tss.loan.service.ApplicationAssignmentService;
 import com.tss.loan.service.ApplicationWorkflowService;
@@ -46,6 +49,12 @@ public class ComplianceOfficerServiceImpl implements ComplianceOfficerService {
     
     @Autowired
     private AuditLogService auditLogService;
+    
+    @Autowired
+    private ComplianceInvestigationRepository complianceInvestigationRepository;
+    
+    @Autowired
+    private ApplicantPersonalDetailsRepository personalDetailsRepository;
     
     
     @Autowired
@@ -436,6 +445,69 @@ public class ComplianceOfficerServiceImpl implements ComplianceOfficerService {
         if (complianceNotes.contains("HIGH")) return "HIGH";
         if (complianceNotes.contains("LOW")) return "LOW";
         return "MEDIUM";
+    }
+    
+    @Override
+    public ComplianceInvestigationResponse performComprehensiveInvestigation(UUID applicationId, User complianceOfficer) {
+        log.info("Performing comprehensive compliance investigation for application: {} by officer: {}", 
+                applicationId, complianceOfficer.getEmail());
+        
+        // Validate compliance officer authority
+        if (!hasComplianceAuthority(applicationId, complianceOfficer)) {
+            throw new LoanApiException("You do not have authority to investigate this application");
+        }
+        
+        // Get the loan application
+        LoanApplication application = loanApplicationRepository.findById(applicationId)
+            .orElseThrow(() -> new LoanApiException("Application not found with ID: " + applicationId));
+        
+        // Get applicant's personal details to extract Aadhaar and PAN
+        String aadhaarNumber = null;
+        String panNumber = null;
+        
+        // Find personal details by user ID
+        var personalDetailsOpt = personalDetailsRepository.findByUserId(application.getApplicant().getId());
+        if (personalDetailsOpt.isPresent()) {
+            var personalDetails = personalDetailsOpt.get();
+            aadhaarNumber = personalDetails.getAadhaarNumber();
+            panNumber = personalDetails.getPanNumber();
+        }
+        
+        // Validate required data
+        if (aadhaarNumber == null || panNumber == null) {
+            throw new LoanApiException("Applicant's Aadhaar and PAN details are required for compliance investigation");
+        }
+        
+        try {
+            // Execute the comprehensive compliance investigation stored procedure
+            String investigationResultJson = complianceInvestigationRepository
+                .executeComprehensiveInvestigation(aadhaarNumber, panNumber);
+            
+            // Parse the JSON response from stored procedure
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            objectMapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
+            
+            ComplianceInvestigationResponse response = objectMapper.readValue(
+                investigationResultJson, ComplianceInvestigationResponse.class);
+            
+            // Log the investigation
+            auditLogService.logAction(complianceOfficer, "COMPLIANCE_INVESTIGATION_PERFORMED", 
+                "LoanApplication", null,
+                String.format("Comprehensive compliance investigation performed for application %s. " +
+                             "Overall Risk: %s, Investigation ID: %s", 
+                             applicationId, 
+                             response.getOverallAssessment().get("finalRiskLevel").asText(),
+                             response.getInvestigationId()));
+            
+            log.info("Compliance investigation completed successfully for application: {} with investigation ID: {}", 
+                    applicationId, response.getInvestigationId());
+            
+            return response;
+            
+        } catch (Exception e) {
+            log.error("Failed to perform compliance investigation for application {}: {}", applicationId, e.getMessage());
+            throw new LoanApiException("Failed to perform compliance investigation: " + e.getMessage());
+        }
     }
     
     private int getMaxCapacity(User complianceOfficer) {

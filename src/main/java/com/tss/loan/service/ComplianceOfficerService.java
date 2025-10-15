@@ -8,6 +8,7 @@ import com.tss.loan.dto.request.ComplianceDocumentRequest;
 import com.tss.loan.dto.response.ComplianceDashboardResponse;
 import com.tss.loan.dto.response.ComplianceDecisionResponse;
 import com.tss.loan.dto.response.CompleteApplicationDetailsResponse;
+import com.tss.loan.dto.response.ComplianceInvestigationResponse;
 import com.tss.loan.dto.response.LoanApplicationResponse;
 import com.tss.loan.entity.user.User;
 
@@ -85,4 +86,10 @@ public interface ComplianceOfficerService {
      * Get compliance workload statistics for officer
      */
     int getCurrentWorkload(User complianceOfficer);
+    
+    /**
+     * Perform comprehensive compliance investigation using stored procedure
+     * Returns the exact JSON response from SP_ComprehensiveComplianceInvestigation
+     */
+    ComplianceInvestigationResponse performComprehensiveInvestigation(UUID applicationId, User complianceOfficer);
 }

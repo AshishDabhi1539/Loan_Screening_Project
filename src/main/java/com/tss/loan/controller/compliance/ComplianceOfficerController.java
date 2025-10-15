@@ -19,6 +19,7 @@ import com.tss.loan.dto.request.ComplianceDecisionRequest;
 import com.tss.loan.dto.request.ComplianceDocumentRequest;
 import com.tss.loan.dto.response.ComplianceDashboardResponse;
 import com.tss.loan.dto.response.ComplianceDecisionResponse;
+import com.tss.loan.dto.response.ComplianceInvestigationResponse;
 import com.tss.loan.dto.response.CompleteApplicationDetailsResponse;
 import com.tss.loan.dto.response.LoanApplicationResponse;
 import com.tss.loan.entity.user.User;
@@ -219,6 +220,24 @@ public class ComplianceOfficerController {
         complianceOfficerService.escalateToSenior(applicationId, request, complianceOfficer);
         
         return ResponseEntity.ok("Application escalated to senior compliance officer successfully");
+    }
+    
+    /**
+     * Perform comprehensive compliance investigation using stored procedure
+     */
+    @PostMapping("/applications/{applicationId}/investigate")
+    public ResponseEntity<ComplianceInvestigationResponse> performComplianceInvestigation(
+            @PathVariable UUID applicationId,
+            Authentication authentication) {
+        
+        log.info("Compliance officer {} performing comprehensive investigation for application: {}", 
+                authentication.getName(), applicationId);
+        
+        User complianceOfficer = getCurrentUser(authentication);
+        ComplianceInvestigationResponse investigation = complianceOfficerService
+            .performComprehensiveInvestigation(applicationId, complianceOfficer);
+        
+        return ResponseEntity.ok(investigation);
     }
     
     private User getCurrentUser(Authentication authentication) {
