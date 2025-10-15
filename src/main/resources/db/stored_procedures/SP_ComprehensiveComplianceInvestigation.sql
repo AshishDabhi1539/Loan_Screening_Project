@@ -115,20 +115,21 @@ BEGIN
                 'EXPENSE_EXCEEDS_INCOME: Negative cash flow detected');
         END IF;
         
-        -- Determine banking risk level
-        IF v_banking_risk_score >= 80 THEN
-            SET v_banking_risk_level = 'LOW';
-        ELSEIF v_banking_risk_score >= 60 THEN
-            SET v_banking_risk_level = 'MEDIUM';
+        -- Determine banking risk level (reversed logic, with HIGH risk if no data)
+        IF v_has_banking_data = TRUE THEN
+            IF v_banking_risk_score >= 80 THEN
+                SET v_banking_risk_level = 'HIGH';
+            ELSEIF v_banking_risk_score >= 60 THEN
+                SET v_banking_risk_level = 'MEDIUM';
+            ELSE
+                SET v_banking_risk_level = 'LOW';
+            END IF;
         ELSE
+            SET v_banking_risk_score = 75;
             SET v_banking_risk_level = 'HIGH';
+            SET v_banking_tags = JSON_ARRAY_APPEND(v_banking_tags, '$', 
+                'NO_BANKING_DATA: No banking history found for verification');
         END IF;
-    ELSE
-        SET v_banking_risk_score = 75;
-        SET v_banking_risk_level = 'HIGH';
-        SET v_banking_tags = JSON_ARRAY_APPEND(v_banking_tags, '$', 
-            'NO_BANKING_DATA: No banking history found for verification');
-    END IF;
     
     -- =====================================================
     -- 2. FRAUD HISTORY ANALYSIS
