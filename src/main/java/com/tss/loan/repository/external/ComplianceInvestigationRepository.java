@@ -1,5 +1,6 @@
-package com.tss.loan.repository;
+package com.tss.loan.repository.external;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 
 import jakarta.persistence.EntityManager;
@@ -9,12 +10,14 @@ import jakarta.persistence.StoredProcedureQuery;
 
 /**
  * Repository for executing compliance investigation stored procedures
+ * Uses external database (external_authority_db) for compliance investigations
  */
 @Repository
 public class ComplianceInvestigationRepository {
     
-    @PersistenceContext
-    private EntityManager entityManager;
+    @PersistenceContext(unitName = "external")
+    @Qualifier("externalEntityManagerFactory")
+    private EntityManager externalEntityManager;
     
     /**
      * Execute comprehensive compliance investigation stored procedure
@@ -25,7 +28,7 @@ public class ComplianceInvestigationRepository {
      * @return JSON string containing the complete investigation result
      */
     public String executeComprehensiveInvestigation(String aadhaarNumber, String panNumber) {
-        StoredProcedureQuery query = entityManager.createStoredProcedureQuery("SP_ComprehensiveComplianceInvestigation");
+        StoredProcedureQuery query = externalEntityManager.createStoredProcedureQuery("SP_ComprehensiveComplianceInvestigation");
         
         // Register input parameters
         query.registerStoredProcedureParameter("p_aadhaar", String.class, ParameterMode.IN);

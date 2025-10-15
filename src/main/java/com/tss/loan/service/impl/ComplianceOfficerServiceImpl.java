@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tss.loan.dto.request.ComplianceDecisionRequest;
 import com.tss.loan.dto.request.ComplianceDocumentRequest;
 import com.tss.loan.dto.response.ComplianceDashboardResponse;
@@ -23,7 +24,7 @@ import com.tss.loan.entity.user.User;
 import com.tss.loan.exception.LoanApiException;
 import com.tss.loan.mapper.LoanApplicationMapper;
 import com.tss.loan.repository.ApplicantPersonalDetailsRepository;
-import com.tss.loan.repository.ComplianceInvestigationRepository;
+import com.tss.loan.repository.external.ComplianceInvestigationRepository;
 import com.tss.loan.repository.LoanApplicationRepository;
 import com.tss.loan.service.ApplicationAssignmentService;
 import com.tss.loan.service.ApplicationWorkflowService;
@@ -62,6 +63,9 @@ public class ComplianceOfficerServiceImpl implements ComplianceOfficerService {
     
     @Autowired
     private LoanOfficerService loanOfficerService;
+    
+    @Autowired
+    private ObjectMapper objectMapper;
     
     @Override
     public ComplianceDashboardResponse getDashboard(User complianceOfficer) {
@@ -483,10 +487,7 @@ public class ComplianceOfficerServiceImpl implements ComplianceOfficerService {
             String investigationResultJson = complianceInvestigationRepository
                 .executeComprehensiveInvestigation(aadhaarNumber, panNumber);
             
-            // Parse the JSON response from stored procedure
-            com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
-            objectMapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
-            
+            // Parse the JSON response from stored procedure using global ObjectMapper
             ComplianceInvestigationResponse response = objectMapper.readValue(
                 investigationResultJson, ComplianceInvestigationResponse.class);
             
