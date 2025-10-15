@@ -173,17 +173,17 @@ BEGIN
                        ' years average account age demonstrates stability'));
         END IF;
         
-        -- Determine overall risk level
+        -- Determine overall risk level (reversed logic)
         IF v_risk_score >= 80 THEN
-            SET v_overall_risk = 'LOW';
+            SET v_overall_risk = 'HIGH';
         ELSEIF v_risk_score >= 60 THEN
             SET v_overall_risk = 'MEDIUM';
         ELSE
-            SET v_overall_risk = 'HIGH';
+            SET v_overall_risk = 'LOW';
         END IF;
-        
+
         -- Add positive findings if low risk
-        IF v_risk_score >= 80 THEN
+        IF v_risk_score < 60 THEN
             SET v_key_findings = JSON_ARRAY_APPEND(v_key_findings, '$',
                 'Strong banking profile with good financial discipline and payment history');
             SET v_recommendations = JSON_ARRAY_APPEND(v_recommendations, '$',
@@ -192,6 +192,7 @@ BEGIN
             SET v_recommendations = JSON_ARRAY_APPEND(v_recommendations, '$',
                 'Consider rejection or require additional collateral/guarantor');
         END IF;
+
         
         -- Return investigation result
         SELECT JSON_OBJECT(

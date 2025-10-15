@@ -67,10 +67,10 @@ BEGIN
     -- =====================================================
     -- 1. BANKING PROFILE ANALYSIS
     -- =====================================================
-    
+
     SELECT COUNT(*) INTO v_bank_data_found FROM bank_details 
     WHERE aadhaar_number = p_aadhaar OR pan_number = p_pan;
-    
+
     IF v_bank_data_found > 0 THEN
         SELECT 
             COALESCE(SUM(cheque_bounce_count), 0),
@@ -80,11 +80,11 @@ BEGIN
             COALESCE(SUM(monthly_income), 0),
             COALESCE(SUM(monthly_expense), 0)
         INTO v_total_bounces, v_overdraft_accounts, v_max_credit_usage,
-             v_avg_balance, v_total_income, v_total_expenses
+            v_avg_balance, v_total_income, v_total_expenses
         FROM bank_details 
         WHERE aadhaar_number = p_aadhaar OR pan_number = p_pan;
         
-        -- Banking risk scoring
+        -- Banking risk scoring (starts at 100, deductions for issues)
         SET v_banking_risk_score = 100;
         
         IF v_total_bounces > 5 THEN
@@ -115,22 +115,22 @@ BEGIN
                 'EXPENSE_EXCEEDS_INCOME: Negative cash flow detected');
         END IF;
         
-        -- Determine banking risk level (reversed logic, with HIGH risk if no data)
-        IF v_has_banking_data = TRUE THEN
-            IF v_banking_risk_score >= 80 THEN
-                SET v_banking_risk_level = 'HIGH';
-            ELSEIF v_banking_risk_score >= 60 THEN
-                SET v_banking_risk_level = 'MEDIUM';
-            ELSE
-                SET v_banking_risk_level = 'LOW';
-            END IF;
+        -- Determine banking risk level
+        IF v_banking_risk_score >= 80 THEN
+            SET v_banking_risk_level = 'LOW';
+        ELSEIF v_banking_risk_score >= 60 THEN
+            SET v_banking_risk_level = 'MEDIUM';
         ELSE
-            SET v_banking_risk_score = 75;
             SET v_banking_risk_level = 'HIGH';
-            SET v_banking_tags = JSON_ARRAY_APPEND(v_banking_tags, '$', 
-                'NO_BANKING_DATA: No banking history found for verification');
         END IF;
-    
+    ELSE
+        -- No banking data found
+        SET v_banking_risk_score = 25;
+        SET v_banking_risk_level = 'HIGH';
+        SET v_banking_tags = JSON_ARRAY_APPEND(v_banking_tags, '$', 
+            'NO_BANKING_DATA: No banking history found for verification');
+    END IF;
+
     -- =====================================================
     -- 2. FRAUD HISTORY ANALYSIS
     -- =====================================================
