@@ -20,10 +20,10 @@ BEGIN
     DECLARE v_compliance_decision VARCHAR(30) DEFAULT 'PROCEED';
     -- DECLARE v_confidence_level INT DEFAULT 95;
     
-    -- Individual risk scores and levels
-    DECLARE v_banking_risk_score INT DEFAULT 0;
-    DECLARE v_fraud_risk_score INT DEFAULT 0;
-    DECLARE v_loan_risk_score INT DEFAULT 0;
+    -- Individual risk scores and levels (real-time scheme: start at 100, subtract for risks)
+    DECLARE v_banking_risk_score INT DEFAULT 100;
+    DECLARE v_fraud_risk_score INT DEFAULT 100;
+    DECLARE v_loan_risk_score INT DEFAULT 100;
     DECLARE v_banking_risk_level VARCHAR(20) DEFAULT 'LOW';
     DECLARE v_fraud_risk_level VARCHAR(20) DEFAULT 'CLEAN';
     DECLARE v_loan_risk_level VARCHAR(20) DEFAULT 'LOW';
@@ -94,44 +94,44 @@ BEGIN
         FROM bank_details 
         WHERE aadhaar_number = p_aadhaar OR pan_number = p_pan;
         
-        -- Banking risk scoring (starts at 0, adds for risk indicators)
-        SET v_banking_risk_score = 0;
+        -- Banking risk scoring (real-time: starts at 100, subtract for risk indicators)
+        SET v_banking_risk_score = 100;
         
         IF v_total_bounces > 5 THEN
-            SET v_banking_risk_score = v_banking_risk_score + 30;
+            SET v_banking_risk_score = v_banking_risk_score - 30;
             SET v_banking_tags = JSON_ARRAY_APPEND(v_banking_tags, '$', 
                 CONCAT('FREQUENT_BOUNCES: ', v_total_bounces, ' cheque bounces indicate poor cash flow'));
         ELSEIF v_total_bounces BETWEEN 3 AND 5 THEN
-            SET v_banking_risk_score = v_banking_risk_score + 20;
+            SET v_banking_risk_score = v_banking_risk_score - 20;
             SET v_banking_tags = JSON_ARRAY_APPEND(v_banking_tags, '$', 
                 CONCAT('MODERATE_BOUNCES: ', v_total_bounces, ' cheque bounces show payment issues'));
         END IF;
         
         IF v_overdraft_accounts > 0 THEN
-            SET v_banking_risk_score = v_banking_risk_score + 15;
+            SET v_banking_risk_score = v_banking_risk_score - 15;
             SET v_banking_tags = JSON_ARRAY_APPEND(v_banking_tags, '$', 
                 'OVERDRAFT_DEPENDENCY: Overdraft usage indicates liquidity shortfalls');
         END IF;
         
         IF v_max_credit_usage > 80 THEN
-            SET v_banking_risk_score = v_banking_risk_score + 20;
+            SET v_banking_risk_score = v_banking_risk_score - 20;
             SET v_banking_tags = JSON_ARRAY_APPEND(v_banking_tags, '$', 
                 CONCAT('HIGH_CREDIT_UTILIZATION: ', ROUND(v_max_credit_usage, 1), '% credit usage'));
         END IF;
         
         IF v_total_income > 0 AND v_total_expenses > v_total_income THEN
-            SET v_banking_risk_score = v_banking_risk_score + 25;
+            SET v_banking_risk_score = v_banking_risk_score - 25;
             SET v_banking_tags = JSON_ARRAY_APPEND(v_banking_tags, '$', 
                 'EXPENSE_EXCEEDS_INCOME: Negative cash flow detected');
         END IF;
         
-        -- Determine banking risk level (higher score = higher risk)
+        -- Determine banking risk level (lower score = higher risk)
         IF v_banking_risk_score >= 80 THEN
-            SET v_banking_risk_level = 'HIGH';
+            SET v_banking_risk_level = 'LOW';
         ELSEIF v_banking_risk_score >= 60 THEN
             SET v_banking_risk_level = 'MEDIUM';
         ELSE
-            SET v_banking_risk_level = 'LOW';
+            SET v_banking_risk_level = 'HIGH';
         END IF;
         -- Map banking risk level to unified band & flags
         CASE v_banking_risk_level
@@ -148,7 +148,7 @@ BEGIN
         );
     ELSE
         -- No banking data found
-        SET v_banking_risk_score = 75;
+        SET v_banking_risk_score = 40; -- ensure mapping to HIGH (lower score = higher risk)
         SET v_banking_risk_level = 'HIGH';
         SET v_banking_tags = JSON_ARRAY_APPEND(v_banking_tags, '$', 
             'NO_BANKING_DATA: No banking history found for verification');
@@ -173,47 +173,45 @@ BEGIN
         FROM fraud_records 
         WHERE aadhaar_number = p_aadhaar OR pan_number = p_pan;
         
-        -- Fraud risk scoring
-        SET v_fraud_risk_score = 0;
+        -- Fraud risk scoring (real-time: start 100, subtract for risk factors)
+        SET v_fraud_risk_score = 100;
         
         IF v_active_fraud_cases > 0 AND v_high_severity_cases > 0 THEN
-            SET v_fraud_risk_score = v_fraud_risk_score + 60;
+            SET v_fraud_risk_score = v_fraud_risk_score - 60;
             SET v_fraud_risk_level = 'CRITICAL';
             SET v_fraud_tags = JSON_ARRAY_APPEND(v_fraud_tags, '$', 
                 'ACTIVE_HIGH_SEVERITY_FRAUD: Critical fraud case under investigation');
         END IF;
         
         IF v_rbi_cases > 0 THEN
-            SET v_fraud_risk_score = v_fraud_risk_score + 40;
+            SET v_fraud_risk_score = v_fraud_risk_score - 40;
             IF v_fraud_risk_level != 'CRITICAL' THEN SET v_fraud_risk_level = 'HIGH'; END IF;
             SET v_fraud_tags = JSON_ARRAY_APPEND(v_fraud_tags, '$', 
                 'RBI_REPORTED_CASE: Case reported by Reserve Bank of India');
         END IF;
         
         IF v_financial_fraud_cases > 0 THEN
-            SET v_fraud_risk_score = v_fraud_risk_score + 35;
+            SET v_fraud_risk_score = v_fraud_risk_score - 35;
             IF v_fraud_risk_level NOT IN ('CRITICAL', 'HIGH') THEN SET v_fraud_risk_level = 'HIGH'; END IF;
             SET v_fraud_tags = JSON_ARRAY_APPEND(v_fraud_tags, '$', 
                 'FINANCIAL_FRAUD_HISTORY: Previous financial fraud detected');
         END IF;
         
         IF v_total_fraud_cases > 1 THEN
-            SET v_fraud_risk_score = v_fraud_risk_score + 20;
+            SET v_fraud_risk_score = v_fraud_risk_score - 20;
             SET v_fraud_tags = JSON_ARRAY_APPEND(v_fraud_tags, '$', 
                 'MULTIPLE_FRAUD_INCIDENTS: Pattern of fraudulent behavior');
         END IF;
         
-        -- Determine final fraud risk level
-        IF v_fraud_risk_score >= 60 THEN
-            SET v_fraud_risk_level = 'CRITICAL';
+        -- Determine final fraud risk level (lower score = higher risk)
+        IF v_fraud_risk_score >= 80 THEN
+            SET v_fraud_risk_level = 'LOW';
+        ELSEIF v_fraud_risk_score >= 60 THEN
+            SET v_fraud_risk_level = 'MEDIUM';
         ELSEIF v_fraud_risk_score >= 40 THEN
             SET v_fraud_risk_level = 'HIGH';
-        ELSEIF v_fraud_risk_score >= 20 THEN
-            SET v_fraud_risk_level = 'MEDIUM';
-        ELSEIF v_fraud_risk_score > 0 THEN
-            SET v_fraud_risk_level = 'LOW';
         ELSE
-            SET v_fraud_risk_level = 'CLEAN';
+            SET v_fraud_risk_level = 'CRITICAL';
         END IF;
         -- Map fraud risk level to unified band & flags
         CASE v_fraud_risk_level
@@ -231,7 +229,7 @@ BEGIN
             'isCritical',  v_fraud_band = 'CRITICAL'
         );
     ELSE
-        SET v_fraud_risk_score = 0;
+        SET v_fraud_risk_score = 100; -- clean profile: highest score (lowest risk)
         SET v_fraud_risk_level = 'CLEAN';
         SET v_fraud_tags = JSON_ARRAY_APPEND(v_fraud_tags, '$', 
             'CLEAN_RECORD: No fraud cases found in regulatory databases');
@@ -256,50 +254,50 @@ BEGIN
         FROM loan_history 
         WHERE aadhaar_number = p_aadhaar OR pan_number = p_pan;
         
-        -- Loan risk scoring
-        SET v_loan_risk_score = 0;
+        -- Loan risk scoring (real-time: start 100, subtract for risk indicators)
+        SET v_loan_risk_score = 100;
         
         IF v_defaulted_loans > 0 THEN
-            SET v_loan_risk_score = v_loan_risk_score + 50;
+            SET v_loan_risk_score = v_loan_risk_score - 50;
             SET v_loan_risk_level = 'HIGH';
             SET v_loan_tags = JSON_ARRAY_APPEND(v_loan_tags, '$', 
                 'LOAN_DEFAULT_HISTORY: Previous loan defaults detected');
         END IF;
         
         IF v_max_dti_ratio > 60 THEN
-            SET v_loan_risk_score = v_loan_risk_score + 25;
+            SET v_loan_risk_score = v_loan_risk_score - 25;
             SET v_loan_risk_level = 'HIGH';
             SET v_loan_tags = JSON_ARRAY_APPEND(v_loan_tags, '$', 
                 CONCAT('EXCESSIVE_DEBT_BURDEN: DTI ratio ', ROUND(v_max_dti_ratio, 1), '%'));
         ELSEIF v_max_dti_ratio > 50 THEN
-            SET v_loan_risk_score = v_loan_risk_score + 15;
+            SET v_loan_risk_score = v_loan_risk_score - 15;
             IF v_loan_risk_level = 'LOW' THEN SET v_loan_risk_level = 'MEDIUM'; END IF;
             SET v_loan_tags = JSON_ARRAY_APPEND(v_loan_tags, '$', 
                 CONCAT('HIGH_DEBT_BURDEN: DTI ratio ', ROUND(v_max_dti_ratio, 1), '%'));
         END IF;
         
         IF v_total_missed_payments > 6 THEN
-            SET v_loan_risk_score = v_loan_risk_score + 20;
+            SET v_loan_risk_score = v_loan_risk_score - 20;
             IF v_loan_risk_level = 'LOW' THEN SET v_loan_risk_level = 'MEDIUM'; END IF;
             SET v_loan_tags = JSON_ARRAY_APPEND(v_loan_tags, '$', 
                 'FREQUENT_MISSED_PAYMENTS: Poor payment discipline detected');
         END IF;
         
         IF v_days_since_last_payment > 90 THEN
-            SET v_loan_risk_score = v_loan_risk_score + 18;
+            SET v_loan_risk_score = v_loan_risk_score - 18;
             SET v_loan_tags = JSON_ARRAY_APPEND(v_loan_tags, '$', 
                 'RECENT_PAYMENT_FAILURE: No recent payments detected');
         END IF;
         
-        -- Determine loan risk level
-        IF v_loan_risk_score >= 40 THEN
-            SET v_loan_risk_level = 'HIGH';
-        ELSEIF v_loan_risk_score >= 20 THEN
-            SET v_loan_risk_level = 'MEDIUM';
-        ELSEIF v_loan_risk_score > 0 THEN
-            SET v_loan_risk_level = 'LOW';
-        ELSE
+        -- Determine loan risk level (lower score = higher risk)
+        IF v_loan_risk_score >= 80 THEN
             SET v_loan_risk_level = 'EXCELLENT';
+        ELSEIF v_loan_risk_score >= 60 THEN
+            SET v_loan_risk_level = 'LOW';
+        ELSEIF v_loan_risk_score >= 40 THEN
+            SET v_loan_risk_level = 'MEDIUM';
+        ELSE
+            SET v_loan_risk_level = 'HIGH';
         END IF;
         -- Map loan risk level to unified band & flags
         CASE v_loan_risk_level
@@ -316,7 +314,7 @@ BEGIN
             'isCritical',  v_loan_band = 'CRITICAL'
         );
     ELSE
-        SET v_loan_risk_score = 75;
+        SET v_loan_risk_score = 40; -- ensure mapping to HIGH (lower score = higher risk)
         SET v_loan_risk_level = 'HIGH';
         SET v_loan_tags = JSON_ARRAY_APPEND(v_loan_tags, '$', 
             'NO_CREDIT_HISTORY: First-time borrower with no loan history');
@@ -326,28 +324,34 @@ BEGIN
     -- 4. OVERALL RISK ASSESSMENT
     -- =====================================================
     
-    -- Weighted risk score calculation
+    -- Weighted risk score calculation (real-time: higher score = lower risk)
     SET v_overall_risk_score = ROUND(
         (v_fraud_risk_score * 0.5) + 
         (v_loan_risk_score * 0.35) + 
         (v_banking_risk_score * 0.15)
     );
     
-    -- Determine overall risk level with fraud override logic
+    -- Determine overall risk level with fraud override logic (lower score = higher risk)
     IF v_fraud_risk_level = 'CRITICAL' THEN
         SET v_overall_risk_level = 'CRITICAL';
         SET v_compliance_decision = 'IMMEDIATE_REJECTION';
         SET v_critical_issues = JSON_ARRAY_APPEND(v_critical_issues, '$', 
             'Active critical fraud case requires immediate rejection');
-    ELSEIF v_fraud_risk_level = 'HIGH' OR v_loan_risk_level = 'HIGH' OR v_banking_risk_level = 'HIGH' THEN
-        SET v_overall_risk_level = 'HIGH';
-        SET v_compliance_decision = 'REJECT_OR_ENHANCED_CONDITIONS';
-    ELSEIF v_fraud_risk_level = 'MEDIUM' OR v_loan_risk_level = 'MEDIUM' OR v_banking_risk_level = 'MEDIUM' THEN
-        SET v_overall_risk_level = 'MEDIUM';
-        SET v_compliance_decision = 'CONDITIONAL_APPROVAL';
     ELSE
-        SET v_overall_risk_level = 'LOW';
-        SET v_compliance_decision = 'PROCEED_STANDARD';
+        -- Map overall numeric score to level
+        IF v_overall_risk_score >= 80 THEN
+            SET v_overall_risk_level = 'LOW';
+            SET v_compliance_decision = 'PROCEED_STANDARD';
+        ELSEIF v_overall_risk_score >= 60 THEN
+            SET v_overall_risk_level = 'MEDIUM';
+            SET v_compliance_decision = 'CONDITIONAL_APPROVAL';
+        ELSEIF v_overall_risk_score >= 40 THEN
+            SET v_overall_risk_level = 'HIGH';
+            SET v_compliance_decision = 'REJECT_OR_ENHANCED_CONDITIONS';
+        ELSE
+            SET v_overall_risk_level = 'CRITICAL';
+            SET v_compliance_decision = 'IMMEDIATE_REJECTION';
+        END IF;
     END IF;
     -- Map overall risk level to unified band & flags
     CASE v_overall_risk_level
