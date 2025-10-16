@@ -86,9 +86,8 @@ BEGIN
         -- Risk Assessment Logic
         
         -- 1. Active High Severity Cases (Critical Risk)
-        IF v_active_cases > 0 AND v_high_severity_cases > 0 THEN
-            SET v_risk_score = v_risk_score + 60;
-            SET v_overall_risk = 'CRITICAL';
+       IF v_active_cases > 0 AND v_high_severity_cases > 0 THEN
+            SET v_risk_score = v_risk_score - 40;
             SET v_risk_tags = JSON_ARRAY_APPEND(v_risk_tags, '$', 
                 CONCAT('ACTIVE_HIGH_SEVERITY_FRAUD: ', v_active_cases, ' active high-severity case(s) under investigation'));
             SET v_key_findings = JSON_ARRAY_APPEND(v_key_findings, '$',
@@ -99,22 +98,21 @@ BEGIN
         
         -- 2. RBI Cases Analysis
         IF v_rbi_cases > 0 THEN
-            SET v_risk_score = v_risk_score + 40;
-            IF v_overall_risk != 'CRITICAL' THEN SET v_overall_risk = 'HIGH'; END IF;
-            SET v_risk_tags = JSON_ARRAY_APPEND(v_risk_tags, '$', 
-                CONCAT('RBI_REPORTED_CASE: ', v_rbi_cases, ' case(s) reported by Reserve Bank of India'));
+            SET v_risk_score = v_risk_score - 30;
+             SET v_risk_tags = JSON_ARRAY_APPEND(v_risk_tags, '$', 
+                CONCAT('RBI_REPORTED_CASE: ', v_rbi_cases, ' case(s) reported by RBI'));
             SET v_key_findings = JSON_ARRAY_APPEND(v_key_findings, '$',
-                'RBI involvement indicates serious regulatory concerns requiring immediate attention');
+                'Regulatory scrutiny from RBI requires close review');
             SET v_recommendations = JSON_ARRAY_APPEND(v_recommendations, '$',
-                'Escalate to senior compliance officer for RBI case review');
+                'Escalate for RBI compliance verification');
         END IF;
         
         -- 3. Financial Fraud History
         IF v_financial_fraud_cases > 0 THEN
-            SET v_risk_score = v_risk_score + 35;
-            IF v_overall_risk NOT IN ('CRITICAL', 'HIGH') THEN SET v_overall_risk = 'HIGH'; END IF;
+            SET v_risk_score = v_risk_score - 25;
+
             SET v_risk_tags = JSON_ARRAY_APPEND(v_risk_tags, '$', 
-                CONCAT('FINANCIAL_FRAUD_HISTORY: ', v_financial_fraud_cases, ' financial fraud case(s) directly relevant to lending'));
+                CONCAT('FINANCIAL_FRAUD_HISTORY: ', v_financial_fraud_cases, ' financial fraud case(s)'));
             SET v_key_findings = JSON_ARRAY_APPEND(v_key_findings, '$',
                 'Previous financial fraud indicates high risk for loan-related misconduct');
             SET v_recommendations = JSON_ARRAY_APPEND(v_recommendations, '$',
@@ -123,9 +121,8 @@ BEGIN
         
         -- 4. Identity Fraud Analysis
         IF v_identity_fraud_cases > 0 THEN
-            SET v_risk_score = v_risk_score + 25;
-            IF v_overall_risk NOT IN ('CRITICAL', 'HIGH') THEN SET v_overall_risk = 'MEDIUM'; END IF;
-            SET v_risk_tags = JSON_ARRAY_APPEND(v_risk_tags, '$', 
+            SET v_risk_score = v_risk_score - 20;
+             SET v_risk_tags = JSON_ARRAY_APPEND(v_risk_tags, '$', 
                 CONCAT('IDENTITY_FRAUD_HISTORY: ', v_identity_fraud_cases, ' identity/document fraud case(s) raise authenticity concerns'));
             SET v_key_findings = JSON_ARRAY_APPEND(v_key_findings, '$',
                 'Identity fraud history requires enhanced document verification and authenticity checks');
@@ -135,81 +132,72 @@ BEGIN
         
         -- 5. Multiple Fraud Incidents
         IF v_total_cases > 1 THEN
-            SET v_risk_score = v_risk_score + 20;
-            IF v_overall_risk NOT IN ('CRITICAL', 'HIGH') THEN SET v_overall_risk = 'MEDIUM'; END IF;
+            SET v_risk_score = v_risk_score - 15;
             SET v_risk_tags = JSON_ARRAY_APPEND(v_risk_tags, '$', 
                 CONCAT('MULTIPLE_FRAUD_INCIDENTS: ', v_total_cases, ' separate fraud cases indicate pattern of misconduct'));
             SET v_key_findings = JSON_ARRAY_APPEND(v_key_findings, '$',
                 'Multiple fraud incidents suggest systematic fraudulent behavior rather than isolated incident');
         END IF;
         
-        -- 6. Recent Cases Analysis
+         -- 6. Recent cases
         IF v_recent_cases > 0 THEN
-            SET v_risk_score = v_risk_score + 15;
+            SET v_risk_score = v_risk_score - 10;
             SET v_risk_tags = JSON_ARRAY_APPEND(v_risk_tags, '$', 
-                CONCAT('RECENT_FRAUD_ACTIVITY: ', v_recent_cases, ' case(s) reported within last 2 years'));
+                CONCAT('RECENT_FRAUD_ACTIVITY: ', v_recent_cases, ' case(s) in last 2 years'));
             SET v_key_findings = JSON_ARRAY_APPEND(v_key_findings, '$',
                 CONCAT('Recent fraud activity (', v_latest_case_days, ' days ago) indicates ongoing risk'));
         END IF;
         
         -- 7. Active Cases (Any Severity)
-        IF v_active_cases > 0 AND v_high_severity_cases = 0 THEN
-            SET v_risk_score = v_risk_score + 30;
-            IF v_overall_risk NOT IN ('CRITICAL', 'HIGH') THEN SET v_overall_risk = 'HIGH'; END IF;
+         IF v_active_cases > 0 AND v_high_severity_cases = 0 THEN
+            SET v_risk_score = v_risk_score - 15;
             SET v_risk_tags = JSON_ARRAY_APPEND(v_risk_tags, '$', 
-                CONCAT('ACTIVE_INVESTIGATION: ', v_active_cases, ' unresolved case(s) under investigation'));
+                CONCAT('ACTIVE_INVESTIGATION: ', v_active_cases, ' unresolved case(s)'));
             SET v_key_findings = JSON_ARRAY_APPEND(v_key_findings, '$',
-                CONCAT('Active investigation ongoing for ', v_latest_case_days, ' days without resolution'));
+                'Ongoing investigation requires monitoring before approval');
             SET v_recommendations = JSON_ARRAY_APPEND(v_recommendations, '$',
-                'Monitor case resolution before proceeding with loan approval');
+                'Monitor case resolution before proceeding with approval');
         END IF;
         
-        -- 8. Resolved High Severity Cases
-        IF v_resolved_cases > 0 AND v_high_severity_cases > 0 AND v_active_cases = 0 THEN
-            SET v_risk_score = v_risk_score + 25;
-            IF v_overall_risk NOT IN ('CRITICAL', 'HIGH') THEN SET v_overall_risk = 'MEDIUM'; END IF;
-            SET v_risk_tags = JSON_ARRAY_APPEND(v_risk_tags, '$', 
-                'RESOLVED_HIGH_SEVERITY: Previous high-severity case resolved but history remains concerning');
-            SET v_key_findings = JSON_ARRAY_APPEND(v_key_findings, '$',
-                'While resolved, previous high-severity fraud indicates elevated risk profile');
-        END IF;
+        -- -- 8. Resolved High Severity Cases
+        -- IF v_resolved_cases > 0 AND v_high_severity_cases > 0 AND v_active_cases = 0 THEN
+        --     SET v_risk_score = v_risk_score + 25;
+        --     IF v_overall_risk NOT IN ('CRITICAL', 'HIGH') THEN SET v_overall_risk = 'MEDIUM'; END IF;
+        --     SET v_risk_tags = JSON_ARRAY_APPEND(v_risk_tags, '$', 
+        --         'RESOLVED_HIGH_SEVERITY: Previous high-severity case resolved but history remains concerning');
+        --     SET v_key_findings = JSON_ARRAY_APPEND(v_key_findings, '$',
+        --         'While resolved, previous high-severity fraud indicates elevated risk profile');
+        -- END IF;
         
-        -- Determine final risk level based on score
-        IF v_risk_score >= 60 THEN
-            SET v_overall_risk = 'CRITICAL';
+        -- Determine final risk level based on score (lower score = higher risk)
+        IF v_risk_score >= 80 THEN
+            SET v_overall_risk = 'LOW';
+        ELSEIF v_risk_score >= 60 THEN
+            SET v_overall_risk = 'MEDIUM';
         ELSEIF v_risk_score >= 40 THEN
             SET v_overall_risk = 'HIGH';
-        ELSEIF v_risk_score >= 20 THEN
-            SET v_overall_risk = 'MEDIUM';
-        ELSEIF v_risk_score > 0 THEN
-            SET v_overall_risk = 'LOW';
+        ELSE
+            SET v_overall_risk = 'CRITICAL';
         END IF;
         
-        -- Add case summary to findings
+        -- Add summary
         SET v_key_findings = JSON_ARRAY_APPEND(v_key_findings, '$',
             CONCAT('Total fraud cases: ', v_total_cases, ' (Active: ', v_active_cases, ', Resolved: ', v_resolved_cases, ')'));
-        
         IF v_oldest_case_days > 0 THEN
             SET v_key_findings = JSON_ARRAY_APPEND(v_key_findings, '$',
                 CONCAT('Fraud history spans ', ROUND(v_oldest_case_days/365, 1), ' years with most recent case ', v_latest_case_days, ' days ago'));
         END IF;
         
-        -- Add risk-specific recommendations
+        -- Add risk-based recommendations if not already present
         IF v_overall_risk = 'CRITICAL' THEN
             SET v_recommendations = JSON_ARRAY_APPEND(v_recommendations, '$',
-                'Application should be immediately rejected due to critical fraud risk');
-            SET v_recommendations = JSON_ARRAY_APPEND(v_recommendations, '$',
-                'Consider permanent blacklisting and regulatory reporting');
+                'Immediate rejection recommended due to critical fraud risk');
         ELSEIF v_overall_risk = 'HIGH' THEN
             SET v_recommendations = JSON_ARRAY_APPEND(v_recommendations, '$',
-                'Proceed only with extensive additional verification and senior approval');
-            SET v_recommendations = JSON_ARRAY_APPEND(v_recommendations, '$',
-                'Require additional collateral and guarantor due to fraud history');
+                'Enhanced verification and senior officer approval required');
         ELSEIF v_overall_risk = 'MEDIUM' THEN
             SET v_recommendations = JSON_ARRAY_APPEND(v_recommendations, '$',
-                'Enhanced verification required with additional documentation');
-            SET v_recommendations = JSON_ARRAY_APPEND(v_recommendations, '$',
-                'Consider higher interest rate to compensate for elevated risk');
+                'Proceed with additional documentation checks');
         ELSE
             SET v_recommendations = JSON_ARRAY_APPEND(v_recommendations, '$',
                 'Standard processing acceptable with routine fraud monitoring');
@@ -224,9 +212,11 @@ BEGIN
                 'riskScore', v_risk_score,
                 'fraudSummary', CONCAT('Fraud analysis reveals ', LOWER(v_overall_risk), ' risk with ', v_total_cases, ' case(s) on record'),
                 'keyFindings', v_key_findings,
-                'recommendations', v_recommendations
+                'recommendations', v_recommendations,
+                'investigationDate', NOW()
             )
         ) AS investigation_result;
+        
     END IF;
     
 END//

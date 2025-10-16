@@ -15,8 +15,8 @@ CREATE PROCEDURE SP_InvestigateLoanHistory(
 )
 BEGIN
     DECLARE v_total_loans INT DEFAULT 0;
-    DECLARE v_risk_score INT DEFAULT 0;
-    DECLARE v_overall_risk VARCHAR(20) DEFAULT 'NO_HISTORY';
+    DECLARE v_risk_score INT DEFAULT 100; -- start from 100, reduce for risk factors
+    DECLARE v_overall_risk VARCHAR(20) DEFAULT 'LOW';
     DECLARE v_risk_tags JSON DEFAULT JSON_ARRAY();
     DECLARE v_key_findings JSON DEFAULT JSON_ARRAY();
     DECLARE v_recommendations JSON DEFAULT JSON_ARRAY();
@@ -89,16 +89,12 @@ BEGIN
         FROM loan_history 
         WHERE aadhaar_number = p_aadhaar OR pan_number = p_pan;
         
-        -- Calculate risk score (start with 0, add for risk factors)
-        SET v_risk_score = 0;
-        SET v_overall_risk = 'LOW';
+        -- Risk Assessment (start at 100, subtract for risk factors)
+        SET v_risk_score = 100;
         
-        -- Risk Assessment Logic
-        
-        -- 1. Default History Analysis (Highest Risk)
+        -- 1. Default History (High Risk)
         IF v_defaulted_loans > 0 THEN
-            SET v_risk_score = v_risk_score + 50;
-            SET v_overall_risk = 'HIGH';
+            SET v_risk_score = v_risk_score - 50;
             SET v_risk_tags = JSON_ARRAY_APPEND(v_risk_tags, '$', 
                 CONCAT('LOAN_DEFAULT_HISTORY: ', v_defaulted_loans, ' loan(s) defaulted - severe credit risk'));
             SET v_key_findings = JSON_ARRAY_APPEND(v_key_findings, '$',
@@ -107,20 +103,18 @@ BEGIN
                 'Reject application due to default history');
         END IF;
         
-        -- 2. Recent Defaults (Critical)
+        -- 2. Recent Defaults
         IF v_recent_defaults > 0 THEN
-            SET v_risk_score = v_risk_score + 30;
-            SET v_overall_risk = 'HIGH';
+            SET v_risk_score = v_risk_score - 30;
             SET v_risk_tags = JSON_ARRAY_APPEND(v_risk_tags, '$', 
                 CONCAT('RECENT_DEFAULT: ', v_recent_defaults, ' default(s) within last 2 years'));
             SET v_key_findings = JSON_ARRAY_APPEND(v_key_findings, '$',
                 'Recent defaults indicate current financial stress and high probability of future defaults');
         END IF;
         
-        -- 3. High DTI Ratio Analysis
+        -- 3. High DTI Ratio
         IF v_max_dti_ratio > 60 THEN
-            SET v_risk_score = v_risk_score + 25;
-            SET v_overall_risk = 'HIGH';
+            SET v_risk_score = v_risk_score - 25;
             SET v_risk_tags = JSON_ARRAY_APPEND(v_risk_tags, '$', 
                 CONCAT('EXCESSIVE_DEBT_BURDEN: DTI ratio ', ROUND(v_max_dti_ratio, 1), '% exceeds safe lending limits'));
             SET v_key_findings = JSON_ARRAY_APPEND(v_key_findings, '$',
@@ -128,22 +122,20 @@ BEGIN
             SET v_recommendations = JSON_ARRAY_APPEND(v_recommendations, '$',
                 'Reject due to excessive existing debt burden');
         ELSEIF v_max_dti_ratio > 50 THEN
-            SET v_risk_score = v_risk_score + 15;
-            IF v_overall_risk = 'LOW' THEN SET v_overall_risk = 'MEDIUM'; END IF;
+            SET v_risk_score = v_risk_score - 15;
             SET v_risk_tags = JSON_ARRAY_APPEND(v_risk_tags, '$', 
                 CONCAT('HIGH_DEBT_BURDEN: DTI ratio ', ROUND(v_max_dti_ratio, 1), '% indicates elevated debt stress'));
             SET v_recommendations = JSON_ARRAY_APPEND(v_recommendations, '$',
                 'Consider reduced loan amount due to high existing debt');
         ELSEIF v_max_dti_ratio > 40 THEN
-            SET v_risk_score = v_risk_score + 8;
+            SET v_risk_score = v_risk_score - 8;
             SET v_risk_tags = JSON_ARRAY_APPEND(v_risk_tags, '$', 
                 CONCAT('MODERATE_DEBT_LOAD: DTI ratio ', ROUND(v_max_dti_ratio, 1), '% within acceptable but elevated range'));
         END IF;
         
-        -- 4. Missed Payments Analysis
+        -- 4. Missed Payments
         IF v_total_missed_payments > 6 THEN
-            SET v_risk_score = v_risk_score + 20;
-            IF v_overall_risk = 'LOW' THEN SET v_overall_risk = 'MEDIUM'; END IF;
+            SET v_risk_score = v_risk_score - 20;
             SET v_risk_tags = JSON_ARRAY_APPEND(v_risk_tags, '$', 
                 CONCAT('FREQUENT_MISSED_PAYMENTS: ', v_total_missed_payments, ' missed payments show poor payment discipline'));
             SET v_key_findings = JSON_ARRAY_APPEND(v_key_findings, '$',
@@ -151,32 +143,31 @@ BEGIN
             SET v_recommendations = JSON_ARRAY_APPEND(v_recommendations, '$',
                 'Enhanced monitoring required due to poor payment history');
         ELSEIF v_total_missed_payments BETWEEN 3 AND 6 THEN
-            SET v_risk_score = v_risk_score + 12;
+            SET v_risk_score = v_risk_score - 12;
             SET v_risk_tags = JSON_ARRAY_APPEND(v_risk_tags, '$', 
                 CONCAT('MODERATE_MISSED_PAYMENTS: ', v_total_missed_payments, ' missed payments indicate occasional payment issues'));
         ELSEIF v_total_missed_payments BETWEEN 1 AND 2 THEN
-            SET v_risk_score = v_risk_score + 5;
+            SET v_risk_score = v_risk_score - 5;
             SET v_risk_tags = JSON_ARRAY_APPEND(v_risk_tags, '$', 
                 CONCAT('MINOR_PAYMENT_ISSUES: ', v_total_missed_payments, ' missed payment(s) - minimal concern'));
         END IF;
         
-        -- 5. Late Payments Analysis
+        -- 5. Late Payments
         IF v_total_late_payments > 10 THEN
-            SET v_risk_score = v_risk_score + 15;
+            SET v_risk_score = v_risk_score - 15;
             SET v_risk_tags = JSON_ARRAY_APPEND(v_risk_tags, '$', 
                 CONCAT('CHRONIC_LATE_PAYMENTS: ', v_total_late_payments, ' late payments show poor payment timing'));
             SET v_key_findings = JSON_ARRAY_APPEND(v_key_findings, '$',
                 'Chronic late payment pattern indicates cash flow management issues');
         ELSEIF v_total_late_payments BETWEEN 5 AND 10 THEN
-            SET v_risk_score = v_risk_score + 8;
+            SET v_risk_score = v_risk_score - 8;
             SET v_risk_tags = JSON_ARRAY_APPEND(v_risk_tags, '$', 
                 CONCAT('MODERATE_LATE_PAYMENTS: ', v_total_late_payments, ' late payments show occasional timing issues'));
         END IF;
         
-        -- 6. Recent Payment Activity
+        -- 6. Recent Payment Gaps
         IF v_days_since_last_payment > 90 AND v_active_loans > 0 THEN
-            SET v_risk_score = v_risk_score + 18;
-            IF v_overall_risk = 'LOW' THEN SET v_overall_risk = 'MEDIUM'; END IF;
+            SET v_risk_score = v_risk_score - 18;
             SET v_risk_tags = JSON_ARRAY_APPEND(v_risk_tags, '$', 
                 CONCAT('RECENT_PAYMENT_FAILURE: No payments received in last ', v_days_since_last_payment, ' days'));
             SET v_key_findings = JSON_ARRAY_APPEND(v_key_findings, '$',
@@ -184,14 +175,14 @@ BEGIN
             SET v_recommendations = JSON_ARRAY_APPEND(v_recommendations, '$',
                 'Verify current financial status before proceeding');
         ELSEIF v_days_since_last_payment > 60 AND v_active_loans > 0 THEN
-            SET v_risk_score = v_risk_score + 10;
+            SET v_risk_score = v_risk_score - 10;
             SET v_risk_tags = JSON_ARRAY_APPEND(v_risk_tags, '$', 
                 CONCAT('PAYMENT_DELAY: ', v_days_since_last_payment, ' days since last payment on active loans'));
         END IF;
         
-        -- 7. Credit Utilization Analysis
+        -- 7. Credit Utilization
         IF v_total_credit_limit > 0 AND (v_total_outstanding / v_total_credit_limit) > 0.9 THEN
-            SET v_risk_score = v_risk_score + 12;
+            SET v_risk_score = v_risk_score - 12;
             SET v_risk_tags = JSON_ARRAY_APPEND(v_risk_tags, '$', 
                 CONCAT('HIGH_CREDIT_UTILIZATION: ', ROUND((v_total_outstanding / v_total_credit_limit) * 100, 1), 
                        '% of available credit utilized'));
@@ -199,35 +190,35 @@ BEGIN
                 'High credit utilization indicates financial stress and limited repayment capacity');
         END IF;
         
-        -- 8. Loan Portfolio Analysis
+        -- 8. Unsecured Loans
         IF v_unsecured_loans > v_secured_loans AND v_unsecured_loans > 2 THEN
-            SET v_risk_score = v_risk_score + 8;
+            SET v_risk_score = v_risk_score - 8;
             SET v_risk_tags = JSON_ARRAY_APPEND(v_risk_tags, '$', 
                 CONCAT('HIGH_UNSECURED_EXPOSURE: ', v_unsecured_loans, ' unsecured loans indicate higher risk profile'));
         END IF;
         
-        -- Positive Factors (Reduce Risk Score)
+        -- Positive factors (increase score)
         IF v_total_missed_payments = 0 AND v_total_late_payments <= 2 AND v_defaulted_loans = 0 THEN
-            SET v_risk_score = GREATEST(v_risk_score - 10, 0);
+            SET v_risk_score = LEAST(v_risk_score + 10, 100);
             SET v_key_findings = JSON_ARRAY_APPEND(v_key_findings, '$',
                 'Excellent payment history with minimal late payments and no defaults');
         END IF;
         
         IF v_closed_loans > 0 AND v_defaulted_loans = 0 THEN
-            SET v_risk_score = GREATEST(v_risk_score - 5, 0);
+            SET v_risk_score = LEAST(v_risk_score + 5, 100);
             SET v_key_findings = JSON_ARRAY_APPEND(v_key_findings, '$',
                 CONCAT(v_closed_loans, ' successfully closed loan(s) demonstrate ability to complete loan obligations'));
         END IF;
         
-        -- Determine final risk level
-        IF v_risk_score >= 40 THEN
-            SET v_overall_risk = 'HIGH';
-        ELSEIF v_risk_score >= 20 THEN
-            SET v_overall_risk = 'MEDIUM';
-        ELSEIF v_risk_score > 0 THEN
-            SET v_overall_risk = 'LOW';
-        ELSE
+        -- Determine final risk level (lower score = higher risk)
+        IF v_risk_score >= 80 THEN
             SET v_overall_risk = 'EXCELLENT';
+        ELSEIF v_risk_score >= 60 THEN
+            SET v_overall_risk = 'LOW';
+        ELSEIF v_risk_score >= 40 THEN
+            SET v_overall_risk = 'MEDIUM';
+        ELSE
+            SET v_overall_risk = 'HIGH';
         END IF;
         
         -- Add loan portfolio summary
@@ -258,7 +249,7 @@ BEGIN
                 'Excellent credit profile - suitable for preferential terms');
         END IF;
         
-        -- Return investigation result
+        -- Return investigation result (description text unchanged)
         SELECT JSON_OBJECT(
             'dataFound', TRUE,
             'riskTags', v_risk_tags,

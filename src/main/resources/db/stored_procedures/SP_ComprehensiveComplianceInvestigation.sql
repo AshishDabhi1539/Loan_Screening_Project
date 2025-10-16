@@ -65,7 +65,7 @@ BEGIN
     SET v_investigation_id = CONCAT('INV-', DATE_FORMAT(NOW(), '%Y%m%d-%H%i%s'));
     
     -- =====================================================
-    -- 1. BANKING PROFILE ANALYSIS
+    -- 1. BANKING PROFILE ANALYSIS (FIXED LOGIC)
     -- =====================================================
 
     SELECT COUNT(*) INTO v_bank_data_found FROM bank_details 
@@ -84,48 +84,48 @@ BEGIN
         FROM bank_details 
         WHERE aadhaar_number = p_aadhaar OR pan_number = p_pan;
         
-        -- Banking risk scoring (starts at 100, deductions for issues)
-        SET v_banking_risk_score = 100;
+        -- Banking risk scoring (starts at 0, adds for risk indicators)
+        SET v_banking_risk_score = 0;
         
         IF v_total_bounces > 5 THEN
-            SET v_banking_risk_score = v_banking_risk_score - 30;
+            SET v_banking_risk_score = v_banking_risk_score + 30;
             SET v_banking_tags = JSON_ARRAY_APPEND(v_banking_tags, '$', 
                 CONCAT('FREQUENT_BOUNCES: ', v_total_bounces, ' cheque bounces indicate poor cash flow'));
         ELSEIF v_total_bounces BETWEEN 3 AND 5 THEN
-            SET v_banking_risk_score = v_banking_risk_score - 20;
+            SET v_banking_risk_score = v_banking_risk_score + 20;
             SET v_banking_tags = JSON_ARRAY_APPEND(v_banking_tags, '$', 
                 CONCAT('MODERATE_BOUNCES: ', v_total_bounces, ' cheque bounces show payment issues'));
         END IF;
         
         IF v_overdraft_accounts > 0 THEN
-            SET v_banking_risk_score = v_banking_risk_score - 15;
+            SET v_banking_risk_score = v_banking_risk_score + 15;
             SET v_banking_tags = JSON_ARRAY_APPEND(v_banking_tags, '$', 
                 'OVERDRAFT_DEPENDENCY: Overdraft usage indicates liquidity shortfalls');
         END IF;
         
         IF v_max_credit_usage > 80 THEN
-            SET v_banking_risk_score = v_banking_risk_score - 20;
+            SET v_banking_risk_score = v_banking_risk_score + 20;
             SET v_banking_tags = JSON_ARRAY_APPEND(v_banking_tags, '$', 
                 CONCAT('HIGH_CREDIT_UTILIZATION: ', ROUND(v_max_credit_usage, 1), '% credit usage'));
         END IF;
         
         IF v_total_income > 0 AND v_total_expenses > v_total_income THEN
-            SET v_banking_risk_score = v_banking_risk_score - 25;
+            SET v_banking_risk_score = v_banking_risk_score + 25;
             SET v_banking_tags = JSON_ARRAY_APPEND(v_banking_tags, '$', 
                 'EXPENSE_EXCEEDS_INCOME: Negative cash flow detected');
         END IF;
         
-        -- Determine banking risk level
-        IF v_banking_risk_score >= 80 THEN
-            SET v_banking_risk_level = 'LOW';
-        ELSEIF v_banking_risk_score >= 60 THEN
+        -- Determine banking risk level (higher score = higher risk)
+        IF v_banking_risk_score >= 60 THEN
+            SET v_banking_risk_level = 'HIGH';
+        ELSEIF v_banking_risk_score >= 30 THEN
             SET v_banking_risk_level = 'MEDIUM';
         ELSE
-            SET v_banking_risk_level = 'HIGH';
+            SET v_banking_risk_level = 'LOW';
         END IF;
     ELSE
         -- No banking data found
-        SET v_banking_risk_score = 25;
+        SET v_banking_risk_score = 75;
         SET v_banking_risk_level = 'HIGH';
         SET v_banking_tags = JSON_ARRAY_APPEND(v_banking_tags, '$', 
             'NO_BANKING_DATA: No banking history found for verification');

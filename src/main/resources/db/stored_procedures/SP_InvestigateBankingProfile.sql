@@ -20,7 +20,8 @@ BEGIN
     DECLARE v_risk_tags JSON DEFAULT JSON_ARRAY();
     DECLARE v_key_findings JSON DEFAULT JSON_ARRAY();
     DECLARE v_recommendations JSON DEFAULT JSON_ARRAY();
-    
+    DECLARE v_confidence_level INT DEFAULT 95;
+
     -- Banking metrics
     DECLARE v_total_bounces INT DEFAULT 0;
     DECLARE v_overdraft_accounts INT DEFAULT 0;
@@ -30,27 +31,28 @@ BEGIN
     DECLARE v_total_expenses DECIMAL(15,2) DEFAULT 0;
     DECLARE v_max_credit_usage DECIMAL(5,2) DEFAULT 0;
     DECLARE v_avg_account_age DECIMAL(5,2) DEFAULT 0;
-    
+
     -- Check if data exists
     SELECT COUNT(*) INTO v_total_accounts
     FROM bank_details 
     WHERE aadhaar_number = p_aadhaar OR pan_number = p_pan;
-    
+
     IF v_total_accounts = 0 THEN
-        -- No banking data found
         SELECT JSON_OBJECT(
             'dataFound', FALSE,
             'riskTags', JSON_ARRAY('NO_BANKING_DATA: No banking history found for verification'),
             'description', JSON_OBJECT(
                 'overallRisk', 'HIGH',
-                'riskScore', 75,
+                'riskScore', 25,
                 'accountSummary', 'No banking data available for assessment',
                 'keyFindings', JSON_ARRAY('No banking relationship established', 'Unable to verify financial behavior'),
-                'recommendations', JSON_ARRAY('Request bank statements', 'Verify income through alternative sources', 'Consider higher risk premium')
+                'recommendations', JSON_ARRAY('Request bank statements', 'Verify income through alternative sources', 'Consider higher risk premium'),
+                'confidenceLevel', v_confidence_level,
+                'investigationDate', NOW()
             )
         ) AS investigation_result;
     ELSE
-        -- Analyze banking data
+        -- Fetch banking metrics
         SELECT 
             COUNT(*) as total_accounts,
             COALESCE(SUM(cheque_bounce_count), 0) as total_bounces,
@@ -65,150 +67,147 @@ BEGIN
              v_avg_balance, v_total_income, v_total_expenses, v_max_credit_usage, v_avg_account_age
         FROM bank_details 
         WHERE aadhaar_number = p_aadhaar OR pan_number = p_pan;
-        
-        -- Calculate risk score (start with 100, deduct for risk factors)
+
+        -- Start with 100 and deduct points for risk factors
         SET v_risk_score = 100;
-        
-        -- Risk Assessment Logic
-        
-        -- 1. Cheque Bounce Analysis
+
+        -- Cheque Bounce Analysis
         IF v_total_bounces > 5 THEN
             SET v_risk_score = v_risk_score - 30;
             SET v_risk_tags = JSON_ARRAY_APPEND(v_risk_tags, '$', 
-                CONCAT('FREQUENT_BOUNCES: ', v_total_bounces, ' cheque bounces indicate poor cash flow management'));
+                CONCAT('FREQUENT_BOUNCES: ', v_total_bounces, ' cheque bounces indicate poor cash flow'));
             SET v_key_findings = JSON_ARRAY_APPEND(v_key_findings, '$',
-                CONCAT(v_total_bounces, ' cheque bounces suggest chronic payment difficulties and financial stress'));
+                'Chronic payment difficulties and financial stress observed');
+            SET v_recommendations = JSON_ARRAY_APPEND(v_recommendations, '$',
+                'Verify alternative income sources and payment discipline');
         ELSEIF v_total_bounces BETWEEN 3 AND 5 THEN
             SET v_risk_score = v_risk_score - 20;
             SET v_risk_tags = JSON_ARRAY_APPEND(v_risk_tags, '$', 
-                CONCAT('MODERATE_BOUNCES: ', v_total_bounces, ' cheque bounces show occasional payment issues'));
+                CONCAT('MODERATE_BOUNCES: ', v_total_bounces, ' cheque bounces'));
             SET v_key_findings = JSON_ARRAY_APPEND(v_key_findings, '$',
-                CONCAT(v_total_bounces, ' cheque bounces indicate occasional cash flow problems'));
+                'Occasional payment issues observed; monitor cash flow');
         ELSEIF v_total_bounces BETWEEN 1 AND 2 THEN
             SET v_risk_score = v_risk_score - 10;
             SET v_risk_tags = JSON_ARRAY_APPEND(v_risk_tags, '$', 
-                CONCAT('MINOR_BOUNCES: ', v_total_bounces, ' cheque bounce(s) - minimal payment issues'));
+                CONCAT('MINOR_BOUNCES: ', v_total_bounces, ' cheque bounce(s)'));
         ELSE
             SET v_key_findings = JSON_ARRAY_APPEND(v_key_findings, '$',
-                'Clean cheque payment history with zero bounces indicates good payment discipline');
+                'Clean cheque payment history indicates good payment discipline');
         END IF;
-        
-        -- 2. Overdraft Usage Analysis
+
+        -- Overdraft Usage
         IF v_overdraft_accounts > 0 THEN
             SET v_risk_score = v_risk_score - 15;
             SET v_risk_tags = JSON_ARRAY_APPEND(v_risk_tags, '$', 
-                CONCAT('OVERDRAFT_DEPENDENCY: ', v_overdraft_accounts, ' account(s) using overdraft facility'));
+                CONCAT('OVERDRAFT_DEPENDENCY: ', v_overdraft_accounts, ' account(s)'));
             SET v_key_findings = JSON_ARRAY_APPEND(v_key_findings, '$',
-                'Overdraft usage indicates frequent liquidity shortfalls and poor cash flow planning');
+                'Frequent liquidity shortfalls and poor cash flow planning');
             SET v_recommendations = JSON_ARRAY_APPEND(v_recommendations, '$',
                 'Verify income stability and cash flow management');
         END IF;
-        
-        -- 3. Credit Card Utilization Analysis
+
+        -- Credit Card Utilization
         IF v_max_credit_usage > 80 THEN
             SET v_risk_score = v_risk_score - 20;
             SET v_risk_tags = JSON_ARRAY_APPEND(v_risk_tags, '$', 
-                CONCAT('HIGH_CREDIT_UTILIZATION: ', ROUND(v_max_credit_usage, 1), '% credit card usage indicates over-reliance on credit'));
+                CONCAT('HIGH_CREDIT_UTILIZATION: ', ROUND(v_max_credit_usage, 1), '% usage'));
             SET v_key_findings = JSON_ARRAY_APPEND(v_key_findings, '$',
-                'High credit utilization suggests financial stress and potential difficulty managing additional debt');
+                'High credit utilization suggests financial stress');
             SET v_recommendations = JSON_ARRAY_APPEND(v_recommendations, '$',
-                'Consider reduced loan amount due to existing credit burden');
+                'Consider reduced loan amount');
         ELSEIF v_max_credit_usage BETWEEN 60 AND 80 THEN
             SET v_risk_score = v_risk_score - 10;
             SET v_risk_tags = JSON_ARRAY_APPEND(v_risk_tags, '$', 
-                CONCAT('MODERATE_CREDIT_USAGE: ', ROUND(v_max_credit_usage, 1), '% credit utilization shows moderate credit dependency'));
+                CONCAT('MODERATE_CREDIT_USAGE: ', ROUND(v_max_credit_usage, 1), '% usage'));
         END IF;
-        
-        -- 4. Income vs Expense Analysis
+
+        -- Income vs Expense
         IF v_total_income > 0 AND v_total_expenses > v_total_income THEN
             SET v_risk_score = v_risk_score - 25;
             SET v_risk_tags = JSON_ARRAY_APPEND(v_risk_tags, '$', 
-                CONCAT('EXPENSE_EXCEEDS_INCOME: Monthly expenses ₹', FORMAT(v_total_expenses, 0), 
-                       ' exceed income ₹', FORMAT(v_total_income, 0)));
+                CONCAT('EXPENSE_EXCEEDS_INCOME: Expenses ₹', FORMAT(v_total_expenses,0),
+                       ' > Income ₹', FORMAT(v_total_income,0)));
             SET v_key_findings = JSON_ARRAY_APPEND(v_key_findings, '$',
                 'Negative cash flow indicates unsustainable financial position');
             SET v_recommendations = JSON_ARRAY_APPEND(v_recommendations, '$',
-                'Reject application due to insufficient income to support additional EMI');
+                'Reject application due to insufficient income');
         ELSEIF v_total_income > 0 AND (v_total_expenses / v_total_income) > 0.8 THEN
             SET v_risk_score = v_risk_score - 15;
             SET v_risk_tags = JSON_ARRAY_APPEND(v_risk_tags, '$', 
-                'HIGH_EXPENSE_RATIO: Expenses consume >80% of income leaving minimal surplus');
+                'HIGH_EXPENSE_RATIO: Expenses >80% of income');
             SET v_recommendations = JSON_ARRAY_APPEND(v_recommendations, '$',
-                'Consider lower loan amount to maintain comfortable EMI ratio');
+                'Consider lower loan amount');
         END IF;
-        
-        -- 5. Balance Management Analysis
+
+        -- Balance Management
         IF v_total_income > 0 AND v_avg_balance < (v_total_income * 0.1) THEN
             SET v_risk_score = v_risk_score - 15;
             SET v_risk_tags = JSON_ARRAY_APPEND(v_risk_tags, '$', 
-                CONCAT('LOW_BALANCE_RATIO: Average balance ₹', FORMAT(v_avg_balance, 0), 
-                       ' is only ', ROUND((v_avg_balance / v_total_income) * 100, 1), '% of monthly income'));
+                CONCAT('LOW_BALANCE_RATIO: Avg balance ₹', FORMAT(v_avg_balance,0)));
             SET v_key_findings = JSON_ARRAY_APPEND(v_key_findings, '$',
-                'Low balance ratio indicates poor savings discipline and financial planning');
+                'Poor savings discipline detected');
         END IF;
-        
-        -- 6. Salary Account Analysis
+
+        -- Salary Account
         IF v_salary_accounts = 0 THEN
             SET v_risk_score = v_risk_score - 10;
             SET v_risk_tags = JSON_ARRAY_APPEND(v_risk_tags, '$', 
-                'NO_SALARY_ACCOUNT: No designated salary account found for income verification');
+                'NO_SALARY_ACCOUNT: No verified income source');
             SET v_recommendations = JSON_ARRAY_APPEND(v_recommendations, '$',
-                'Verify employment and income through alternative documentation');
+                'Verify employment and income through documentation');
         ELSE
             SET v_key_findings = JSON_ARRAY_APPEND(v_key_findings, '$',
                 CONCAT(v_salary_accounts, ' salary account(s) provide verified income source'));
         END IF;
-        
-        -- 7. Account Age Analysis
+
+        -- Account Age
         IF v_avg_account_age < 1 THEN
             SET v_risk_score = v_risk_score - 15;
             SET v_risk_tags = JSON_ARRAY_APPEND(v_risk_tags, '$', 
-                CONCAT('NEW_BANKING_RELATIONSHIP: Average account age ', ROUND(v_avg_account_age, 1), 
-                       ' years indicates limited banking history'));
+                CONCAT('NEW_BANKING_RELATIONSHIP: Avg age ', ROUND(v_avg_account_age,1),' yrs'));
             SET v_recommendations = JSON_ARRAY_APPEND(v_recommendations, '$',
-                'Enhanced verification required due to limited banking track record');
+                'Enhanced verification due to limited banking history');
         ELSEIF v_avg_account_age > 5 THEN
             SET v_key_findings = JSON_ARRAY_APPEND(v_key_findings, '$',
-                CONCAT('Established banking relationship with ', ROUND(v_avg_account_age, 1), 
-                       ' years average account age demonstrates stability'));
+                CONCAT('Established banking relationship: Avg age ', ROUND(v_avg_account_age,1),' yrs'));
         END IF;
-        
-        -- Determine overall risk level (reversed logic)
+
+        -- Determine overall risk level (LOW score → HIGH risk)
         IF v_risk_score >= 80 THEN
-            SET v_overall_risk = 'HIGH';
+            SET v_overall_risk = 'LOW';
         ELSEIF v_risk_score >= 60 THEN
             SET v_overall_risk = 'MEDIUM';
         ELSE
-            SET v_overall_risk = 'LOW';
+            SET v_overall_risk = 'HIGH';
         END IF;
 
-        -- Add positive findings if low risk
-        IF v_risk_score < 60 THEN
+        -- Positive findings for low-risk profiles
+        IF v_overall_risk = 'LOW' THEN
             SET v_key_findings = JSON_ARRAY_APPEND(v_key_findings, '$',
-                'Strong banking profile with good financial discipline and payment history');
+                'Strong banking profile with good financial discipline');
             SET v_recommendations = JSON_ARRAY_APPEND(v_recommendations, '$',
-                'Suitable for standard loan terms and processing');
+                'Suitable for standard loan terms');
         ELSEIF v_overall_risk = 'HIGH' THEN
             SET v_recommendations = JSON_ARRAY_APPEND(v_recommendations, '$',
                 'Consider rejection or require additional collateral/guarantor');
         END IF;
 
-        
-        -- Return investigation result
+        -- Return result
         SELECT JSON_OBJECT(
             'dataFound', TRUE,
             'riskTags', v_risk_tags,
             'description', JSON_OBJECT(
                 'overallRisk', v_overall_risk,
                 'riskScore', v_risk_score,
-                'accountSummary', CONCAT('Analysis of ', v_total_accounts, ' bank account(s) reveals ', 
-                                       LOWER(v_overall_risk), ' risk profile'),
+                'confidenceLevel', v_confidence_level,
+                'investigationDate', NOW(),
+                'accountSummary', CONCAT('Analysis of ', v_total_accounts, ' bank account(s) reveals ', LOWER(v_overall_risk), ' risk profile'),
                 'keyFindings', v_key_findings,
                 'recommendations', v_recommendations
             )
         ) AS investigation_result;
+
     END IF;
-    
 END//
 
 DELIMITER ;
