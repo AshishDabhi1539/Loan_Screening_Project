@@ -16,8 +16,8 @@ public class ComplianceDecisionRequest {
     @NotNull(message = "Decision type is required")
     private ComplianceDecisionType decisionType;
     
-    @NotBlank(message = "Decision reason is required")
-    private String decisionReason;
+    @NotBlank(message = "Decision notes are required")
+    private String decisionNotes;
     
     private String additionalNotes;
     

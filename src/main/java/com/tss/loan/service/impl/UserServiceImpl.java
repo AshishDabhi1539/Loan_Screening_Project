@@ -10,6 +10,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.tss.loan.dto.request.OfficerCreationRequest;
+import com.tss.loan.dto.request.OfficerPersonalDetailsRequest;
 import com.tss.loan.dto.request.UserRegistrationRequest;
 import com.tss.loan.entity.enums.NotificationType;
 import com.tss.loan.entity.enums.RoleType;
@@ -20,6 +21,7 @@ import com.tss.loan.repository.UserRepository;
 import com.tss.loan.service.AuditLogService;
 import com.tss.loan.service.EmailService;
 import com.tss.loan.service.NotificationService;
+import com.tss.loan.service.OfficerProfileService;
 import com.tss.loan.service.UserService;
 
 @Service
@@ -39,6 +41,9 @@ public class UserServiceImpl implements UserService {
     
     @Autowired
     private NotificationService notificationService;
+    
+    @Autowired
+    private OfficerProfileService officerProfileService;
 
     @Override
     public User createUser(UserRegistrationRequest request) {
@@ -99,6 +104,28 @@ public class UserServiceImpl implements UserService {
         officer.setUpdatedAt(LocalDateTime.now());
 
         User savedOfficer = userRepository.save(officer);
+
+        // ✅ IMMEDIATELY CREATE OFFICER PROFILE with personal details
+        try {
+            OfficerPersonalDetailsRequest profileRequest = new OfficerPersonalDetailsRequest();
+            profileRequest.setFirstName(request.getFirstName());
+            profileRequest.setLastName(request.getLastName());
+            profileRequest.setMiddleName(request.getMiddleName());
+            profileRequest.setDepartment(request.getDepartment());
+            profileRequest.setDesignation(request.getDesignation());
+            profileRequest.setPhoneNumber(request.getPhoneNumber());
+            profileRequest.setWorkLocation(request.getWorkLocation());
+            
+            officerProfileService.createOrUpdateOfficerDetails(profileRequest, savedOfficer);
+            
+            auditLogService.logAction(createdBy, "OFFICER_PROFILE_AUTO_CREATED", "OfficerPersonalDetails", null,
+                "Auto-created officer profile for: " + savedOfficer.getEmail());
+                
+        } catch (Exception e) {
+            // Log error but don't fail officer creation
+            auditLogService.logAction(createdBy, "OFFICER_PROFILE_CREATION_FAILED", "OfficerPersonalDetails", null,
+                "Failed to auto-create officer profile for: " + savedOfficer.getEmail() + ". Error: " + e.getMessage());
+        }
 
         // Send credentials email
         emailService.sendOfficerCredentials(request.getEmail(), request.getPassword(),

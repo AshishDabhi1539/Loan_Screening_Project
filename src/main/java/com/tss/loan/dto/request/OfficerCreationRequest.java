@@ -32,6 +32,30 @@ public class OfficerCreationRequest {
     @Size(min = 8, max = 100, message = "Password must be between 8 and 100 characters")
     private String password;
     
+    // Officer Personal Details - Required for immediate profile creation
+    @NotBlank(message = "First name is required")
+    @Size(max = 50, message = "First name cannot exceed 50 characters")
+    private String firstName;
+    
+    @NotBlank(message = "Last name is required")
+    @Size(max = 50, message = "Last name cannot exceed 50 characters")
+    private String lastName;
+    
+    @Size(max = 50, message = "Middle name cannot exceed 50 characters")
+    private String middleName;
+    
+    @Size(max = 100, message = "Department cannot exceed 100 characters")
+    private String department;
+    
+    @Size(max = 100, message = "Designation cannot exceed 100 characters")
+    private String designation;
+    
+    @Size(max = 15, message = "Phone number cannot exceed 15 characters")
+    private String phoneNumber;
+    
+    @Size(max = 200, message = "Work location cannot exceed 200 characters")
+    private String workLocation;
+    
     // Validation method
     public boolean isValidRole() {
         return role == RoleType.LOAN_OFFICER || role == RoleType.COMPLIANCE_OFFICER;

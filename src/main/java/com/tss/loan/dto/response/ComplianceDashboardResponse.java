@@ -31,6 +31,7 @@ public class ComplianceDashboardResponse {
     private int completedThisMonth;
     
     // Priority Breakdown
+    private int criticalPriorityApplications;
     private int highPriorityApplications;
     private int mediumPriorityApplications;
     private int lowPriorityApplications;

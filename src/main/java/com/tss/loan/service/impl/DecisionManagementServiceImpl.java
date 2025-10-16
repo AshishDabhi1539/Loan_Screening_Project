@@ -5,6 +5,8 @@ import com.tss.loan.dto.request.LoanDecisionRequest;
 import com.tss.loan.dto.response.LoanDecisionResponse;
 import com.tss.loan.entity.enums.ApplicationStatus;
 import com.tss.loan.entity.enums.DecisionType;
+import com.tss.loan.entity.enums.NotificationType;
+import com.tss.loan.entity.enums.Priority;
 import com.tss.loan.entity.enums.RoleType;
 import com.tss.loan.entity.loan.LoanApplication;
 import com.tss.loan.entity.user.User;
@@ -14,6 +16,7 @@ import com.tss.loan.service.ApplicationAssignmentService;
 import com.tss.loan.service.ApplicationWorkflowService;
 import com.tss.loan.service.AuditLogService;
 import com.tss.loan.service.DecisionManagementService;
+import com.tss.loan.service.NotificationService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -42,6 +45,9 @@ public class DecisionManagementServiceImpl implements DecisionManagementService 
     
     @Autowired
     private ApplicationAssignmentService assignmentService;
+    
+    @Autowired
+    private NotificationService notificationService;
     
     @Override
     public LoanDecisionResponse approveLoanApplication(UUID applicationId, LoanDecisionRequest request, User decisionMaker) {
@@ -170,10 +176,15 @@ public class DecisionManagementServiceImpl implements DecisionManagementService 
             throw new LoanApiException("Application cannot be flagged for compliance in current status: " + application.getStatus());
         }
         
-        // Update application status
+        // Update application status and priority
         ApplicationStatus previousStatus = application.getStatus();
         ApplicationStatus newStatus = ApplicationStatus.FLAGGED_FOR_COMPLIANCE;
         application.setStatus(newStatus);
+        
+        // ✅ FIXED: Set priority using enum instead of string matching
+        Priority priority = Priority.fromString(request.getPriorityLevel());
+        application.setPriority(priority);
+        
         application.setComplianceNotes(request.getFlagReason() + 
             (request.getAdditionalDetails() != null ? " | " + request.getAdditionalDetails() : ""));
         application.setUpdatedAt(LocalDateTime.now());
@@ -213,8 +224,31 @@ public class DecisionManagementServiceImpl implements DecisionManagementService 
             String.format("Application flagged for compliance review. Reason: %s. Priority: %s.%s",
                 request.getFlagReason(), request.getPriorityLevel(), assignmentInfo));
         
-        // Send notification to compliance officers (placeholder)
-        // notificationService.sendComplianceFlagNotification(savedApplication, officer, request);
+        // Send notification to assigned compliance officer
+        if (savedApplication.getAssignedComplianceOfficer() != null) {
+            notificationService.createNotification(
+                savedApplication.getAssignedComplianceOfficer(),
+                NotificationType.IN_APP,
+                "Application Flagged for Compliance Review",
+                String.format("Application %s has been flagged for compliance review. Reason: %s. Priority: %s", 
+                    applicationId, request.getFlagReason(), request.getPriorityLevel()),
+                "LoanApplication",
+(long)(applicationId.toString().hashCode() & 0x7FFFFFFF) // Convert UUID to positive Long
+            );
+            
+            // Also send email notification for high priority cases
+            if ("HIGH".equals(request.getPriorityLevel())) {
+                notificationService.createNotification(
+                    savedApplication.getAssignedComplianceOfficer(),
+                    NotificationType.EMAIL,
+                    "HIGH PRIORITY: Compliance Review Required",
+                    String.format("URGENT: Application %s requires immediate compliance review. Reason: %s", 
+                        applicationId, request.getFlagReason()),
+                    "LoanApplication",
+                    (long)(applicationId.toString().hashCode() & 0x7FFFFFFF)
+                );
+            }
+        }
         
         log.info("Application {} flagged for compliance review successfully", applicationId);
         

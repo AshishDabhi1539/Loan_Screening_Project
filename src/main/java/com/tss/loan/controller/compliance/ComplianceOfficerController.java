@@ -240,6 +240,72 @@ public class ComplianceOfficerController {
         return ResponseEntity.ok(investigation);
     }
     
+    /**
+     * Quick clear application from FLAGGED_FOR_COMPLIANCE directly to READY_FOR_DECISION
+     */
+    @PostMapping("/applications/{applicationId}/quick-clear")
+    public ResponseEntity<ComplianceDecisionResponse> quickClearCompliance(
+            @PathVariable UUID applicationId,
+            @Valid @RequestBody ComplianceDecisionRequest request,
+            Authentication authentication) {
+        
+        log.info("Compliance officer {} quick clearing application: {}", authentication.getName(), applicationId);
+        
+        User complianceOfficer = getCurrentUser(authentication);
+        ComplianceDecisionResponse response = complianceOfficerService.quickClearCompliance(applicationId, request, complianceOfficer);
+        
+        return ResponseEntity.ok(response);
+    }
+    
+    /**
+     * Quick reject application from FLAGGED_FOR_COMPLIANCE directly to REJECTED
+     */
+    @PostMapping("/applications/{applicationId}/quick-reject")
+    public ResponseEntity<ComplianceDecisionResponse> quickRejectCompliance(
+            @PathVariable UUID applicationId,
+            @Valid @RequestBody ComplianceDecisionRequest request,
+            Authentication authentication) {
+        
+        log.info("Compliance officer {} quick rejecting application: {}", authentication.getName(), applicationId);
+        
+        User complianceOfficer = getCurrentUser(authentication);
+        ComplianceDecisionResponse response = complianceOfficerService.quickRejectCompliance(applicationId, request, complianceOfficer);
+        
+        return ResponseEntity.ok(response);
+    }
+    
+    /**
+     * Handle document submission for PENDING_COMPLIANCE_DOCS applications
+     */
+    @PostMapping("/applications/{applicationId}/documents-received")
+    public ResponseEntity<String> handleDocumentSubmission(
+            @PathVariable UUID applicationId,
+            Authentication authentication) {
+        
+        log.info("Compliance officer {} handling document submission for application: {}", authentication.getName(), applicationId);
+        
+        User complianceOfficer = getCurrentUser(authentication);
+        complianceOfficerService.handleDocumentSubmission(applicationId, complianceOfficer);
+        
+        return ResponseEntity.ok("Documents received and application returned to compliance review");
+    }
+    
+    /**
+     * Process timeout for applications in PENDING_COMPLIANCE_DOCS status
+     */
+    @PostMapping("/applications/{applicationId}/process-timeout")
+    public ResponseEntity<String> processComplianceTimeout(
+            @PathVariable UUID applicationId,
+            Authentication authentication) {
+        
+        log.info("Compliance officer {} processing timeout for application: {}", authentication.getName(), applicationId);
+        
+        User complianceOfficer = getCurrentUser(authentication);
+        complianceOfficerService.processComplianceTimeout(applicationId, complianceOfficer);
+        
+        return ResponseEntity.ok("Compliance timeout processed successfully");
+    }
+    
     private User getCurrentUser(Authentication authentication) {
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
         return userService.findByEmail(userDetails.getUsername());

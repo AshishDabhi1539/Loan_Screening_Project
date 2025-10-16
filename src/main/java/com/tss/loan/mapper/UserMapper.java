@@ -33,9 +33,9 @@ public class UserMapper {
                 .updatedAt(entity.getUpdatedAt())
                 .version(entity.getVersion())
                 
-                // Summary counts (NO circular reference)
-                .loanApplicationsCount(entity.getLoanApplications() != null ? entity.getLoanApplications().size() : 0)
-                .assignedApplicationsCount(entity.getAssignedApplications() != null ? entity.getAssignedApplications().size() : 0)
+                // Summary counts (NO circular reference) - DISABLED to prevent lazy loading
+                .loanApplicationsCount(0) // Disabled to prevent circular reference
+                .assignedApplicationsCount(0) // Disabled to prevent circular reference
                 
                 // Profile completion status
                 .hasPersonalDetails(profileCompletionService.hasPersonalDetails(entity))

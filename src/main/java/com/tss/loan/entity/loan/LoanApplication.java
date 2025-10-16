@@ -7,6 +7,7 @@ import java.util.UUID;
 
 import com.tss.loan.entity.enums.ApplicationStatus;
 import com.tss.loan.entity.enums.LoanType;
+import com.tss.loan.entity.enums.Priority;
 import com.tss.loan.entity.enums.RiskLevel;
 import com.tss.loan.entity.user.User;
 
@@ -37,6 +38,7 @@ import lombok.RequiredArgsConstructor;
         @Index(name = "idx_loan_app_status", columnList = "status"),
         @Index(name = "idx_loan_app_type", columnList = "loanType"),
         @Index(name = "idx_loan_app_risk", columnList = "riskLevel"),
+        @Index(name = "idx_loan_app_priority", columnList = "priority"),
         @Index(name = "idx_loan_app_created", columnList = "createdAt")
 })
 @RequiredArgsConstructor
@@ -84,8 +86,12 @@ public class LoanApplication {
     private ApplicationStatus status = ApplicationStatus.SUBMITTED;
     
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 30)
     private RiskLevel riskLevel = RiskLevel.LOW;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private Priority priority = Priority.LOW;
     
     @Column(nullable = false)
     private LocalDateTime submittedAt;

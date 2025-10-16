@@ -83,9 +83,29 @@ public interface ComplianceOfficerService {
     boolean hasComplianceAuthority(UUID applicationId, User complianceOfficer);
     
     /**
-     * Get compliance workload statistics for officer
+     * Get current workload count for compliance officer
      */
     int getCurrentWorkload(User complianceOfficer);
+    
+    /**
+     * Quick clear application from FLAGGED_FOR_COMPLIANCE directly to READY_FOR_DECISION
+     */
+    ComplianceDecisionResponse quickClearCompliance(UUID applicationId, ComplianceDecisionRequest request, User complianceOfficer);
+    
+    /**
+     * Quick reject application from FLAGGED_FOR_COMPLIANCE directly to REJECTED
+     */
+    ComplianceDecisionResponse quickRejectCompliance(UUID applicationId, ComplianceDecisionRequest request, User complianceOfficer);
+    
+    /**
+     * Handle document submission for PENDING_COMPLIANCE_DOCS applications
+     */
+    void handleDocumentSubmission(UUID applicationId, User complianceOfficer);
+    
+    /**
+     * Process timeout for applications in PENDING_COMPLIANCE_DOCS status
+     */
+    void processComplianceTimeout(UUID applicationId, User complianceOfficer);
     
     /**
      * Perform comprehensive compliance investigation using stored procedure

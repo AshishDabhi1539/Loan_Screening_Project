@@ -31,6 +31,8 @@ import com.tss.loan.service.ApplicationWorkflowService;
 import com.tss.loan.service.AuditLogService;
 import com.tss.loan.service.ComplianceOfficerService;
 import com.tss.loan.service.LoanOfficerService;
+import com.tss.loan.service.OfficerProfileService;
+import com.tss.loan.service.ProfileCompletionService;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -67,6 +69,12 @@ public class ComplianceOfficerServiceImpl implements ComplianceOfficerService {
     @Autowired
     private ObjectMapper objectMapper;
     
+    @Autowired
+    private OfficerProfileService officerProfileService;
+    
+    @Autowired
+    private ProfileCompletionService profileCompletionService;
+    
     @Override
     public ComplianceDashboardResponse getDashboard(User complianceOfficer) {
         log.info("Building compliance dashboard for officer: {}", complianceOfficer.getEmail());
@@ -87,14 +95,19 @@ public class ComplianceOfficerServiceImpl implements ComplianceOfficerService {
             .filter(app -> app.getStatus() == ApplicationStatus.PENDING_COMPLIANCE_DOCS)
             .count();
         
-        // Priority breakdown (assuming priority is stored in complianceNotes for now)
+        // ✅ FIXED: Priority breakdown using proper Priority enum field
         int highPriority = (int) assignedApplications.stream()
-            .filter(app -> app.getComplianceNotes() != null && app.getComplianceNotes().contains("HIGH"))
+            .filter(app -> app.getPriority() == com.tss.loan.entity.enums.Priority.HIGH)
             .count();
         int mediumPriority = (int) assignedApplications.stream()
-            .filter(app -> app.getComplianceNotes() != null && app.getComplianceNotes().contains("MEDIUM"))
+            .filter(app -> app.getPriority() == com.tss.loan.entity.enums.Priority.MEDIUM)
             .count();
-        int lowPriority = totalAssigned - highPriority - mediumPriority;
+        int lowPriority = (int) assignedApplications.stream()
+            .filter(app -> app.getPriority() == com.tss.loan.entity.enums.Priority.LOW)
+            .count();
+        int criticalPriority = (int) assignedApplications.stream()
+            .filter(app -> app.getPriority() == com.tss.loan.entity.enums.Priority.CRITICAL)
+            .count();
         
         // Recent activities
         List<ComplianceDashboardResponse.RecentComplianceActivity> recentActivities = 
@@ -105,13 +118,14 @@ public class ComplianceOfficerServiceImpl implements ComplianceOfficerService {
         
         return ComplianceDashboardResponse.builder()
             .officerId(complianceOfficer.getId())
-            .officerName(complianceOfficer.getEmail()) // Using email as name for now
+            .officerName(officerProfileService.getOfficerDisplayName(complianceOfficer)) // ✅ FIXED: Using proper name resolution
             .officerEmail(complianceOfficer.getEmail())
             .role(complianceOfficer.getRole().name())
             .totalAssignedApplications(totalAssigned)
             .flaggedForCompliance(flaggedForCompliance)
             .underComplianceReview(underReview)
             .pendingComplianceDocs(pendingDocs)
+            .criticalPriorityApplications(criticalPriority)
             .highPriorityApplications(highPriority)
             .mediumPriorityApplications(mediumPriority)
             .lowPriorityApplications(lowPriority)
@@ -284,7 +298,7 @@ public class ComplianceOfficerServiceImpl implements ComplianceOfficerService {
         ApplicationStatus previousStatus = application.getStatus();
         ApplicationStatus newStatus = ApplicationStatus.READY_FOR_DECISION;
         application.setStatus(newStatus);
-        application.setComplianceNotes(application.getComplianceNotes() + " | CLEARED: " + request.getDecisionReason());
+        application.setComplianceNotes(application.getComplianceNotes() + " | CLEARED: " + request.getDecisionNotes());
         application.setUpdatedAt(LocalDateTime.now());
         
         // Clear compliance officer assignment (return to loan officer)
@@ -294,11 +308,11 @@ public class ComplianceOfficerServiceImpl implements ComplianceOfficerService {
         
         // Log workflow transition
         workflowService.createWorkflowEntry(applicationId, previousStatus, newStatus, complianceOfficer, 
-            "Compliance cleared: " + request.getDecisionReason());
+            "Compliance cleared: " + request.getDecisionNotes());
         
         // Log audit event
         auditLogService.logAction(complianceOfficer, "COMPLIANCE_CLEARED", "LoanApplication", null,
-            "Application cleared from compliance review. Reason: " + request.getDecisionReason());
+            "Application cleared from compliance review. Reason: " + request.getDecisionNotes());
         
         return ComplianceDecisionResponse.builder()
             .applicationId(applicationId)
@@ -307,9 +321,9 @@ public class ComplianceOfficerServiceImpl implements ComplianceOfficerService {
             .decisionType(ComplianceDecisionRequest.ComplianceDecisionType.CLEARED)
             .newStatus(newStatus)
             .previousStatus(previousStatus)
-            .decisionReason(request.getDecisionReason())
+            .decisionNotes(request.getDecisionNotes())
             .additionalNotes(request.getAdditionalNotes())
-            .decisionTimestamp(LocalDateTime.now())
+            .processedAt(LocalDateTime.now())
             .nextSteps("Application returned to loan officer for final decision")
             .requiresRegulatoryReporting(false)
             .canBeAppealed(false)
@@ -333,7 +347,7 @@ public class ComplianceOfficerServiceImpl implements ComplianceOfficerService {
         ApplicationStatus newStatus = ApplicationStatus.REJECTED;
         application.setStatus(newStatus);
         application.setRejectionReason("Compliance Violation: " + request.getComplianceViolationType());
-        application.setComplianceNotes(application.getComplianceNotes() + " | REJECTED: " + request.getDecisionReason());
+        application.setComplianceNotes(application.getComplianceNotes() + " | REJECTED: " + request.getDecisionNotes());
         application.setFinalDecisionAt(LocalDateTime.now());
         application.setUpdatedAt(LocalDateTime.now());
         
@@ -341,12 +355,12 @@ public class ComplianceOfficerServiceImpl implements ComplianceOfficerService {
         
         // Log workflow transition
         workflowService.createWorkflowEntry(applicationId, previousStatus, newStatus, complianceOfficer, 
-            "Rejected for compliance violation: " + request.getDecisionReason());
+            "Rejected for compliance violation: " + request.getDecisionNotes());
         
         // Log audit event
         auditLogService.logAction(complianceOfficer, "COMPLIANCE_VIOLATION_REJECTED", "LoanApplication", null,
             String.format("Application rejected for compliance violation. Type: %s. Reason: %s", 
-                request.getComplianceViolationType(), request.getDecisionReason()));
+                request.getComplianceViolationType(), request.getDecisionNotes()));
         
         return ComplianceDecisionResponse.builder()
             .applicationId(applicationId)
@@ -355,9 +369,9 @@ public class ComplianceOfficerServiceImpl implements ComplianceOfficerService {
             .decisionType(ComplianceDecisionRequest.ComplianceDecisionType.REJECTED)
             .newStatus(newStatus)
             .previousStatus(previousStatus)
-            .decisionReason(request.getDecisionReason())
+            .decisionNotes(request.getDecisionNotes())
             .additionalNotes(request.getAdditionalNotes())
-            .decisionTimestamp(LocalDateTime.now())
+            .processedAt(LocalDateTime.now())
             .nextSteps("Application process completed due to compliance violation")
             .requiresRegulatoryReporting(request.isRequiresRegulatoryReporting())
             .complianceViolationType(request.getComplianceViolationType())
@@ -428,11 +442,11 @@ public class ComplianceOfficerServiceImpl implements ComplianceOfficerService {
     private ComplianceDashboardResponse.RecentComplianceActivity mapToRecentActivity(LoanApplication application) {
         return ComplianceDashboardResponse.RecentComplianceActivity.builder()
             .applicationId(application.getId())
-            .applicantName(application.getApplicant().getEmail()) // Using email as name for now
+            .applicantName(profileCompletionService.getDisplayName(application.getApplicant())) // ✅ FIXED: Using proper name resolution
             .action("Compliance Review")
             .status(application.getStatus().name())
             .flagReason(extractFlagReason(application.getComplianceNotes()))
-            .priority(extractPriority(application.getComplianceNotes()))
+            .priority(application.getPriority() != null ? application.getPriority().name() : "LOW") // ✅ FIXED: Using Priority enum
             .timestamp(application.getUpdatedAt())
             .description("Application under compliance review")
             .build();
@@ -444,12 +458,7 @@ public class ComplianceOfficerServiceImpl implements ComplianceOfficerService {
         return complianceNotes.length() > 50 ? complianceNotes.substring(0, 50) + "..." : complianceNotes;
     }
     
-    private String extractPriority(String complianceNotes) {
-        if (complianceNotes == null) return "MEDIUM";
-        if (complianceNotes.contains("HIGH")) return "HIGH";
-        if (complianceNotes.contains("LOW")) return "LOW";
-        return "MEDIUM";
-    }
+    // Removed extractPriority method - now using Priority enum directly
     
     @Override
     public ComplianceInvestigationResponse performComprehensiveInvestigation(UUID applicationId, User complianceOfficer) {
@@ -513,5 +522,180 @@ public class ComplianceOfficerServiceImpl implements ComplianceOfficerService {
     
     private int getMaxCapacity(User complianceOfficer) {
         return complianceOfficer.getRole() == RoleType.SENIOR_COMPLIANCE_OFFICER ? 15 : 10;
+    }
+    
+    @Override
+    public ComplianceDecisionResponse quickClearCompliance(UUID applicationId, ComplianceDecisionRequest request, User complianceOfficer) {
+        log.info("Quick clearing compliance for application: {} by officer: {}", applicationId, complianceOfficer.getEmail());
+        
+        // Validate compliance authority
+        if (!hasComplianceAuthority(applicationId, complianceOfficer)) {
+            throw new LoanApiException("You do not have authority to clear this application");
+        }
+        
+        // Get the loan application
+        LoanApplication application = loanApplicationRepository.findById(applicationId)
+            .orElseThrow(() -> new LoanApiException("Application not found: " + applicationId));
+        
+        // Validate current status
+        if (application.getStatus() != ApplicationStatus.FLAGGED_FOR_COMPLIANCE) {
+            throw new LoanApiException("Application must be in FLAGGED_FOR_COMPLIANCE status for quick clear. Current status: " + application.getStatus());
+        }
+        
+        // Update application status to READY_FOR_DECISION
+        ApplicationStatus oldStatus = application.getStatus();
+        application.setStatus(ApplicationStatus.READY_FOR_DECISION);
+        application.setComplianceNotes(request.getDecisionNotes());
+        application.setUpdatedAt(LocalDateTime.now());
+        
+        LoanApplication savedApplication = loanApplicationRepository.save(application);
+        
+        // Record workflow transition
+        workflowService.createWorkflowEntry(savedApplication.getId(), oldStatus, ApplicationStatus.READY_FOR_DECISION, 
+            complianceOfficer, "Quick compliance clearance: " + request.getDecisionNotes());
+        
+        // Audit log
+        auditLogService.logAction(complianceOfficer, "COMPLIANCE_QUICK_CLEARED", "LoanApplication", savedApplication.getId().hashCode() & 0x7FFFFFFFL,
+            String.format("Quick cleared application %s for compliance. Reason: %s", applicationId, request.getDecisionNotes()));
+        
+        log.info("Application {} quick cleared for compliance by officer: {}", applicationId, complianceOfficer.getEmail());
+        
+        return ComplianceDecisionResponse.builder()
+            .applicationId(applicationId)
+            .decision("QUICK_CLEARED")
+            .newStatus(ApplicationStatus.READY_FOR_DECISION)
+            .decisionNotes(request.getDecisionNotes())
+            .processedBy(complianceOfficer.getEmail())
+            .processedAt(LocalDateTime.now())
+            .nextSteps("Application returned to normal processing workflow for final decision")
+            .build();
+    }
+    
+    @Override
+    public ComplianceDecisionResponse quickRejectCompliance(UUID applicationId, ComplianceDecisionRequest request, User complianceOfficer) {
+        log.info("Quick rejecting compliance for application: {} by officer: {}", applicationId, complianceOfficer.getEmail());
+        
+        // Validate compliance authority
+        if (!hasComplianceAuthority(applicationId, complianceOfficer)) {
+            throw new LoanApiException("You do not have authority to reject this application");
+        }
+        
+        // Get the loan application
+        LoanApplication application = loanApplicationRepository.findById(applicationId)
+            .orElseThrow(() -> new LoanApiException("Application not found: " + applicationId));
+        
+        // Validate current status
+        if (application.getStatus() != ApplicationStatus.FLAGGED_FOR_COMPLIANCE) {
+            throw new LoanApiException("Application must be in FLAGGED_FOR_COMPLIANCE status for quick reject. Current status: " + application.getStatus());
+        }
+        
+        // Update application status to REJECTED
+        ApplicationStatus oldStatus = application.getStatus();
+        application.setStatus(ApplicationStatus.REJECTED);
+        application.setComplianceNotes(request.getDecisionNotes());
+        application.setRejectionReason("Compliance violation: " + request.getDecisionNotes());
+        application.setFinalDecisionAt(LocalDateTime.now());
+        application.setUpdatedAt(LocalDateTime.now());
+        
+        LoanApplication savedApplication = loanApplicationRepository.save(application);
+        
+        // Record workflow transition
+        workflowService.createWorkflowEntry(savedApplication.getId(), oldStatus, ApplicationStatus.REJECTED, 
+            complianceOfficer, "Quick compliance rejection: " + request.getDecisionNotes());
+        
+        // Audit log
+        auditLogService.logAction(complianceOfficer, "COMPLIANCE_QUICK_REJECTED", "LoanApplication", savedApplication.getId().hashCode() & 0x7FFFFFFFL,
+            String.format("Quick rejected application %s for compliance violation. Reason: %s", applicationId, request.getDecisionNotes()));
+        
+        log.info("Application {} quick rejected for compliance by officer: {}", applicationId, complianceOfficer.getEmail());
+        
+        return ComplianceDecisionResponse.builder()
+            .applicationId(applicationId)
+            .decision("QUICK_REJECTED")
+            .newStatus(ApplicationStatus.REJECTED)
+            .decisionNotes(request.getDecisionNotes())
+            .processedBy(complianceOfficer.getEmail())
+            .processedAt(LocalDateTime.now())
+            .nextSteps("Application rejected due to compliance violation. Process complete.")
+            .build();
+    }
+    
+    @Override
+    public void handleDocumentSubmission(UUID applicationId, User complianceOfficer) {
+        log.info("Handling document submission for application: {} by officer: {}", applicationId, complianceOfficer.getEmail());
+        
+        // Validate compliance authority
+        if (!hasComplianceAuthority(applicationId, complianceOfficer)) {
+            throw new LoanApiException("You do not have authority to handle documents for this application");
+        }
+        
+        // Get the loan application
+        LoanApplication application = loanApplicationRepository.findById(applicationId)
+            .orElseThrow(() -> new LoanApiException("Application not found: " + applicationId));
+        
+        // Validate current status
+        if (application.getStatus() != ApplicationStatus.PENDING_COMPLIANCE_DOCS) {
+            throw new LoanApiException("Application must be in PENDING_COMPLIANCE_DOCS status. Current status: " + application.getStatus());
+        }
+        
+        // Update application status back to COMPLIANCE_REVIEW
+        ApplicationStatus oldStatus = application.getStatus();
+        application.setStatus(ApplicationStatus.COMPLIANCE_REVIEW);
+        application.setUpdatedAt(LocalDateTime.now());
+        
+        LoanApplication savedApplication = loanApplicationRepository.save(application);
+        
+        // Record workflow transition
+        workflowService.createWorkflowEntry(savedApplication.getId(), oldStatus, ApplicationStatus.COMPLIANCE_REVIEW, 
+            complianceOfficer, "Documents received - returning to compliance review");
+        
+        // Audit log
+        auditLogService.logAction(complianceOfficer, "COMPLIANCE_DOCUMENTS_RECEIVED", "LoanApplication", savedApplication.getId().hashCode() & 0x7FFFFFFFL,
+            String.format("Documents received for application %s, returned to compliance review", applicationId));
+        
+        log.info("Documents received for application {} by officer: {}", applicationId, complianceOfficer.getEmail());
+    }
+    
+    @Override
+    public void processComplianceTimeout(UUID applicationId, User complianceOfficer) {
+        log.info("Processing compliance timeout for application: {} by officer: {}", applicationId, complianceOfficer.getEmail());
+        
+        // Validate compliance authority
+        if (!hasComplianceAuthority(applicationId, complianceOfficer)) {
+            throw new LoanApiException("You do not have authority to process timeout for this application");
+        }
+        
+        // Get the loan application
+        LoanApplication application = loanApplicationRepository.findById(applicationId)
+            .orElseThrow(() -> new LoanApiException("Application not found: " + applicationId));
+        
+        // Validate current status
+        if (application.getStatus() != ApplicationStatus.PENDING_COMPLIANCE_DOCS) {
+            throw new LoanApiException("Application must be in PENDING_COMPLIANCE_DOCS status. Current status: " + application.getStatus());
+        }
+        
+        // Check if 7 days have passed (this would typically be called by a scheduled job)
+        LocalDateTime sevenDaysAgo = LocalDateTime.now().minusDays(7);
+        if (application.getUpdatedAt().isAfter(sevenDaysAgo)) {
+            throw new LoanApiException("Cannot process timeout - 7 days have not passed since document request");
+        }
+        
+        // Update application status to COMPLIANCE_TIMEOUT
+        ApplicationStatus oldStatus = application.getStatus();
+        application.setStatus(ApplicationStatus.COMPLIANCE_TIMEOUT);
+        application.setComplianceNotes("Timeout: No response to compliance document request within 7 days");
+        application.setUpdatedAt(LocalDateTime.now());
+        
+        LoanApplication savedApplication = loanApplicationRepository.save(application);
+        
+        // Record workflow transition
+        workflowService.createWorkflowEntry(savedApplication.getId(), oldStatus, ApplicationStatus.COMPLIANCE_TIMEOUT, 
+            complianceOfficer, "Compliance document request timeout - 7 days no response");
+        
+        // Audit log
+        auditLogService.logAction(complianceOfficer, "COMPLIANCE_TIMEOUT_PROCESSED", "LoanApplication", savedApplication.getId().hashCode() & 0x7FFFFFFFL,
+            String.format("Compliance timeout processed for application %s - no response within 7 days", applicationId));
+        
+        log.info("Compliance timeout processed for application {} by officer: {}", applicationId, complianceOfficer.getEmail());
     }
 }
