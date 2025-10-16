@@ -18,7 +18,7 @@ BEGIN
     DECLARE v_overall_risk_level VARCHAR(20) DEFAULT 'LOW';
     DECLARE v_overall_risk_score INT DEFAULT 0;
     DECLARE v_compliance_decision VARCHAR(30) DEFAULT 'PROCEED';
-    DECLARE v_confidence_level INT DEFAULT 95;
+    -- DECLARE v_confidence_level INT DEFAULT 95;
     
     -- Individual risk scores and levels
     DECLARE v_banking_risk_score INT DEFAULT 0;
@@ -27,6 +27,11 @@ BEGIN
     DECLARE v_banking_risk_level VARCHAR(20) DEFAULT 'LOW';
     DECLARE v_fraud_risk_level VARCHAR(20) DEFAULT 'CLEAN';
     DECLARE v_loan_risk_level VARCHAR(20) DEFAULT 'LOW';
+    -- Derived risk bands (unified scale): EXCELLENT, GOOD, FAIR, POOR, CRITICAL
+    DECLARE v_banking_band VARCHAR(15) DEFAULT 'GOOD';
+    DECLARE v_fraud_band VARCHAR(15) DEFAULT 'EXCELLENT';
+    DECLARE v_loan_band VARCHAR(15) DEFAULT 'GOOD';
+    DECLARE v_overall_band VARCHAR(15) DEFAULT 'GOOD';
     
     -- Banking analysis variables
     DECLARE v_bank_data_found BOOLEAN DEFAULT FALSE;
@@ -60,6 +65,11 @@ BEGIN
     DECLARE v_critical_issues JSON DEFAULT JSON_ARRAY();
     DECLARE v_risk_factors JSON DEFAULT JSON_ARRAY();
     DECLARE v_final_recommendations JSON DEFAULT JSON_ARRAY();
+    -- Flags JSON for precise frontend decisions
+    DECLARE v_banking_flags JSON DEFAULT JSON_OBJECT();
+    DECLARE v_fraud_flags JSON DEFAULT JSON_OBJECT();
+    DECLARE v_loan_flags JSON DEFAULT JSON_OBJECT();
+    DECLARE v_overall_flags JSON DEFAULT JSON_OBJECT();
     
     -- Generate unique investigation ID
     SET v_investigation_id = CONCAT('INV-', DATE_FORMAT(NOW(), '%Y%m%d-%H%i%s'));
@@ -116,13 +126,26 @@ BEGIN
         END IF;
         
         -- Determine banking risk level (higher score = higher risk)
-        IF v_banking_risk_score >= 60 THEN
+        IF v_banking_risk_score >= 80 THEN
             SET v_banking_risk_level = 'HIGH';
-        ELSEIF v_banking_risk_score >= 30 THEN
+        ELSEIF v_banking_risk_score >= 60 THEN
             SET v_banking_risk_level = 'MEDIUM';
         ELSE
             SET v_banking_risk_level = 'LOW';
         END IF;
+        -- Map banking risk level to unified band & flags
+        CASE v_banking_risk_level
+            WHEN 'LOW' THEN SET v_banking_band = 'GOOD';
+            WHEN 'MEDIUM' THEN SET v_banking_band = 'FAIR';
+            ELSE SET v_banking_band = 'POOR';
+        END CASE;
+        SET v_banking_flags = JSON_OBJECT(
+            'isExcellent', v_banking_band = 'EXCELLENT',
+            'isGood',      v_banking_band = 'GOOD',
+            'isFair',      v_banking_band = 'FAIR',
+            'isPoor',      v_banking_band = 'POOR',
+            'isCritical',  v_banking_band = 'CRITICAL'
+        );
     ELSE
         -- No banking data found
         SET v_banking_risk_score = 75;
@@ -192,6 +215,21 @@ BEGIN
         ELSE
             SET v_fraud_risk_level = 'CLEAN';
         END IF;
+        -- Map fraud risk level to unified band & flags
+        CASE v_fraud_risk_level
+            WHEN 'CRITICAL' THEN SET v_fraud_band = 'CRITICAL';
+            WHEN 'HIGH' THEN SET v_fraud_band = 'POOR';
+            WHEN 'MEDIUM' THEN SET v_fraud_band = 'FAIR';
+            WHEN 'LOW' THEN SET v_fraud_band = 'GOOD';
+            ELSE SET v_fraud_band = 'EXCELLENT';
+        END CASE;
+        SET v_fraud_flags = JSON_OBJECT(
+            'isExcellent', v_fraud_band = 'EXCELLENT',
+            'isGood',      v_fraud_band = 'GOOD',
+            'isFair',      v_fraud_band = 'FAIR',
+            'isPoor',      v_fraud_band = 'POOR',
+            'isCritical',  v_fraud_band = 'CRITICAL'
+        );
     ELSE
         SET v_fraud_risk_score = 0;
         SET v_fraud_risk_level = 'CLEAN';
@@ -263,6 +301,20 @@ BEGIN
         ELSE
             SET v_loan_risk_level = 'EXCELLENT';
         END IF;
+        -- Map loan risk level to unified band & flags
+        CASE v_loan_risk_level
+            WHEN 'EXCELLENT' THEN SET v_loan_band = 'EXCELLENT';
+            WHEN 'LOW' THEN SET v_loan_band = 'GOOD';
+            WHEN 'MEDIUM' THEN SET v_loan_band = 'FAIR';
+            ELSE SET v_loan_band = 'POOR';
+        END CASE;
+        SET v_loan_flags = JSON_OBJECT(
+            'isExcellent', v_loan_band = 'EXCELLENT',
+            'isGood',      v_loan_band = 'GOOD',
+            'isFair',      v_loan_band = 'FAIR',
+            'isPoor',      v_loan_band = 'POOR',
+            'isCritical',  v_loan_band = 'CRITICAL'
+        );
     ELSE
         SET v_loan_risk_score = 75;
         SET v_loan_risk_level = 'HIGH';
@@ -297,6 +349,20 @@ BEGIN
         SET v_overall_risk_level = 'LOW';
         SET v_compliance_decision = 'PROCEED_STANDARD';
     END IF;
+    -- Map overall risk level to unified band & flags
+    CASE v_overall_risk_level
+        WHEN 'CRITICAL' THEN SET v_overall_band = 'CRITICAL';
+        WHEN 'HIGH' THEN SET v_overall_band = 'POOR';
+        WHEN 'MEDIUM' THEN SET v_overall_band = 'FAIR';
+        ELSE SET v_overall_band = 'GOOD';
+    END CASE;
+    SET v_overall_flags = JSON_OBJECT(
+        'isExcellent', v_overall_band = 'EXCELLENT',
+        'isGood',      v_overall_band = 'GOOD',
+        'isFair',      v_overall_band = 'FAIR',
+        'isPoor',      v_overall_band = 'POOR',
+        'isCritical',  v_overall_band = 'CRITICAL'
+    );
     
     -- Build risk factors
     IF v_fraud_risk_score > 0 THEN
@@ -340,7 +406,7 @@ BEGIN
             'panNumber', p_pan,
             'dataAvailability', JSON_OBJECT(
                 'bankingData', v_bank_data_found > 0,
-                'fraudData', TRUE,
+                'fraudData', v_fraud_data_found > 0,
                 'loanData', v_loan_data_found > 0
             )
         ),
@@ -348,22 +414,30 @@ BEGIN
             'finalRiskLevel', v_overall_risk_level,
             'overallRiskScore', v_overall_risk_score,
             'complianceDecision', v_compliance_decision,
-            'confidence', v_confidence_level
+            -- 'confidence', v_confidence_level,
+            'band', v_overall_band,
+            'flags', v_overall_flags
         ),
         'bank_details', JSON_OBJECT(
             'riskTags', v_banking_tags,
             'riskLevel', v_banking_risk_level,
-            'riskScore', v_banking_risk_score
+            'riskScore', v_banking_risk_score,
+            'band', v_banking_band,
+            'flags', v_banking_flags
         ),
         'fraud_records', JSON_OBJECT(
             'riskTags', v_fraud_tags,
             'riskLevel', v_fraud_risk_level,
-            'riskScore', v_fraud_risk_score
+            'riskScore', v_fraud_risk_score,
+            'band', v_fraud_band,
+            'flags', v_fraud_flags
         ),
         'loan_history', JSON_OBJECT(
             'riskTags', v_loan_tags,
             'riskLevel', v_loan_risk_level,
-            'riskScore', v_loan_risk_score
+            'riskScore', v_loan_risk_score,
+            'band', v_loan_band,
+            'flags', v_loan_flags
         ),
         'consolidatedFindings', JSON_OBJECT(
             'criticalIssues', v_critical_issues,
