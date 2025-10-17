@@ -63,7 +63,7 @@ public class LoanApplication {
     private String applicantPhone;
     
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 30)
     private LoanType loanType;
     
     @Column(nullable = false, precision = 15, scale = 2)
@@ -82,7 +82,7 @@ public class LoanApplication {
     private BigDecimal existingEmi = BigDecimal.ZERO;
     
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 50)
     private ApplicationStatus status = ApplicationStatus.SUBMITTED;
     
     @Enumerated(EnumType.STRING)
@@ -122,6 +122,7 @@ public class LoanApplication {
     
     // DECISION FIELDS (Merged from LoanDecision entity)
     @Enumerated(EnumType.STRING)
+    @Column(length = 30)
     private com.tss.loan.entity.enums.DecisionType decisionType;
     
     @Column(precision = 15, scale = 2)
