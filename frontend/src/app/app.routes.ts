@@ -2,13 +2,13 @@ import { Routes } from '@angular/router';
 import { AuthGuard } from './core/guards/auth.guard';
 import { RoleGuard } from './core/guards/role.guard';
 import { UserRole } from './core/models/user.model';
+import { LandingComponent } from './features/landing/landing.component';
 
 export const routes: Routes = [
-  // Default redirect to login
+  // Landing page
   { 
     path: '', 
-    redirectTo: '/auth/login', 
-    pathMatch: 'full' 
+    component: LandingComponent 
   },
 
   // Authentication routes (public)
@@ -52,6 +52,6 @@ export const routes: Routes = [
   // Wildcard route - must be last
   { 
     path: '**', 
-    redirectTo: '/auth/login' 
+    redirectTo: '' 
   }
 ];

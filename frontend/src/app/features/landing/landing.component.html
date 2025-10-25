@@ -1,0 +1,250 @@
+<!-- Navigation Bar -->
+<nav class="navbar">
+  <div class="nav-container">
+    <div class="nav-brand">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+      </svg>
+      <span class="brand-name">LoanSecure</span>
+    </div>
+    
+    <div class="nav-menu">
+      <a (click)="scrollToSection('features')" class="nav-link">Features</a>
+      <a (click)="scrollToSection('loans')" class="nav-link">Loan Products</a>
+      <a (click)="scrollToSection('about')" class="nav-link">About</a>
+      <a (click)="scrollToSection('contact')" class="nav-link">Contact</a>
+    </div>
+    
+    <div class="nav-actions">
+      <button class="btn btn-outline" (click)="navigateToLogin()">Login</button>
+      <button class="btn btn-primary" (click)="navigateToRegister()">Get Started</button>
+    </div>
+  </div>
+</nav>
+
+<!-- Hero Section -->
+<section class="hero-section">
+  <div class="hero-background">
+    <div class="gradient-overlay"></div>
+  </div>
+  <div class="hero-content">
+    <div class="hero-text">
+      <span class="hero-badge">Trusted by 10,000+ Customers</span>
+      <h1 class="hero-title">
+        Your Dream Loan,<br>
+        <span class="gradient-text">Simplified & Secure</span>
+      </h1>
+      <p class="hero-description">
+        Experience seamless loan processing with our AI-powered screening platform. 
+        Get instant credit decisions with competitive interest rates and flexible tenure options.
+      </p>
+      <div class="hero-buttons">
+        <button class="btn btn-primary btn-large" (click)="navigateToRegister()">
+          Apply Now
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <button class="btn btn-outline btn-large" (click)="navigateToLogin()">
+          Login to Dashboard
+        </button>
+      </div>
+      <div class="hero-stats">
+        <div class="stat-item">
+          <h3>₹500 Cr+</h3>
+          <p>Loans Disbursed</p>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <h3>95%</h3>
+          <p>Approval Rate</p>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <h3>24 Hrs</h3>
+          <p>Quick Processing</p>
+        </div>
+      </div>
+    </div>
+    <div class="hero-image">
+      <div class="floating-card card-1">
+        <div class="card-icon">✓</div>
+        <div class="card-text">
+          <strong>Instant Approval</strong>
+          <span>Get decision in 24 hours</span>
+        </div>
+      </div>
+      <div class="floating-card card-2">
+        <div class="card-icon">💰</div>
+        <div class="card-text">
+          <strong>Low Interest</strong>
+          <span>Starting from 8.5% p.a.</span>
+        </div>
+      </div>
+      <div class="floating-card card-3">
+        <div class="card-icon">🔒</div>
+        <div class="card-text">
+          <strong>100% Secure</strong>
+          <span>Bank-grade encryption</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Features Section -->
+<section id="features" class="features-section">
+  <div class="section-container">
+    <div class="section-header">
+      <h2 class="section-title">Why Choose LoanSecure?</h2>
+      <p class="section-subtitle">Experience the future of loan processing with our advanced features</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card" *ngFor="let feature of features">
+        <div class="feature-icon">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+            <path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <h3>{{ feature.title }}</h3>
+        <p>{{ feature.description }}</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Loan Products Section -->
+<section id="loans" class="loans-section">
+  <div class="section-container">
+    <div class="section-header">
+      <h2 class="section-title">Our Loan Products</h2>
+      <p class="section-subtitle">Flexible loan options tailored to your needs</p>
+    </div>
+    <div class="loans-grid">
+      <div class="loan-card" *ngFor="let loan of loanTypes">
+        <div class="loan-icon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+          </svg>
+        </div>
+        <h3>{{ loan.name }}</h3>
+        <div class="loan-details">
+          <div class="loan-detail">
+            <span class="label">Interest Rate</span>
+            <span class="value">{{ loan.rate }} p.a.</span>
+          </div>
+          <div class="loan-detail">
+            <span class="label">Loan Amount</span>
+            <span class="value">{{ loan.amount }}</span>
+          </div>
+          <div class="loan-detail">
+            <span class="label">Tenure</span>
+            <span class="value">{{ loan.tenure }}</span>
+          </div>
+        </div>
+        <button class="btn btn-secondary btn-block" (click)="navigateToRegister()">Apply Now</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- How It Works Section -->
+<section class="how-it-works-section">
+  <div class="section-container">
+    <div class="section-header">
+      <h2 class="section-title">How It Works</h2>
+      <p class="section-subtitle">Simple 4-step process to get your loan approved</p>
+    </div>
+    <div class="steps-container">
+      <div class="step-item">
+        <div class="step-number">1</div>
+        <h3>Register</h3>
+        <p>Create your account in less than 2 minutes</p>
+      </div>
+      <div class="step-arrow">→</div>
+      <div class="step-item">
+        <div class="step-number">2</div>
+        <h3>Apply</h3>
+        <p>Fill in your loan application details</p>
+      </div>
+      <div class="step-arrow">→</div>
+      <div class="step-item">
+        <div class="step-number">3</div>
+        <h3>Verify</h3>
+        <p>Our AI system screens your application</p>
+      </div>
+      <div class="step-arrow">→</div>
+      <div class="step-item">
+        <div class="step-number">4</div>
+        <h3>Get Funded</h3>
+        <p>Receive funds directly to your account</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA Section -->
+<section class="cta-section">
+  <div class="cta-content">
+    <h2>Ready to Get Started?</h2>
+    <p>Join thousands of satisfied customers who trusted us with their loan needs</p>
+    <div class="cta-buttons">
+      <button class="btn btn-primary btn-large" (click)="navigateToRegister()">
+        Apply for Loan
+      </button>
+      <button class="btn btn-outline-white btn-large" (click)="navigateToLogin()">
+        Login to Account
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer id="contact" class="footer">
+  <div class="footer-container">
+    <div class="footer-column">
+      <div class="footer-brand">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+          <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+          <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+        </svg>
+        <span>LoanSecure</span>
+      </div>
+      <p>Professional Loan Screening Platform</p>
+      <p>Making loan processing simple, secure, and fast.</p>
+    </div>
+    <div class="footer-column">
+      <h4>Quick Links</h4>
+      <a href="#features">Features</a>
+      <a href="#loans">Loan Products</a>
+      <a href="#about">About Us</a>
+      <a (click)="navigateToLogin()">Login</a>
+    </div>
+    <div class="footer-column">
+      <h4>Loan Products</h4>
+      <a href="#">Personal Loan</a>
+      <a href="#">Home Loan</a>
+      <a href="#">Business Loan</a>
+      <a href="#">Vehicle Loan</a>
+    </div>
+    <div class="footer-column">
+      <h4>Contact Us</h4>
+      <p>📧 support&#64;loansecure.com</p>
+      <p>📞 1800-123-4567</p>
+      <p>📍 Mumbai, Maharashtra, India</p>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>&copy; 2024 LoanSecure. All rights reserved.</p>
+    <div class="footer-links">
+      <a href="#">Privacy Policy</a>
+      <a href="#">Terms of Service</a>
+      <a href="#">Contact</a>
+    </div>
+  </div>
+</footer>
+
