@@ -8,12 +8,16 @@ import org.springframework.stereotype.Component;
 import com.tss.loan.dto.response.LoanApplicationResponse;
 import com.tss.loan.entity.loan.LoanApplication;
 import com.tss.loan.repository.ApplicantPersonalDetailsRepository;
+import com.tss.loan.service.OfficerProfileService;
 
 @Component
 public class LoanApplicationMapper {
     
     @Autowired
     private ApplicantPersonalDetailsRepository personalDetailsRepository;
+    
+    @Autowired
+    private OfficerProfileService officerProfileService;
     
     public LoanApplicationResponse toResponse(LoanApplication entity) {
         if (entity == null) {
@@ -50,11 +54,13 @@ public class LoanApplicationMapper {
                 // Applicant info (NO circular reference)
                 .applicantId(entity.getApplicant() != null ? entity.getApplicant().getId() : null)
                 
-                // Officer info (NO circular reference)
+                // Officer info (NO circular reference) - Using proper name resolution
                 .assignedOfficerId(entity.getAssignedOfficer() != null ? entity.getAssignedOfficer().getId() : null)
-                .assignedOfficerName(entity.getAssignedOfficer() != null ? entity.getAssignedOfficer().getEmail() : null)
+                .assignedOfficerName(entity.getAssignedOfficer() != null ? 
+                    officerProfileService.getOfficerDisplayName(entity.getAssignedOfficer()) : null)
                 .decidedById(entity.getDecidedBy() != null ? entity.getDecidedBy().getId() : null)
-                .decidedByName(entity.getDecidedBy() != null ? entity.getDecidedBy().getEmail() : null)
+                .decidedByName(entity.getDecidedBy() != null ? 
+                    officerProfileService.getOfficerDisplayName(entity.getDecidedBy()) : null)
                 
                 // Metadata
                 .createdAt(entity.getCreatedAt())

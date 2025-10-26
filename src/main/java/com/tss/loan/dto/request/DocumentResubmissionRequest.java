@@ -3,6 +3,7 @@ package com.tss.loan.dto.request;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -20,6 +21,7 @@ public class DocumentResubmissionRequest {
     private List<RejectedDocumentItem> rejectedDocuments;
     
     @NotNull(message = "Resubmission deadline is required")
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime resubmissionDeadline;
     
     private String additionalInstructions;

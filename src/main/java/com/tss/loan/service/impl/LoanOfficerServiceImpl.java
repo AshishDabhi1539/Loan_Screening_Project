@@ -35,6 +35,7 @@ import com.tss.loan.service.ApplicationWorkflowService;
 import com.tss.loan.service.AuditLogService;
 import com.tss.loan.service.LoanOfficerService;
 import com.tss.loan.service.NotificationService;
+import com.tss.loan.service.OfficerProfileService;
 import com.tss.loan.service.UserDisplayService;
 
 import lombok.extern.slf4j.Slf4j;
@@ -73,6 +74,9 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
     
     @Autowired
     private ApplicationWorkflowService applicationWorkflowService;
+    
+    @Autowired
+    private OfficerProfileService officerProfileService;
     
     @Override
     public OfficerDashboardResponse getDashboard(User officer) {
@@ -761,7 +765,7 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
                 .submittedAt(application.getSubmittedAt())
                 .assignedAt(application.getCreatedAt()) // TODO: Add actual assignment timestamp
                 .assignedOfficerName(application.getAssignedOfficer() != null ? 
-                    application.getAssignedOfficer().getEmail() : null)
+                    officerProfileService.getOfficerDisplayName(application.getAssignedOfficer()) : null)
                 .priority(application.getRequestedAmount().doubleValue() > 1000000 ? "HIGH" : "MEDIUM")
                 .daysInReview((int) ChronoUnit.DAYS.between(application.getSubmittedAt(), LocalDateTime.now()))
                 .build();
