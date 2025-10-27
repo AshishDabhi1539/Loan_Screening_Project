@@ -1,1 +1,115 @@
-<p>sidebar works!</p>
+<aside class="app-sidebar" [class.collapsed]="isCollapsed()">
+  <!-- Sidebar Header -->
+  <div class="sidebar-header">
+    <div class="sidebar-brand" *ngIf="!isCollapsed()">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+      </svg>
+      <span class="brand-text">LoanSecure</span>
+    </div>
+    
+    <button class="collapse-toggle" (click)="onToggleCollapse()" [attr.aria-label]="isCollapsed() ? 'Expand sidebar' : 'Collapse sidebar'">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M3 12H21M3 6H21M3 18H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- User Info (when expanded) -->
+  <div class="sidebar-user" *ngIf="!isCollapsed() && currentUser()">
+    <div class="user-avatar">
+      {{ currentUser()?.displayName?.charAt(0) || currentUser()?.email?.charAt(0) || 'U' }}
+    </div>
+    <div class="user-details">
+      <div class="user-name">{{ currentUser()?.displayName || currentUser()?.email }}</div>
+      <div class="user-role">{{ getRoleDisplayName(currentUser()?.role || '') }}</div>
+    </div>
+  </div>
+
+  <!-- Navigation Menu -->
+  <nav class="sidebar-nav">
+    <ul class="nav-list">
+      <li class="nav-item" *ngFor="let item of filteredMenuItems" [class.active]="item.isActive">
+        <!-- Parent Menu Item -->
+        <a 
+          class="nav-link"
+          [class.has-children]="item.children && item.children.length > 0"
+          [class.expanded]="item.isExpanded"
+          (click)="onMenuItemClick(item, $event)"
+          [routerLink]="item.route || null"
+          [routerLinkActive]="item.route ? 'active' : ''"
+          [routerLinkActiveOptions]="{ exact: false }"
+          [attr.title]="isCollapsed() ? item.label : null">
+          
+          <span class="nav-icon">{{ getMenuIcon(item.icon) }}</span>
+          
+          <span class="nav-label" *ngIf="!isCollapsed()">{{ item.label }}</span>
+          
+          <span class="nav-badge" *ngIf="!isCollapsed() && item.badge && item.badge > 0">
+            {{ item.badge > 99 ? '99+' : item.badge }}
+          </span>
+          
+          <svg 
+            class="nav-arrow" 
+            *ngIf="!isCollapsed() && item.children && item.children.length > 0"
+            width="16" 
+            height="16" 
+            viewBox="0 0 24 24" 
+            fill="none" 
+            xmlns="http://www.w3.org/2000/svg">
+            <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </a>
+
+        <!-- Submenu -->
+        <ul class="nav-submenu" *ngIf="!isCollapsed() && item.children && item.children.length > 0 && item.isExpanded">
+          <li class="nav-subitem" *ngFor="let child of item.children">
+            <a 
+              class="nav-sublink"
+              [routerLink]="child.route || null"
+              [routerLinkActive]="child.route ? 'active' : ''"
+              [routerLinkActiveOptions]="{ exact: false }"
+              (click)="onMenuItemClick(child, $event)">
+              
+              <span class="nav-subicon">{{ getMenuIcon(child.icon) }}</span>
+              <span class="nav-sublabel">{{ child.label }}</span>
+              
+              <span class="nav-subbadge" *ngIf="child.badge && child.badge > 0">
+                {{ child.badge > 99 ? '99+' : child.badge }}
+              </span>
+            </a>
+          </li>
+        </ul>
+
+        <!-- Collapsed Submenu Tooltip -->
+        <div class="collapsed-submenu" *ngIf="isCollapsed() && item.children && item.children.length > 0">
+          <div class="submenu-tooltip">
+            <div class="tooltip-header">{{ item.label }}</div>
+            <ul class="tooltip-list">
+              <li *ngFor="let child of item.children">
+                <a [routerLink]="child.route || null" (click)="onMenuItemClick(child, $event)">
+                  <span class="tooltip-icon">{{ getMenuIcon(child.icon) }}</span>
+                  {{ child.label }}
+                  <span class="tooltip-badge" *ngIf="child.badge && child.badge > 0">{{ child.badge }}</span>
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </li>
+    </ul>
+  </nav>
+
+  <!-- Sidebar Footer -->
+  <div class="sidebar-footer" *ngIf="!isCollapsed()">
+    <div class="footer-info">
+      <div class="app-version">v1.0.0</div>
+      <div class="copyright">&copy; 2025 LoanSecure</div>
+    </div>
+  </div>
+</aside>
+
+<!-- Mobile Overlay -->
+<div class="sidebar-overlay" *ngIf="!isCollapsed() && isMobile()" (click)="onToggleCollapse()"></div>

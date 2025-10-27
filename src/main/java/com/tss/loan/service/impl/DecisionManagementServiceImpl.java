@@ -17,6 +17,7 @@ import com.tss.loan.service.ApplicationWorkflowService;
 import com.tss.loan.service.AuditLogService;
 import com.tss.loan.service.DecisionManagementService;
 import com.tss.loan.service.NotificationService;
+import com.tss.loan.service.OfficerProfileService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -48,6 +49,9 @@ public class DecisionManagementServiceImpl implements DecisionManagementService 
     
     @Autowired
     private NotificationService notificationService;
+    
+    @Autowired
+    private OfficerProfileService officerProfileService;
     
     @Override
     public LoanDecisionResponse approveLoanApplication(UUID applicationId, LoanDecisionRequest request, User decisionMaker) {
@@ -255,7 +259,7 @@ public class DecisionManagementServiceImpl implements DecisionManagementService 
         return LoanDecisionResponse.builder()
             .applicationId(applicationId)
             .decisionMakerId(officer.getId())
-            .decisionMakerName(officer.getEmail()) // Using email as name for now
+            .decisionMakerName(officerProfileService.getOfficerDisplayName(officer))
             .decisionType(null) // No decision type for flagging
             .newStatus(newStatus)
             .decisionReason(request.getFlagReason())
@@ -347,7 +351,7 @@ public class DecisionManagementServiceImpl implements DecisionManagementService 
         return LoanDecisionResponse.builder()
             .applicationId(application.getId())
             .decisionMakerId(decisionMaker.getId())
-            .decisionMakerName(decisionMaker.getEmail()) // Using email as name for now
+            .decisionMakerName(officerProfileService.getOfficerDisplayName(decisionMaker))
             .decisionType(application.getDecisionType())
             .newStatus(application.getStatus())
             .decisionReason(application.getDecisionReason())

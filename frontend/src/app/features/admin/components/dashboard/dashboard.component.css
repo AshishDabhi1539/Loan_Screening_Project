@@ -42,13 +42,13 @@
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--primary-600, #2D6A4F) 0%, var(--primary-500, #40916C) 100%);
   color: white;
 }
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 10px 20px rgba(45, 106, 79, 0.3);
 }
 
 .placeholder-content {
@@ -68,7 +68,7 @@
 }
 
 .placeholder-card svg {
-  color: #667eea;
+  color: var(--primary-600, #2D6A4F);
   margin-bottom: 1.5rem;
 }
 

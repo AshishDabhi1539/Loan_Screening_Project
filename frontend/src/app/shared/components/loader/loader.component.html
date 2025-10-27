@@ -1,22 +1,46 @@
-<div class="loader-container">
-  <div class="loader-content">
-    <div class="logo-animation">
-      <svg width="80" height="80" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path class="path-1" d="M12 2L2 7L12 12L22 7L12 2Z" stroke="url(#gradient)" stroke-width="2" stroke-linejoin="round"/>
-        <path class="path-2" d="M2 17L12 22L22 17" stroke="url(#gradient)" stroke-width="2" stroke-linejoin="round"/>
-        <path class="path-3" d="M2 12L12 17L22 12" stroke="url(#gradient)" stroke-width="2" stroke-linejoin="round"/>
-        <defs>
-          <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
-            <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
-          </linearGradient>
-        </defs>
+<div [class]="loaderClasses.join(' ')" *ngIf="isLoading()">
+  <!-- Spinner Loader -->
+  <div *ngIf="type() === 'spinner'" class="loader-content">
+    <div [class]="spinnerClasses.join(' ')">
+      <svg viewBox="0 0 50 50" class="spinner-svg">
+        <circle 
+          cx="25" 
+          cy="25" 
+          r="20" 
+          fill="none" 
+          stroke="currentColor" 
+          stroke-width="4" 
+          stroke-linecap="round" 
+          stroke-dasharray="31.416" 
+          stroke-dashoffset="31.416">
+        </circle>
       </svg>
     </div>
-    <h2 class="loader-title">LoanSecure</h2>
-    <p class="loader-subtitle">Loading your experience...</p>
-    <div class="progress-bar">
-      <div class="progress-fill"></div>
+    <div class="loader-message" *ngIf="message()">{{ message() }}</div>
+  </div>
+
+  <!-- Dots Loader -->
+  <div *ngIf="type() === 'dots'" class="loader-content">
+    <div [class]="dotsClasses.join(' ')">
+      <div class="dot" *ngFor="let dot of [1,2,3]"></div>
+    </div>
+    <div class="loader-message" *ngIf="message()">{{ message() }}</div>
+  </div>
+
+  <!-- Pulse Loader -->
+  <div *ngIf="type() === 'pulse'" class="loader-content">
+    <div [class]="pulseClasses.join(' ')">
+      <div class="pulse-circle pulse-1"></div>
+      <div class="pulse-circle pulse-2"></div>
+      <div class="pulse-circle pulse-3"></div>
+    </div>
+    <div class="loader-message" *ngIf="message()">{{ message() }}</div>
+  </div>
+
+  <!-- Skeleton Loader -->
+  <div *ngIf="type() === 'skeleton'" class="loader-content">
+    <div class="skeleton-loader" [class]="'skeleton-' + size()">
+      <div class="skeleton-line" *ngFor="let line of skeletonLines" [class]="'skeleton-line-' + line"></div>
     </div>
   </div>
 </div>

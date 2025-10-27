@@ -48,26 +48,26 @@
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #2D6A4F 0%, #40916C 100%);
   color: white;
 }
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 10px 20px rgba(45, 106, 79, 0.3);
 }
 
 .btn-secondary {
   background: white;
-  color: #667eea;
-  border: 2px solid #667eea;
+  color: #2D6A4F;
+  border: 2px solid #2D6A4F;
 }
 
 .btn-secondary:hover {
-  background: #667eea;
+  background: #2D6A4F;
   color: white;
   transform: translateY(-2px);
-  box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 10px 20px rgba(45, 106, 79, 0.3);
 }
 
 /* Stats Grid */
@@ -120,8 +120,8 @@
 }
 
 .stat-icon.primary {
-  background: #e9d8fd;
-  color: #553c9a;
+  background: #dcf2e4;
+  color: #2d6a4f;
 }
 
 .stat-content h3 {
@@ -182,14 +182,14 @@
 
 .view-all-link {
   font-size: 0.875rem;
-  color: #667eea;
+  color: #2D6A4F;
   text-decoration: none;
   font-weight: 600;
   transition: color 0.2s ease;
 }
 
 .view-all-link:hover {
-  color: #764ba2;
+  color: #40916C;
   text-decoration: underline;
 }
 
@@ -211,7 +211,7 @@
 }
 
 .application-item:hover {
-  border-color: #667eea;
+  border-color: var(--primary-600, #2D6A4F);
   background: #f7fafc;
   transform: translateX(4px);
 }
@@ -261,25 +261,7 @@
   white-space: nowrap;
 }
 
-.status-under-review {
-  background: #fef5e7;
-  color: #b7791f;
-}
-
-.status-documents-required {
-  background: #bee3f8;
-  color: #2c5282;
-}
-
-.status-approved {
-  background: #c6f6d5;
-  color: #22543d;
-}
-
-.status-rejected {
-  background: #fed7d7;
-  color: #c53030;
-}
+/* Status badge styles moved to global theme.scss for consistency */
 
 /* Empty State */
 .empty-state {
@@ -326,7 +308,7 @@
 }
 
 .action-button:hover {
-  border-color: #667eea;
+  border-color: var(--primary-600, #2D6A4F);
   background: #f7fafc;
   transform: translateX(4px);
 }
@@ -335,7 +317,7 @@
   width: 48px;
   height: 48px;
   border-radius: 12px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--primary-600, #2D6A4F) 0%, var(--primary-500, #40916C) 100%);
   color: white;
   display: flex;
   align-items: center;
@@ -358,7 +340,7 @@
 
 /* Notifications */
 .notification-count {
-  background: #667eea;
+  background: var(--primary-600, #2D6A4F);
   color: white;
   font-size: 0.75rem;
   font-weight: 600;
@@ -384,7 +366,7 @@
 }
 
 .notification-item:hover {
-  border-color: #667eea;
+  border-color: var(--primary-600, #2D6A4F);
   background: #f7fafc;
 }
 
@@ -440,12 +422,12 @@
 
 /* Profile Banner */
 .profile-banner {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--primary-600, #2D6A4F) 0%, var(--primary-500, #40916C) 100%);
   color: white;
   border-radius: 16px;
   padding: 2rem;
   margin-top: 2rem;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 12px rgba(45, 106, 79, 0.3);
 }
 
 .banner-content {
@@ -483,7 +465,7 @@
 
 .banner-content .btn-primary {
   background: white;
-  color: #667eea;
+  color: var(--primary-600, #2D6A4F);
 }
 
 .banner-content .btn-primary:hover {
@@ -530,7 +512,39 @@
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
+  .dashboard-container {
+    padding: 1rem;
+  }
+
+  .header-content {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .header-actions .btn {
+    width: 100%;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .content-grid {
+    gap: 1rem;
+  }
+
+  .banner-content {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .banner-content .btn-primary {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
   .dashboard-header {
     padding: 1.5rem;
   }

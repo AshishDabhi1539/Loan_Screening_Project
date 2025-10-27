@@ -24,7 +24,7 @@
 }
 
 .link {
-  color: #667eea;
+  color: #2D6A4F;
   text-decoration: none;
   font-weight: 600;
 }
@@ -66,7 +66,7 @@
 
 .login-link {
   font-size: 0.875rem;
-  color: #667eea;
+  color: #2D6A4F;
   text-decoration: none;
   font-weight: 600;
   cursor: pointer;
@@ -74,7 +74,7 @@
 }
 
 .login-link:hover {
-  color: #764ba2;
+  color: #40916C;
   text-decoration: underline;
 }
 
