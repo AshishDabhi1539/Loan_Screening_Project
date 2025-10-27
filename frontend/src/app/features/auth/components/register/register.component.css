@@ -1,0 +1,80 @@
+/* Register page uses same styles as login with minor adjustments */
+@import '../login/login.component.css';
+
+.register-card {
+  max-width: 500px;
+}
+
+.form-header p {
+  font-size: 0.875rem;
+}
+
+.checkbox-wrapper {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+  color: #4a5568;
+  cursor: pointer;
+  line-height: 1.6;
+}
+
+.checkbox-wrapper input[type="checkbox"] {
+  margin-top: 0.25rem;
+}
+
+.link {
+  color: #2D6A4F;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.success-alert {
+  padding: 1rem;
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  border-radius: 12px;
+  color: #15803d;
+  font-size: 0.875rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.success-alert svg {
+  flex-shrink: 0;
+  color: #15803d;
+}
+
+.login-section {
+  text-align: center;
+  padding: 1.5rem 3rem;
+  background: #f7fafc;
+  border-top: 1px solid #e2e8f0;
+}
+
+.login-section p {
+  font-size: 0.875rem;
+  color: #718096;
+  margin: 0 0 0.5rem;
+}
+
+.login-link {
+  font-size: 0.875rem;
+  color: #2D6A4F;
+  text-decoration: none;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.login-link:hover {
+  color: #40916C;
+  text-decoration: underline;
+}
+

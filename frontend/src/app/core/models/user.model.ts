@@ -1,0 +1,142 @@
+export interface User {
+  id: string;
+  email: string;
+  phone?: string;
+  role: UserRole;
+  status: UserStatus;
+  displayName?: string;
+  hasPersonalDetails: boolean;
+  requiresPersonalDetails: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export enum UserRole {
+  APPLICANT = 'APPLICANT',
+  LOAN_OFFICER = 'LOAN_OFFICER',
+  SENIOR_LOAN_OFFICER = 'SENIOR_LOAN_OFFICER',
+  COMPLIANCE_OFFICER = 'COMPLIANCE_OFFICER',
+  SENIOR_COMPLIANCE_OFFICER = 'SENIOR_COMPLIANCE_OFFICER',
+  ADMIN = 'ADMIN'
+}
+
+export enum UserStatus {
+  PENDING_VERIFICATION = 'PENDING_VERIFICATION',
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
+  SUSPENDED = 'SUSPENDED',
+  BLOCKED = 'BLOCKED'
+}
+
+export interface UserProfile {
+  user: User;
+  personalDetails?: PersonalDetails;
+  officerDetails?: OfficerDetails;
+}
+
+export interface PersonalDetails {
+  firstName: string;
+  lastName: string;
+  middleName?: string;
+  dateOfBirth: Date;
+  gender: Gender;
+  maritalStatus: MaritalStatus;
+  panNumber: string;
+  aadhaarNumber: string;
+  address: Address;
+}
+
+export interface OfficerDetails {
+  employeeId: string;
+  firstName: string;
+  lastName: string;
+  middleName?: string;
+  department: Department;
+  designation: Designation;
+  phoneNumber?: string;
+  workLocation: WorkLocation;
+}
+
+export interface Address {
+  street: string;
+  city: string;
+  state: string;
+  pincode: string;
+  country: string;
+}
+
+export enum Gender {
+  MALE = 'MALE',
+  FEMALE = 'FEMALE',
+  OTHER = 'OTHER'
+}
+
+export enum MaritalStatus {
+  SINGLE = 'SINGLE',
+  MARRIED = 'MARRIED',
+  DIVORCED = 'DIVORCED',
+  WIDOWED = 'WIDOWED'
+}
+
+export enum Department {
+  CREDIT_RISK = 'CREDIT_RISK',
+  FRAUD_PREVENTION = 'FRAUD_PREVENTION',
+  RETAIL_BANKING = 'RETAIL_BANKING',
+  CORPORATE_BANKING = 'CORPORATE_BANKING',
+  OPERATIONS = 'OPERATIONS',
+  COMPLIANCE = 'COMPLIANCE',
+  RISK_MANAGEMENT = 'RISK_MANAGEMENT',
+  AUDIT = 'AUDIT',
+  LEGAL = 'LEGAL',
+  TECHNOLOGY = 'TECHNOLOGY',
+  UNDERWRITING = 'UNDERWRITING',
+  COLLECTIONS = 'COLLECTIONS',
+  CUSTOMER_SERVICE = 'CUSTOMER_SERVICE',
+  BRANCH_OPERATIONS = 'BRANCH_OPERATIONS',
+  GENERAL = 'GENERAL'
+}
+
+export enum Designation {
+  JUNIOR_LOAN_OFFICER = 'JUNIOR_LOAN_OFFICER',
+  LOAN_OFFICER = 'LOAN_OFFICER',
+  SENIOR_LOAN_OFFICER = 'SENIOR_LOAN_OFFICER',
+  PRINCIPAL_LOAN_OFFICER = 'PRINCIPAL_LOAN_OFFICER',
+  COMPLIANCE_ANALYST = 'COMPLIANCE_ANALYST',
+  COMPLIANCE_OFFICER = 'COMPLIANCE_OFFICER',
+  SENIOR_COMPLIANCE_OFFICER = 'SENIOR_COMPLIANCE_OFFICER',
+  COMPLIANCE_MANAGER = 'COMPLIANCE_MANAGER',
+  RISK_ANALYST = 'RISK_ANALYST',
+  RISK_OFFICER = 'RISK_OFFICER',
+  SENIOR_RISK_OFFICER = 'SENIOR_RISK_OFFICER',
+  RISK_MANAGER = 'RISK_MANAGER',
+  UNDERWRITER = 'UNDERWRITER',
+  SENIOR_UNDERWRITER = 'SENIOR_UNDERWRITER',
+  PRINCIPAL_UNDERWRITER = 'PRINCIPAL_UNDERWRITER',
+  TEAM_LEAD = 'TEAM_LEAD',
+  ASSISTANT_MANAGER = 'ASSISTANT_MANAGER',
+  MANAGER = 'MANAGER',
+  SENIOR_MANAGER = 'SENIOR_MANAGER',
+  DGM = 'DGM',
+  GM = 'GM',
+  FRAUD_INVESTIGATOR = 'FRAUD_INVESTIGATOR',
+  CREDIT_ANALYST = 'CREDIT_ANALYST',
+  OPERATIONS_OFFICER = 'OPERATIONS_OFFICER',
+  QUALITY_ANALYST = 'QUALITY_ANALYST'
+}
+
+export enum WorkLocation {
+  MUMBAI_HEAD_OFFICE = 'MUMBAI_HEAD_OFFICE',
+  DELHI_HEAD_OFFICE = 'DELHI_HEAD_OFFICE',
+  BANGALORE_HEAD_OFFICE = 'BANGALORE_HEAD_OFFICE',
+  CHENNAI_HEAD_OFFICE = 'CHENNAI_HEAD_OFFICE',
+  KOLKATA_HEAD_OFFICE = 'KOLKATA_HEAD_OFFICE',
+  HYDERABAD_HEAD_OFFICE = 'HYDERABAD_HEAD_OFFICE',
+  MUMBAI_ANDHERI = 'MUMBAI_ANDHERI',
+  MUMBAI_BKC = 'MUMBAI_BKC',
+  DELHI_CONNAUGHT_PLACE = 'DELHI_CONNAUGHT_PLACE',
+  BANGALORE_KORAMANGALA = 'BANGALORE_KORAMANGALA',
+  PUNE_PROCESSING_CENTER = 'PUNE_PROCESSING_CENTER',
+  GURGAON_PROCESSING_CENTER = 'GURGAON_PROCESSING_CENTER',
+  REMOTE_WORK = 'REMOTE_WORK',
+  HYBRID_WORK = 'HYBRID_WORK'
+}

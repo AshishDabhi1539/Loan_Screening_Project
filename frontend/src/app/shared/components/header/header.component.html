@@ -1,0 +1,138 @@
+<header class="app-header" (click)="closeDropdowns()">
+  <div class="header-container">
+    <!-- Brand Logo -->
+    <div class="header-brand" routerLink="/">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+      </svg>
+      <span class="brand-name">LoanSecure</span>
+    </div>
+
+    <!-- Header Actions -->
+    <div class="header-actions" *ngIf="currentUser()">
+      <!-- Notifications -->
+      <div class="notification-container" *ngIf="showNotifications()">
+        <button 
+          class="notification-button"
+          (click)="toggleNotificationDropdown(); $event.stopPropagation()"
+          [class.has-notifications]="unreadNotificationCount > 0">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M18 8C18 6.4087 17.3679 4.88258 16.2426 3.75736C15.1174 2.63214 13.5913 2 12 2C10.4087 2 8.88258 2.63214 7.75736 3.75736C6.63214 4.88258 6 6.4087 6 8C6 15 3 17 3 17H21C21 17 18 15 18 8Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M13.73 21C13.5542 21.3031 13.3019 21.5547 12.9982 21.7295C12.6946 21.9044 12.3504 21.9965 12 21.9965C11.6496 21.9965 11.3054 21.9044 11.0018 21.7295C10.6981 21.5547 10.4458 21.3031 10.27 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span class="notification-badge" *ngIf="unreadNotificationCount > 0">
+            {{ unreadNotificationCount > 99 ? '99+' : unreadNotificationCount }}
+          </span>
+        </button>
+
+        <!-- Notification Dropdown -->
+        <div class="notification-dropdown" *ngIf="showNotificationDropdown()" (click)="$event.stopPropagation()">
+          <div class="dropdown-header">
+            <h3>Notifications</h3>
+            <button class="mark-all-read" (click)="onMarkAllRead()" *ngIf="unreadNotificationCount > 0">
+              Mark all read
+            </button>
+          </div>
+          
+          <div class="notification-list" *ngIf="recentNotifications.length > 0; else noNotifications">
+            <div 
+              class="notification-item"
+              *ngFor="let notification of recentNotifications"
+              [class.unread]="!notification.isRead"
+              (click)="onNotificationClick(notification)">
+              <div class="notification-icon">
+                {{ getNotificationIcon(notification.type) }}
+              </div>
+              <div class="notification-content">
+                <h4>{{ notification.title }}</h4>
+                <p>{{ notification.message }}</p>
+                <span class="notification-time">{{ notification.createdAt | date:'MMM dd, HH:mm' }}</span>
+              </div>
+            </div>
+          </div>
+
+          <ng-template #noNotifications>
+            <div class="no-notifications">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18 8C18 6.4087 17.3679 4.88258 16.2426 3.75736C15.1174 2.63214 13.5913 2 12 2C10.4087 2 8.88258 2.63214 7.75736 3.75736C6.63214 4.88258 6 6.4087 6 8C6 15 3 17 3 17H21C21 17 18 15 18 8Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <p>No notifications</p>
+            </div>
+          </ng-template>
+
+          <div class="dropdown-footer">
+            <a routerLink="/notifications" class="view-all-link">View all notifications</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- User Menu -->
+      <div class="user-menu-container" *ngIf="showUserMenu()">
+        <button 
+          class="user-menu-button"
+          (click)="toggleUserDropdown(); $event.stopPropagation()">
+          <div class="user-avatar">
+            {{ currentUser()?.displayName?.charAt(0) || currentUser()?.email?.charAt(0) || 'U' }}
+          </div>
+          <div class="user-info">
+            <span class="user-name">{{ currentUser()?.displayName || currentUser()?.email }}</span>
+            <span class="user-role">{{ getRoleDisplayName(currentUser()?.role || '') }}</span>
+          </div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+
+        <!-- User Dropdown -->
+        <div class="user-dropdown" *ngIf="showUserDropdown()" (click)="$event.stopPropagation()">
+          <div class="dropdown-header">
+            <div class="user-avatar large">
+              {{ currentUser()?.displayName?.charAt(0) || currentUser()?.email?.charAt(0) || 'U' }}
+            </div>
+            <div class="user-details">
+              <h4>{{ currentUser()?.displayName || currentUser()?.email }}</h4>
+              <p>{{ getRoleDisplayName(currentUser()?.role || '') }}</p>
+              <span class="user-email">{{ currentUser()?.email }}</span>
+            </div>
+          </div>
+
+          <div class="dropdown-menu">
+            <button class="menu-item" (click)="onProfileClick()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21M16 7C16 9.20914 14.2091 11 12 11C9.79086 11 8 9.20914 8 7C8 4.79086 9.79086 3 12 3C14.2091 3 16 4.79086 16 7Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              Profile Settings
+            </button>
+
+            <button class="menu-item" routerLink="/dashboard">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="3" y="3" width="7" height="7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <rect x="14" y="3" width="7" height="7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <rect x="14" y="14" width="7" height="7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <rect x="3" y="14" width="7" height="7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              Dashboard
+            </button>
+
+            <div class="menu-divider"></div>
+
+            <button class="menu-item logout" (click)="onLogout()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M9 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H9M16 17L21 12M21 12L16 7M21 12H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              Sign Out
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Login/Register buttons for non-authenticated users -->
+    <div class="auth-actions" *ngIf="!currentUser()">
+      <button class="btn btn-outline" routerLink="/auth/login">Login</button>
+      <button class="btn btn-primary" routerLink="/auth/register">Apply Now</button>
+    </div>
+  </div>
+</header>
