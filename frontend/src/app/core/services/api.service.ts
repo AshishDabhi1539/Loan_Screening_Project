@@ -30,7 +30,7 @@ export class ApiService {
   /**
    * POST request
    */
-  post<T>(endpoint: string, data?: any, options?: any): Observable<T> {
+  post<T>(endpoint: string, data?: any, options?: { headers?: any; params?: any }): Observable<T> {
     return this.http.post<T>(`${this.baseUrl}${endpoint}`, data, options)
       .pipe(
         timeout(environment.api.timeout),
