@@ -1,0 +1,348 @@
+<!-- Create Officer Page -->
+<div class="space-y-6">
+  <!-- Page Header -->
+  <div class="bg-gradient-to-r from-primary-600 to-primary-800 text-white p-6 rounded-lg">
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold mb-2">Create New Officer</h1>
+        <p class="text-primary-100">Add a new loan or compliance officer to the system</p>
+      </div>
+      <div class="hidden sm:block">
+        <svg class="w-12 h-12 text-primary-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create Officer Form -->
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+    <div class="px-6 py-4 border-b border-gray-200">
+      <h2 class="text-lg font-semibold text-gray-900">Officer Information</h2>
+      <p class="text-sm text-gray-600 mt-1">Fill in all required details to create a new officer account</p>
+    </div>
+
+    <form [formGroup]="createOfficerForm" (ngSubmit)="onSubmit()" class="p-6 space-y-6">
+      <!-- Required Fields Section -->
+      <div class="space-y-4">
+        <h3 class="text-md font-medium text-gray-900 border-b border-gray-200 pb-2">Required Information</h3>
+        
+        <!-- Email Field -->
+        <div>
+          <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
+            Email Address <span class="text-red-500">*</span>
+          </label>
+          <input
+            type="email"
+            id="email"
+            formControlName="email"
+            [class]="'w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors ' + 
+                     (hasError('email') ? 'border-red-500 bg-red-50' : 'border-gray-300')"
+            placeholder="officer@company.com"
+            [disabled]="isLoading()"
+          />
+          @if (hasError('email')) {
+            <p class="mt-1 text-sm text-red-600 flex items-center">
+              <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+              </svg>
+              {{ getErrorMessage('email') }}
+            </p>
+          }
+          <p class="mt-1 text-xs text-gray-500">Must be a valid email address (max 150 characters)</p>
+        </div>
+
+        <!-- Phone Field -->
+        <div>
+          <label for="phone" class="block text-sm font-medium text-gray-700 mb-2">
+            Phone Number <span class="text-red-500">*</span>
+          </label>
+          <input
+            type="tel"
+            id="phone"
+            formControlName="phone"
+            [class]="'w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors ' + 
+                     (hasError('phone') ? 'border-red-500 bg-red-50' : 'border-gray-300')"
+            placeholder="9876543210 or +919876543210"
+            [disabled]="isLoading()"
+          />
+          @if (hasError('phone')) {
+            <p class="mt-1 text-sm text-red-600 flex items-center">
+              <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+              </svg>
+              {{ getErrorMessage('phone') }}
+            </p>
+          }
+          <p class="mt-1 text-xs text-gray-500">Valid Indian mobile number starting with 6, 7, 8, or 9</p>
+        </div>
+
+        <!-- Password Field -->
+        <div>
+          <label for="password" class="block text-sm font-medium text-gray-700 mb-2">
+            Temporary Password <span class="text-red-500">*</span>
+          </label>
+          <input
+            type="password"
+            id="password"
+            formControlName="password"
+            [class]="'w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors ' + 
+                     (hasError('password') ? 'border-red-500 bg-red-50' : 'border-gray-300')"
+            placeholder="Enter temporary password (min 8 characters)"
+            [disabled]="isLoading()"
+          />
+          @if (hasError('password')) {
+            <p class="mt-1 text-sm text-red-600 flex items-center">
+              <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+              </svg>
+              {{ getErrorMessage('password') }}
+            </p>
+          }
+          <p class="mt-1 text-xs text-gray-500">Officer will be required to change this on first login</p>
+        </div>
+
+        <!-- First Name Field -->
+        <div>
+          <label for="firstName" class="block text-sm font-medium text-gray-700 mb-2">
+            First Name <span class="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            id="firstName"
+            formControlName="firstName"
+            [class]="'w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors ' + 
+                     (hasError('firstName') ? 'border-red-500 bg-red-50' : 'border-gray-300')"
+            placeholder="John"
+            [disabled]="isLoading()"
+          />
+          @if (hasError('firstName')) {
+            <p class="mt-1 text-sm text-red-600 flex items-center">
+              <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+              </svg>
+              {{ getErrorMessage('firstName') }}
+            </p>
+          }
+        </div>
+
+        <!-- Last Name Field -->
+        <div>
+          <label for="lastName" class="block text-sm font-medium text-gray-700 mb-2">
+            Last Name <span class="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            id="lastName"
+            formControlName="lastName"
+            [class]="'w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors ' + 
+                     (hasError('lastName') ? 'border-red-500 bg-red-50' : 'border-gray-300')"
+            placeholder="Doe"
+            [disabled]="isLoading()"
+          />
+          @if (hasError('lastName')) {
+            <p class="mt-1 text-sm text-red-600 flex items-center">
+              <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+              </svg>
+              {{ getErrorMessage('lastName') }}
+            </p>
+          }
+        </div>
+
+        <!-- Role Selection -->
+        <div>
+          <label for="role" class="block text-sm font-medium text-gray-700 mb-2">
+            Officer Role <span class="text-red-500">*</span>
+          </label>
+          <select
+            id="role"
+            formControlName="role"
+            [class]="'w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors ' + 
+                     (hasError('role') ? 'border-red-500 bg-red-50' : 'border-gray-300')"
+            [disabled]="isLoading()"
+          >
+            <option value="">Select a role...</option>
+            @for (role of officerRoles; track role.value) {
+              <option [value]="role.value">{{ role.label }}</option>
+            }
+          </select>
+          @if (hasError('role')) {
+            <p class="mt-1 text-sm text-red-600 flex items-center">
+              <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+              </svg>
+              {{ getErrorMessage('role') }}
+            </p>
+          }
+          
+          <!-- Role Description -->
+          @if (createOfficerForm.get('role')?.value) {
+            @for (role of officerRoles; track role.value) {
+              @if (role.value === createOfficerForm.get('role')?.value) {
+                <div class="mt-2 p-3 bg-primary-50 border border-primary-200 rounded-lg">
+                  <p class="text-sm text-primary-800">
+                    <strong>{{ role.label }}:</strong> {{ role.description }}
+                  </p>
+                </div>
+              }
+            }
+          }
+        </div>
+      </div>
+
+      <!-- Optional Fields Section -->
+      <div class="space-y-4">
+        <h3 class="text-md font-medium text-gray-900 border-b border-gray-200 pb-2">Optional Information</h3>
+        
+        <!-- Middle Name Field -->
+        <div>
+          <label for="middleName" class="block text-sm font-medium text-gray-700 mb-2">
+            Middle Name
+          </label>
+          <input
+            type="text"
+            id="middleName"
+            formControlName="middleName"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+            placeholder="Middle name (optional)"
+            [disabled]="isLoading()"
+          />
+        </div>
+
+        <!-- Department Field -->
+        <div>
+          <label for="department" class="block text-sm font-medium text-gray-700 mb-2">
+            Department
+          </label>
+          <input
+            type="text"
+            id="department"
+            formControlName="department"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+            placeholder="e.g., Loan Processing, Compliance"
+            [disabled]="isLoading()"
+          />
+        </div>
+
+        <!-- Designation Field -->
+        <div>
+          <label for="designation" class="block text-sm font-medium text-gray-700 mb-2">
+            Designation
+          </label>
+          <input
+            type="text"
+            id="designation"
+            formControlName="designation"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+            placeholder="e.g., Senior Officer, Manager"
+            [disabled]="isLoading()"
+          />
+        </div>
+
+        <!-- Alternative Phone Field -->
+        <div>
+          <label for="phoneNumber" class="block text-sm font-medium text-gray-700 mb-2">
+            Alternative Phone Number
+          </label>
+          <input
+            type="tel"
+            id="phoneNumber"
+            formControlName="phoneNumber"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+            placeholder="Alternative contact number"
+            [disabled]="isLoading()"
+          />
+        </div>
+
+        <!-- Work Location Field -->
+        <div>
+          <label for="workLocation" class="block text-sm font-medium text-gray-700 mb-2">
+            Work Location
+          </label>
+          <input
+            type="text"
+            id="workLocation"
+            formControlName="workLocation"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+            placeholder="e.g., Mumbai Branch, Delhi Office"
+            [disabled]="isLoading()"
+          />
+        </div>
+      </div>
+
+      <!-- Form Actions -->
+      <div class="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-200">
+        <!-- Submit Button -->
+        <button
+          type="submit"
+          [disabled]="isLoading()"
+          class="flex-1 sm:flex-none bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400 text-white px-6 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center justify-center"
+        >
+          @if (isLoading()) {
+            <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Creating Officer...
+          } @else {
+            <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            Create Officer
+          }
+        </button>
+
+        <!-- Reset Button -->
+        <button
+          type="button"
+          (click)="onReset()"
+          [disabled]="isLoading()"
+          class="flex-1 sm:flex-none bg-gray-100 hover:bg-gray-200 disabled:bg-gray-50 text-gray-700 px-6 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center justify-center"
+        >
+          <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          Reset Form
+        </button>
+
+        <!-- Cancel Button -->
+        <button
+          type="button"
+          (click)="onCancel()"
+          [disabled]="isLoading()"
+          class="flex-1 sm:flex-none bg-white hover:bg-gray-50 disabled:bg-gray-50 text-gray-700 border border-gray-300 px-6 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center justify-center"
+        >
+          <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+          Cancel
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Information Card -->
+  <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+    <div class="flex">
+      <div class="flex-shrink-0">
+        <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+        </svg>
+      </div>
+      <div class="ml-3">
+        <h3 class="text-sm font-medium text-blue-800">Officer Creation Process</h3>
+        <div class="mt-2 text-sm text-blue-700">
+          <ul class="list-disc list-inside space-y-1">
+            <li>Officer account will be created with the provided temporary password</li>
+            <li>Account will be in PENDING_VERIFICATION status initially</li>
+            <li>Officer must verify their email using OTP sent to their email</li>
+            <li>Officer must change password on first login</li>
+            <li>Only LOAN_OFFICER and COMPLIANCE_OFFICER roles can be created</li>
+            <li>All required fields must be filled for successful creation</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

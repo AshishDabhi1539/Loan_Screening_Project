@@ -81,19 +81,19 @@ export class ToastComponent implements OnInit, OnDestroy {
    * Get CSS classes for notification type
    */
   getNotificationClasses(type: NotificationMessage['type']): string {
-    const baseClasses = 'max-w-sm w-full bg-white shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden';
+    const baseClasses = 'w-full bg-white shadow-xl rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-10 overflow-hidden transform transition-all duration-300 ease-in-out';
     
     switch (type) {
       case 'success':
-        return `${baseClasses} border-l-4 border-green-400`;
+        return `${baseClasses} border-l-4 border-green-500`;
       case 'error':
-        return `${baseClasses} border-l-4 border-red-400`;
+        return `${baseClasses} border-l-4 border-red-500`;
       case 'warning':
-        return `${baseClasses} border-l-4 border-yellow-400`;
+        return `${baseClasses} border-l-4 border-yellow-500`;
       case 'info':
-        return `${baseClasses} border-l-4 border-blue-400`;
+        return `${baseClasses} border-l-4 border-blue-500`;
       default:
-        return `${baseClasses} border-l-4 border-gray-400`;
+        return `${baseClasses} border-l-4 border-gray-500`;
     }
   }
 
@@ -103,15 +103,15 @@ export class ToastComponent implements OnInit, OnDestroy {
   getIconClasses(type: NotificationMessage['type']): string {
     switch (type) {
       case 'success':
-        return 'text-green-400';
+        return 'text-green-500';
       case 'error':
-        return 'text-red-400';
+        return 'text-red-500';
       case 'warning':
-        return 'text-yellow-400';
+        return 'text-yellow-500';
       case 'info':
-        return 'text-blue-400';
+        return 'text-blue-500';
       default:
-        return 'text-gray-400';
+        return 'text-gray-500';
     }
   }
 

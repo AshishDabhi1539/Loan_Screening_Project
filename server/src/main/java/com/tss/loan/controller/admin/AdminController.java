@@ -71,4 +71,38 @@ public class AdminController {
         log.info("Found {} officers", officers.size());
         return ResponseEntity.ok(officerResponses);
     }
+    
+    /**
+     * Get All Users
+     */
+    @GetMapping("/users")
+    public ResponseEntity<List<UserResponse>> getAllUsers() {
+        log.info("🔍 AdminController.getAllUsers() called - NEW ENDPOINT WORKING!");
+        
+        try {
+            List<User> users = userService.findAllUsers();
+            log.info("✅ Found {} users in database", users.size());
+            
+            // Convert to DTOs to prevent circular reference
+            List<UserResponse> userResponses = users.stream()
+                .map(userMapper::toResponse)
+                .collect(Collectors.toList());
+            
+            log.info("✅ Successfully converted {} users to DTOs", userResponses.size());
+            return ResponseEntity.ok(userResponses);
+            
+        } catch (Exception e) {
+            log.error("❌ Error in getAllUsers(): ", e);
+            throw e;
+        }
+    }
+    
+    /**
+     * Test endpoint to verify controller is working
+     */
+    @GetMapping("/test")
+    public ResponseEntity<String> testEndpoint() {
+        log.info("🧪 Test endpoint called - AdminController is working!");
+        return ResponseEntity.ok("AdminController is working! Time: " + java.time.LocalDateTime.now());
+    }
 }
