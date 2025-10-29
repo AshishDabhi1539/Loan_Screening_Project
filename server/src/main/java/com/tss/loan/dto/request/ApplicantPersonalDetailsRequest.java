@@ -9,6 +9,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Max;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -74,4 +76,14 @@ public class ApplicantPersonalDetailsRequest {
     private String permanentCity;
     private String permanentState;
     private String permanentPincode;
+    
+    // Additional Optional Fields
+    @Pattern(regexp = "\\d{10}", message = "Alternate phone number must be 10 digits")
+    private String alternatePhoneNumber; // Optional alternate contact
+    
+    @Min(value = 0, message = "Dependents count cannot be negative")
+    @Max(value = 20, message = "Dependents count cannot exceed 20")
+    private Integer dependentsCount = 0; // Number of dependents
+    
+    private String spouseName; // Required if maritalStatus is MARRIED
 }

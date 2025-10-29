@@ -59,10 +59,11 @@ export class LoanApplicationService {
   }
 
   /**
-   * Update personal details for application
+   * Update personal details for application (now uses global profile endpoint)
    */
   updatePersonalDetails(applicationId: string, personalData: any): Observable<any> {
-    return this.apiService.put(`/loan-application/${applicationId}/personal-details`, personalData);
+    // Personal details are now managed globally, not per application
+    return this.apiService.put('/applicant/profile/personal-details', personalData);
   }
 
   /**
@@ -115,14 +116,14 @@ export class LoanApplicationService {
    * Get profile status
    */
   getProfileStatus(): Observable<any> {
-    return this.apiService.get('/loan-application/profile-status');
+    return this.apiService.get('/applicant/profile/status');
   }
 
   /**
    * Create/Update personal details (not tied to specific application)
    */
   createPersonalDetails(personalData: any): Observable<any> {
-    return this.apiService.post('/loan-application/personal-details', personalData);
+    return this.apiService.post('/applicant/profile/personal-details', personalData);
   }
 
   /**

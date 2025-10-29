@@ -21,4 +21,9 @@ public interface PersonalDetailsService {
      * Create or update personal details with response DTO
      */
     PersonalDetailsCreateResponse createOrUpdatePersonalDetailsWithResponse(ApplicantPersonalDetailsRequest request, User user);
+    
+    /**
+     * Get personal details for user with response DTO
+     */
+    PersonalDetailsCreateResponse getPersonalDetailsForUser(User user);
 }
