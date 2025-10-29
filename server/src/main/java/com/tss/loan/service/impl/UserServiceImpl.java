@@ -172,6 +172,11 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public List<User> findAllUsers() {
+        return userRepository.findAll();
+    }
+
+    @Override
     public User updateEmailVerificationStatus(User user, boolean verified) {
         user.setIsEmailVerified(verified);
         

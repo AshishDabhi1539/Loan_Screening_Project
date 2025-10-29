@@ -14,6 +14,7 @@ public interface UserService {
     User findByEmailOrPhone(String emailOrPhone);
     User findById(UUID id);
     List<User> findAllOfficers();
+    List<User> findAllUsers();
     User updateEmailVerificationStatus(User user, boolean verified);
     User updateUser(User user);
     boolean existsByEmail(String email);
