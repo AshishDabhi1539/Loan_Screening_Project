@@ -2,11 +2,15 @@ package com.tss.loan.service;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import com.tss.loan.dto.PendingRegistration;
 import com.tss.loan.entity.security.OtpVerification;
 import com.tss.loan.entity.user.User;
 import com.tss.loan.exception.LoanApiException;
@@ -14,6 +18,9 @@ import com.tss.loan.repository.OtpVerificationRepository;
 
 @Service
 public class OtpService {
+    
+    // IN-MEMORY STORAGE for pending registrations (5 minute expiry)
+    private final Map<String, PendingRegistration> pendingRegistrations = new ConcurrentHashMap<>();
     
     @Autowired
     private OtpVerificationRepository otpRepository;
@@ -32,6 +39,119 @@ public class OtpService {
      */
     public boolean generateAndSendEmailOtp(User user) {
         return generateAndSendOtp(user, "EMAIL_VERIFICATION", user.getEmail(), 10);
+    }
+    
+    /**
+     * Generate and send OTP for NEW REGISTRATION (stores data in-memory for 5 minutes)
+     * Does NOT create user in database until verification is complete
+     */
+    public boolean generateAndSendRegistrationOtp(String email, String phone, String passwordHash) {
+        try {
+            // Check if email already has active pending registration
+            PendingRegistration existing = pendingRegistrations.get(email);
+            if (existing != null && !existing.isExpired()) {
+                // Invalidate old one and create new
+                auditLogService.logAction(null, "PREVIOUS_PENDING_REGISTRATION_INVALIDATED", "PendingRegistration", null, 
+                    "Invalidated previous pending registration for email: " + email);
+            }
+            
+            // Generate 6-digit OTP
+            String otpCode = String.format("%06d", random.nextInt(1000000));
+            
+            // Create pending registration (in-memory, NOT in database)
+            PendingRegistration pendingReg = PendingRegistration.builder()
+                .email(email)
+                .phone(phone)
+                .passwordHash(passwordHash)
+                .otpCode(otpCode)
+                .expiresAt(LocalDateTime.now().plusMinutes(5)) // 5 minutes as requested
+                .attemptCount(0)
+                .build();
+            
+            // Store in memory
+            pendingRegistrations.put(email, pendingReg);
+            
+            // Send OTP email
+            boolean sent = emailService.sendOtpEmail(email, otpCode, null);
+            
+            if (sent) {
+                auditLogService.logAction(null, "REGISTRATION_OTP_SENT", "PendingRegistration", null, 
+                    "Registration OTP sent to " + email + ". Data stored in-memory for 5 minutes.");
+                return true;
+            } else {
+                // Remove from memory if email fails
+                pendingRegistrations.remove(email);
+                throw new LoanApiException("Failed to send registration OTP. Please try again.");
+            }
+            
+        } catch (Exception e) {
+            auditLogService.logAction(null, "REGISTRATION_OTP_FAILED", "PendingRegistration", null, 
+                "Failed to generate registration OTP: " + e.getMessage());
+            throw new LoanApiException("Failed to send registration OTP: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Verify registration OTP and return registration data
+     * Returns pending registration if OTP is valid, null otherwise
+     */
+    public PendingRegistration verifyRegistrationOtp(String email, String otpCode) {
+        try {
+            // Get pending registration from memory
+            PendingRegistration pendingReg = pendingRegistrations.get(email);
+            
+            if (pendingReg == null) {
+                throw new LoanApiException("No pending registration found for this email. Please register again.");
+            }
+            
+            // Check if expired
+            if (pendingReg.isExpired()) {
+                pendingRegistrations.remove(email);
+                throw new LoanApiException("Registration OTP has expired. Please register again.");
+            }
+            
+            // Check attempts
+            if (pendingReg.getAttemptCount() >= 3) {
+                pendingRegistrations.remove(email);
+                throw new LoanApiException("Maximum OTP attempts exceeded. Please register again.");
+            }
+            
+            // Verify OTP
+            if (pendingReg.verifyOtp(otpCode)) {
+                auditLogService.logAction(null, "REGISTRATION_OTP_VERIFIED", "PendingRegistration", null, 
+                    "Registration OTP verified successfully for: " + email);
+                return pendingReg; // Return data so AuthService can create user
+            } else {
+                pendingReg.incrementAttempt();
+                auditLogService.logAction(null, "REGISTRATION_OTP_VERIFICATION_FAILED", "PendingRegistration", null, 
+                    "Invalid OTP attempt for: " + email + ". Attempts: " + pendingReg.getAttemptCount());
+                throw new LoanApiException("Invalid OTP code. Attempts remaining: " + (3 - pendingReg.getAttemptCount()));
+            }
+            
+        } catch (LoanApiException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new LoanApiException("OTP verification failed: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Remove pending registration from memory after successful user creation
+     */
+    public void removePendingRegistration(String email) {
+        PendingRegistration removed = pendingRegistrations.remove(email);
+        if (removed != null) {
+            auditLogService.logAction(null, "PENDING_REGISTRATION_REMOVED", "PendingRegistration", null, 
+                "Removed pending registration from memory for: " + email);
+        }
+    }
+    
+    /**
+     * Check if email has active pending registration
+     */
+    public boolean hasPendingRegistration(String email) {
+        PendingRegistration pendingReg = pendingRegistrations.get(email);
+        return pendingReg != null && !pendingReg.isExpired();
     }
     
     /**
@@ -201,13 +321,33 @@ public class OtpService {
         }
     }
 
+    /**
+     * Cleanup expired OTPs and pending registrations
+     * Runs every 5 minutes
+     */
+    @Scheduled(fixedRate = 300000) // Every 5 minutes
     public void cleanupExpiredOtps() {
         try {
+            // Cleanup database OTPs
             otpRepository.expireOldOtps(LocalDateTime.now());
             
             // Delete old verified OTPs (older than 24 hours)
             LocalDateTime cutoffDate = LocalDateTime.now().minusHours(24);
             otpRepository.deleteOldVerifiedOtps(cutoffDate);
+            
+            // Cleanup expired pending registrations from memory
+            int removedCount = 0;
+            for (Map.Entry<String, PendingRegistration> entry : pendingRegistrations.entrySet()) {
+                if (entry.getValue().isExpired()) {
+                    pendingRegistrations.remove(entry.getKey());
+                    removedCount++;
+                }
+            }
+            
+            if (removedCount > 0) {
+                auditLogService.logAction(null, "PENDING_REGISTRATIONS_CLEANUP", "PendingRegistration", null, 
+                    "Removed " + removedCount + " expired pending registrations from memory");
+            }
             
         } catch (Exception e) {
             // Silent fail for cleanup - could add debug logging if needed

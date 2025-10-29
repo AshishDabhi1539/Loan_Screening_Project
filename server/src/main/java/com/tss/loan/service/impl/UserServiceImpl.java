@@ -207,6 +207,25 @@ public class UserServiceImpl implements UserService {
 
         return updatedUser;
     }
+    
+    @Override
+    public User saveUserDirectly(User user) {
+        // Save user directly without validation (used after OTP verification)
+        User savedUser = userRepository.save(user);
+        
+        // Create welcome notification
+        notificationService.createNotification(
+            savedUser,
+            NotificationType.IN_APP,
+            "Welcome to Loan Screening System",
+            "Welcome! Your account has been created and verified successfully."
+        );
+        
+        auditLogService.logAction(savedUser, "USER_CREATED_AFTER_VERIFICATION", "User", null,
+                "User created after successful email verification: " + savedUser.getEmail());
+        
+        return savedUser;
+    }
 
     @Override
     public boolean existsByEmail(String email) {
