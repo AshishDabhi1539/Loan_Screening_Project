@@ -1,46 +1,99 @@
-import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
-import { inject } from '@angular/core';
-import { catchError, throwError } from 'rxjs';
+import { Injectable, inject } from '@angular/core';
+import { HttpInterceptor, HttpRequest, HttpHandler, HttpEvent, HttpErrorResponse } from '@angular/common/http';
+import { Observable, throwError, BehaviorSubject } from 'rxjs';
+import { catchError, filter, take, switchMap } from 'rxjs/operators';
+
 import { AuthService } from '../services/auth.service';
+import { environment } from '../../../environments/environment';
 
-export const authInterceptorFn: HttpInterceptorFn = (req, next) => {
-  const authService = inject(AuthService);
-  
-  // Skip auth header for auth endpoints
-  const authEndpoints = [
-    '/auth/login',
-    '/auth/register',
-    '/auth/verify-email',
-    '/auth/forgot-password',
-    '/auth/reset-password',
-    '/auth/refresh-token'
-  ];
+@Injectable()
+export class AuthInterceptor implements HttpInterceptor {
+  private authService = inject(AuthService);
+  private isRefreshing = false;
+  private refreshTokenSubject: BehaviorSubject<any> = new BehaviorSubject<any>(null);
 
-  const isAuthEndpoint = authEndpoints.some(endpoint => req.url.includes(endpoint));
-  
-  // Add auth header if user is authenticated and not an auth endpoint
-  let authReq = req;
-  const token = authService.getToken();
-  
-  if (token && !isAuthEndpoint) {
-    authReq = req.clone({
-      setHeaders: {
-        Authorization: `Bearer ${token}`
-      }
-    });
+  intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
+    // Skip auth header for auth endpoints
+    if (this.isAuthEndpoint(req.url)) {
+      return next.handle(req);
+    }
+
+    // Add auth token to request
+    const authReq = this.addTokenHeader(req);
+    
+    return next.handle(authReq).pipe(
+      catchError((error: HttpErrorResponse) => {
+        if (error.status === 401 && !this.isAuthEndpoint(req.url)) {
+          return this.handle401Error(authReq, next);
+        }
+        return throwError(() => error);
+      })
+    );
   }
 
-  // Handle the request
-  return next(authReq).pipe(
-    catchError((error: HttpErrorResponse) => {
-      // Handle 401 Unauthorized errors
-      if (error.status === 401 && authService.isAuthenticated()) {
-        // Token expired or invalid - logout user
-        authService.logout();
-      }
-      
-      // Re-throw error
-      return throwError(() => error);
-    })
-  );
-};
+  /**
+   * Add authorization header to request
+   */
+  private addTokenHeader(request: HttpRequest<any>): HttpRequest<any> {
+    const token = this.authService.getStoredToken();
+    
+    if (token) {
+      return request.clone({
+        headers: request.headers.set('Authorization', `Bearer ${token}`)
+      });
+    }
+    
+    return request;
+  }
+
+  /**
+   * Handle 401 unauthorized errors with token refresh
+   */
+  private handle401Error(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
+    if (!this.isRefreshing) {
+      this.isRefreshing = true;
+      this.refreshTokenSubject.next(null);
+
+      return this.authService.refreshToken().pipe(
+        switchMap((response: any) => {
+          this.isRefreshing = false;
+          this.refreshTokenSubject.next(response.data.token);
+          
+          // Retry the original request with new token
+          return next.handle(this.addTokenHeader(request));
+        }),
+        catchError((error) => {
+          this.isRefreshing = false;
+          
+          // Refresh failed, logout user
+          this.authService.logout();
+          return throwError(() => error);
+        })
+      );
+    } else {
+      // Wait for refresh to complete
+      return this.refreshTokenSubject.pipe(
+        filter(token => token !== null),
+        take(1),
+        switchMap(() => next.handle(this.addTokenHeader(request)))
+      );
+    }
+  }
+
+  /**
+   * Check if the request is for an auth endpoint
+   */
+  private isAuthEndpoint(url: string): boolean {
+    const authEndpoints = [
+      '/auth/login',
+      '/auth/register',
+      '/auth/verify-email',
+      '/auth/resend-otp',
+      '/auth/forgot-password',
+      '/auth/reset-password',
+      '/auth/refresh-token'
+    ];
+    
+    return authEndpoints.some(endpoint => url.includes(endpoint));
+  }
+}

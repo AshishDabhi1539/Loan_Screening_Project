@@ -1,0 +1,299 @@
+/* Main Layout Component Styles */
+
+/* Sidebar Styles */
+.sidebar {
+  transition: transform 0.3s ease-in-out;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.sidebar-header {
+  background: linear-gradient(135deg, var(--primary-600) 0%, var(--primary-700) 100%);
+}
+
+/* Navigation Styles */
+.nav-item {
+  transition: all 0.15s ease-in-out;
+  position: relative;
+}
+
+.nav-item:hover {
+  transform: translateX(2px);
+}
+
+.nav-item.active {
+  background: linear-gradient(90deg, var(--primary-50) 0%, var(--primary-100) 100%);
+  border-left-color: var(--primary-500);
+}
+
+.nav-item.active svg {
+  color: var(--primary-600);
+}
+
+.nav-item svg {
+  transition: color 0.15s ease-in-out;
+}
+
+/* Header Styles */
+.main-header {
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.95);
+  border-bottom: 1px solid rgba(229, 231, 235, 0.8);
+}
+
+/* User Menu Styles */
+.user-menu-button {
+  transition: all 0.2s ease-in-out;
+}
+
+.user-menu-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.user-dropdown {
+  animation: fadeInDown 0.2s ease-out;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.user-dropdown-item {
+  transition: all 0.15s ease-in-out;
+}
+
+.user-dropdown-item:hover {
+  background-color: var(--gray-50);
+  transform: translateX(4px);
+}
+
+/* Role Badge Styles */
+.role-badge {
+  font-weight: 600;
+  letter-spacing: 0.025em;
+}
+
+.role-badge.applicant {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  color: #1e40af;
+}
+
+.role-badge.loan-officer {
+  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+  color: #166534;
+}
+
+.role-badge.compliance-officer {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  color: #92400e;
+}
+
+.role-badge.admin {
+  background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%);
+  color: #7c2d12;
+}
+
+/* Mobile Responsive */
+@media (max-width: 1024px) {
+  .sidebar {
+    position: fixed;
+    z-index: 50;
+  }
+  
+  .sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 40;
+  }
+}
+
+/* Main Content Area */
+.main-content {
+  background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+  min-height: calc(100vh - 4rem);
+}
+
+/* Footer Styles */
+.main-footer {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(229, 231, 235, 0.8);
+}
+
+.footer-link {
+  transition: color 0.15s ease-in-out;
+}
+
+.footer-link:hover {
+  color: var(--primary-600);
+}
+
+/* Notification Bell Animation */
+.notification-bell {
+  position: relative;
+  transition: all 0.2s ease-in-out;
+}
+
+.notification-bell:hover {
+  transform: rotate(15deg);
+}
+
+.notification-bell::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  background: var(--red-500);
+  border-radius: 50%;
+  opacity: 0;
+  animation: pulse 2s infinite;
+}
+
+.notification-bell.has-notifications::after {
+  opacity: 1;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.7;
+  }
+}
+
+/* Sidebar Logo Animation */
+.sidebar-logo {
+  transition: all 0.3s ease-in-out;
+}
+
+.sidebar-logo:hover {
+  transform: scale(1.05);
+}
+
+/* Mobile Menu Button */
+.mobile-menu-btn {
+  transition: all 0.2s ease-in-out;
+}
+
+.mobile-menu-btn:hover {
+  background-color: var(--gray-100);
+  transform: scale(1.05);
+}
+
+/* Active Navigation Indicator */
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--primary-500);
+  border-radius: 0 2px 2px 0;
+}
+
+/* Smooth Scrolling */
+.main-content {
+  scroll-behavior: smooth;
+}
+
+/* Focus States for Accessibility */
+.nav-item:focus,
+.user-menu-button:focus,
+.mobile-menu-btn:focus {
+  outline: 2px solid var(--primary-500);
+  outline-offset: 2px;
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+  .nav-item.active {
+    border-left-width: 6px;
+  }
+  
+  .role-badge {
+    border: 2px solid currentColor;
+  }
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  .sidebar,
+  .nav-item,
+  .user-menu-button,
+  .notification-bell,
+  .sidebar-logo {
+    transition: none;
+  }
+  
+  .user-dropdown {
+    animation: none;
+  }
+  
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+  }
+}
+
+/* Print Styles */
+@media print {
+  .sidebar,
+  .main-header,
+  .main-footer {
+    display: none;
+  }
+  
+  .main-content {
+    margin: 0;
+    padding: 0;
+    background: white;
+  }
+}
+
+/* Loading States */
+.loading-skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Custom Scrollbar */
+.main-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.main-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.main-content::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+.main-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}

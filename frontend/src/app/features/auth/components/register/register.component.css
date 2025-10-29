@@ -1,80 +1,128 @@
-/* Register page uses same styles as login with minor adjustments */
-@import '../login/login.component.css';
+/* Registration Component Specific Styles */
 
-.register-card {
-  max-width: 500px;
+.register-container {
+  background: linear-gradient(135deg, var(--primary-50) 0%, var(--primary-100) 100%);
 }
 
-.form-header p {
-  font-size: 0.875rem;
+.register-form .form-control:focus {
+  border-color: var(--primary-500);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
-.checkbox-wrapper {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
-  font-size: 0.875rem;
-  color: #4a5568;
-  cursor: pointer;
-  line-height: 1.6;
-}
-
-.checkbox-wrapper input[type="checkbox"] {
-  margin-top: 0.25rem;
-}
-
-.link {
-  color: #2D6A4F;
-  text-decoration: none;
-  font-weight: 600;
-}
-
-.link:hover {
-  text-decoration: underline;
-}
-
-.success-alert {
-  padding: 1rem;
-  background: #f0fdf4;
-  border: 1px solid #86efac;
-  border-radius: 12px;
-  color: #15803d;
-  font-size: 0.875rem;
-  margin-bottom: 1.5rem;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.success-alert svg {
-  flex-shrink: 0;
-  color: #15803d;
-}
-
-.login-section {
-  text-align: center;
-  padding: 1.5rem 3rem;
-  background: #f7fafc;
-  border-top: 1px solid #e2e8f0;
-}
-
-.login-section p {
-  font-size: 0.875rem;
-  color: #718096;
-  margin: 0 0 0.5rem;
-}
-
-.login-link {
-  font-size: 0.875rem;
-  color: #2D6A4F;
-  text-decoration: none;
-  font-weight: 600;
-  cursor: pointer;
+.password-toggle-btn {
   transition: color 0.2s ease;
 }
 
-.login-link:hover {
-  color: #40916C;
-  text-decoration: underline;
+.password-toggle-btn:hover {
+  color: var(--primary-600);
 }
 
+/* Password strength indicator */
+.password-strength-bar {
+  transition: all 0.3s ease;
+}
+
+.password-strength-weak {
+  background: linear-gradient(90deg, #ef4444 0%, #f97316 100%);
+}
+
+.password-strength-fair {
+  background: linear-gradient(90deg, #f59e0b 0%, #eab308 100%);
+}
+
+.password-strength-good {
+  background: linear-gradient(90deg, #3b82f6 0%, #06b6d4 100%);
+}
+
+.password-strength-strong {
+  background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+}
+
+/* Custom checkbox styling */
+input[type="checkbox"]:checked {
+  background-color: var(--primary-600);
+  border-color: var(--primary-600);
+}
+
+/* Loading state for submit button */
+.btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Error state animations */
+.form-error {
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Success/Error alert animations */
+.alert-enter {
+  animation: fadeInDown 0.3s ease-out;
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Form field focus states */
+.form-group:focus-within .form-label {
+  color: var(--primary-600);
+}
+
+/* Password requirements checklist */
+.password-requirements {
+  font-size: 0.75rem;
+  color: var(--gray-600);
+}
+
+.password-requirement {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+
+.password-requirement.met {
+  color: var(--success);
+}
+
+.password-requirement.unmet {
+  color: var(--gray-400);
+}
+
+/* Terms and conditions styling */
+.terms-checkbox:checked + .terms-label {
+  color: var(--primary-600);
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .register-form {
+    padding: 1rem;
+  }
+  
+  .form-group {
+    margin-bottom: 1rem;
+  }
+  
+  .password-strength-indicator {
+    font-size: 0.75rem;
+  }
+}

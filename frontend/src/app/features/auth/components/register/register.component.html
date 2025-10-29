@@ -1,208 +1,280 @@
-<div class="register-container">
-  <div class="register-background">
-    <div class="pattern-overlay"></div>
+<div class="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+  <div class="sm:mx-auto sm:w-full sm:max-w-md">
+    <div class="text-center">
+      <h2 class="mt-6 text-3xl font-bold text-gray-900">
+        Create your account
+      </h2>
+      <p class="mt-2 text-sm text-gray-600">
+        Already have an account?
+        <a routerLink="/auth/login" class="font-medium text-primary-600 hover:text-primary-500">
+          Sign in here
+        </a>
+      </p>
+    </div>
   </div>
 
-  <div class="register-card fade-in">
-    <div class="register-header">
-      <div class="logo-section">
-        <div class="logo-icon">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-            <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-            <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-          </svg>
-        </div>
-        <div class="logo-text">
-          <h1>LoanSecure</h1>
-          <p>Professional Loan Screening Platform</p>
+  <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+    <div class="card">
+      <div class="card-body">
+        <!-- Registration Success Message -->
+        @if (registrationSuccess()) {
+          <div class="mb-4 p-4 rounded-md bg-green-50 border border-green-200">
+            <div class="flex">
+              <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+              </div>
+              <div class="ml-3">
+                <h3 class="text-sm font-medium text-green-800">
+                  Registration Successful!
+                </h3>
+                <div class="mt-2 text-sm text-green-700">
+                  Please check your email for verification instructions.
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- Registration Error Alert -->
+        @if (registrationError()) {
+          <div class="mb-4 p-4 rounded-md bg-red-50 border border-red-200">
+            <div class="flex">
+              <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                </svg>
+              </div>
+              <div class="ml-3">
+                <h3 class="text-sm font-medium text-red-800">
+                  Registration Failed
+                </h3>
+                <div class="mt-2 text-sm text-red-700">
+                  {{ registrationError() }}
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- Registration Form -->
+        <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="space-y-6">
+          <!-- Email Field -->
+          <div class="form-group">
+            <label for="email" class="form-label">
+              Email Address *
+            </label>
+            <div class="mt-1">
+              <input
+                id="email"
+                name="email"
+                type="email"
+                formControlName="email"
+                autocomplete="email"
+                placeholder="Enter your email address"
+                [class]="'form-control' + (hasFieldError('email') ? ' error' : '')"
+              />
+            </div>
+            @if (getFieldError('email')) {
+              <div class="form-error">
+                {{ getFieldError('email') }}
+              </div>
+            }
+          </div>
+
+          <!-- Phone Field -->
+          <div class="form-group">
+            <label for="phone" class="form-label">
+              Phone Number *
+            </label>
+            <div class="mt-1">
+              <input
+                id="phone"
+                name="phone"
+                type="tel"
+                formControlName="phone"
+                autocomplete="tel"
+                placeholder="Enter your 10-digit mobile number"
+                [class]="'form-control' + (hasFieldError('phone') ? ' error' : '')"
+              />
+            </div>
+            @if (getFieldError('phone')) {
+              <div class="form-error">
+                {{ getFieldError('phone') }}
+              </div>
+            }
+            <div class="mt-1 text-xs text-gray-500">
+              Format: 9876543210 or +919876543210
+            </div>
+          </div>
+
+          <!-- Password Field -->
+          <div class="form-group">
+            <label for="password" class="form-label">
+              Password *
+            </label>
+            <div class="mt-1 relative">
+              <input
+                id="password"
+                name="password"
+                [type]="showPassword() ? 'text' : 'password'"
+                formControlName="password"
+                autocomplete="new-password"
+                placeholder="Create a strong password"
+                [class]="'form-control pr-10' + (hasFieldError('password') ? ' error' : '')"
+              />
+              <button
+                type="button"
+                class="absolute inset-y-0 right-0 pr-3 flex items-center"
+                (click)="togglePasswordVisibility('password')"
+              >
+                @if (showPassword()) {
+                  <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+                  </svg>
+                } @else {
+                  <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                }
+              </button>
+            </div>
+            
+            <!-- Password Strength Indicator -->
+            @if (registerForm.get('password')?.value) {
+              <div class="mt-2">
+                <div class="flex items-center justify-between text-xs">
+                  <span class="text-gray-500">Password strength:</span>
+                  <span [class]="getPasswordStrength().color + ' font-medium'">
+                    {{ getPasswordStrength().label }}
+                  </span>
+                </div>
+                <div class="mt-1 w-full bg-gray-200 rounded-full h-1">
+                  <div 
+                    class="h-1 rounded-full transition-all duration-300"
+                    [class]="getPasswordStrength().score <= 2 ? 'bg-red-500' : 
+                             getPasswordStrength().score <= 3 ? 'bg-yellow-500' : 
+                             getPasswordStrength().score <= 4 ? 'bg-blue-500' : 'bg-green-500'"
+                    [style.width.%]="(getPasswordStrength().score / 5) * 100">
+                  </div>
+                </div>
+              </div>
+            }
+            
+            @if (getFieldError('password')) {
+              <div class="form-error">
+                {{ getFieldError('password') }}
+              </div>
+            }
+          </div>
+
+          <!-- Confirm Password Field -->
+          <div class="form-group">
+            <label for="confirmPassword" class="form-label">
+              Confirm Password *
+            </label>
+            <div class="mt-1 relative">
+              <input
+                id="confirmPassword"
+                name="confirmPassword"
+                [type]="showConfirmPassword() ? 'text' : 'password'"
+                formControlName="confirmPassword"
+                autocomplete="new-password"
+                placeholder="Confirm your password"
+                [class]="'form-control pr-10' + (hasFieldError('confirmPassword') ? ' error' : '')"
+              />
+              <button
+                type="button"
+                class="absolute inset-y-0 right-0 pr-3 flex items-center"
+                (click)="togglePasswordVisibility('confirmPassword')"
+              >
+                @if (showConfirmPassword()) {
+                  <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+                  </svg>
+                } @else {
+                  <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                }
+              </button>
+            </div>
+            @if (getFieldError('confirmPassword')) {
+              <div class="form-error">
+                {{ getFieldError('confirmPassword') }}
+              </div>
+            }
+          </div>
+
+          <!-- Terms and Conditions -->
+          <div class="form-group">
+            <div class="flex items-start">
+              <input
+                id="acceptTerms"
+                name="acceptTerms"
+                type="checkbox"
+                formControlName="acceptTerms"
+                class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded mt-1"
+              />
+              <label for="acceptTerms" class="ml-2 block text-sm text-gray-900">
+                I accept the 
+                <a href="#" class="font-medium text-primary-600 hover:text-primary-500">
+                  Terms and Conditions
+                </a> 
+                and 
+                <a href="#" class="font-medium text-primary-600 hover:text-primary-500">
+                  Privacy Policy
+                </a> *
+              </label>
+            </div>
+            @if (getFieldError('acceptTerms')) {
+              <div class="form-error">
+                {{ getFieldError('acceptTerms') }}
+              </div>
+            }
+          </div>
+
+          <!-- Submit Button -->
+          <div>
+            <button
+              type="submit"
+              [disabled]="isLoading()"
+              class="btn btn-primary w-full flex justify-center items-center"
+            >
+              @if (isLoading()) {
+                <div class="spinner mr-2"></div>
+                Creating account...
+              } @else {
+                Create account
+              }
+            </button>
+          </div>
+        </form>
+
+        <!-- Login Link -->
+        <div class="mt-6">
+          <div class="relative">
+            <div class="absolute inset-0 flex items-center">
+              <div class="w-full border-t border-gray-300"></div>
+            </div>
+            <div class="relative flex justify-center text-sm">
+              <span class="px-2 bg-white text-gray-500">Already have an account?</span>
+            </div>
+          </div>
+
+          <div class="mt-6">
+            <a
+              routerLink="/auth/login"
+              class="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+            >
+              Sign in to existing account
+            </a>
+          </div>
         </div>
       </div>
-    </div>
-
-    <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="register-form">
-      <div class="form-header">
-        <h2>Create Your Account</h2>
-        <p>Join thousands of satisfied customers</p>
-      </div>
-
-      <!-- Email Field -->
-      <div class="form-group">
-        <label for="email" class="form-label">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M4 4H20C21.1 4 22 4.9 22 6V18C22 19.1 21.1 20 20 20H4C2.9 20 2 19.1 2 18V6C2 4.9 2.9 4 4 4Z" stroke="currentColor" stroke-width="2"/>
-            <polyline points="22,6 12,13 2,6" stroke="currentColor" stroke-width="2"/>
-          </svg>
-          Email Address *
-        </label>
-        <input
-          id="email"
-          type="email"
-          formControlName="email"
-          class="form-control"
-          [class.error]="isFieldInvalid('email')"
-          placeholder="Enter your email"
-        />
-        <div *ngIf="isFieldInvalid('email')" class="form-error">
-          <span *ngIf="registerForm.get('email')?.errors?.['required']">Email is required</span>
-          <span *ngIf="registerForm.get('email')?.errors?.['email']">Invalid email format</span>
-        </div>
-      </div>
-
-      <!-- Phone Field -->
-      <div class="form-group">
-        <label for="phone" class="form-label">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M22 16.92V19.92C22 20.4696 21.5523 20.9204 21.0028 20.9204C9.40632 20.4804 0.51974 11.5939 0.0797318 0.997175C0.0797318 0.447676 0.530442 0 1.08 0H4.08C4.62956 0 5.08 0.450704 5.08 1.00021C5.21 2.48021 5.50 3.91021 6 5.26021C6.18 5.74021 6 6.30021 5.59 6.61021L3.85 8.01021C5.57 11.3602 8.55 14.3402 11.89 16.0602L13.29 14.3202C13.6 13.9102 14.16 13.7302 14.64 13.9102C16 14.4102 17.43 14.7002 18.91 14.8302C19.4596 14.9602 19.9104 15.4104 19.9104 15.96V18.96L22 16.92Z" fill="currentColor"/>
-          </svg>
-          Phone Number (Optional)
-        </label>
-        <input
-          id="phone"
-          type="tel"
-          formControlName="phone"
-          class="form-control"
-          [class.error]="isFieldInvalid('phone')"
-          placeholder="Enter 10-digit mobile number"
-        />
-        <div *ngIf="isFieldInvalid('phone')" class="form-error">
-          <span>Invalid phone number format</span>
-        </div>
-      </div>
-
-      <!-- Password Field -->
-      <div class="form-group">
-        <label for="password" class="form-label">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke="currentColor" stroke-width="2"/>
-            <circle cx="12" cy="16" r="1" fill="currentColor"/>
-            <path d="M7 11V7A5 5 0 0 1 17 7V11" stroke="currentColor" stroke-width="2"/>
-          </svg>
-          Password *
-        </label>
-        <div class="password-input-wrapper">
-          <input
-            id="password"
-            [type]="showPassword ? 'text' : 'password'"
-            formControlName="password"
-            class="form-control"
-            [class.error]="isFieldInvalid('password')"
-            placeholder="Create a password (min 6 characters)"
-          />
-          <button
-            type="button"
-            class="password-toggle"
-            (click)="togglePasswordVisibility('password')"
-          >
-            <svg *ngIf="!showPassword" width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path d="M1 12S5 4 12 4S23 12 23 12S19 20 12 20S1 12 1 12Z" stroke="currentColor" stroke-width="2"/>
-              <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
-            </svg>
-            <svg *ngIf="showPassword" width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" stroke-width="2"/>
-              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20C5 20 1 12 1 12" stroke="currentColor" stroke-width="2"/>
-            </svg>
-          </button>
-        </div>
-        <div *ngIf="isFieldInvalid('password')" class="form-error">
-          <span *ngIf="registerForm.get('password')?.errors?.['required']">Password is required</span>
-          <span *ngIf="registerForm.get('password')?.errors?.['minlength']">Minimum 6 characters required</span>
-        </div>
-      </div>
-
-      <!-- Confirm Password Field -->
-      <div class="form-group">
-        <label for="confirmPassword" class="form-label">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke="currentColor" stroke-width="2"/>
-            <circle cx="12" cy="16" r="1" fill="currentColor"/>
-            <path d="M7 11V7A5 5 0 0 1 17 7V11" stroke="currentColor" stroke-width="2"/>
-          </svg>
-          Confirm Password *
-        </label>
-        <div class="password-input-wrapper">
-          <input
-            id="confirmPassword"
-            [type]="showConfirmPassword ? 'text' : 'password'"
-            formControlName="confirmPassword"
-            class="form-control"
-            [class.error]="isFieldInvalid('confirmPassword') || hasPasswordMismatch()"
-            placeholder="Re-enter your password"
-          />
-          <button
-            type="button"
-            class="password-toggle"
-            (click)="togglePasswordVisibility('confirmPassword')"
-          >
-            <svg *ngIf="!showConfirmPassword" width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path d="M1 12S5 4 12 4S23 12 23 12S19 20 12 20S1 12 1 12Z" stroke="currentColor" stroke-width="2"/>
-              <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
-            </svg>
-            <svg *ngIf="showConfirmPassword" width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" stroke-width="2"/>
-              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20C5 20 1 12 1 12" stroke="currentColor" stroke-width="2"/>
-            </svg>
-          </button>
-        </div>
-        <div *ngIf="isFieldInvalid('confirmPassword') || hasPasswordMismatch()" class="form-error">
-          <span *ngIf="registerForm.get('confirmPassword')?.errors?.['required']">Confirm password is required</span>
-          <span *ngIf="hasPasswordMismatch()">Passwords do not match</span>
-        </div>
-      </div>
-
-      <!-- Terms Checkbox -->
-      <div class="form-group">
-        <label class="checkbox-wrapper">
-          <input type="checkbox" formControlName="termsAccepted" />
-          <span class="checkmark"></span>
-          I agree to the <a href="#" class="link">Terms & Conditions</a> and <a href="#" class="link">Privacy Policy</a>
-        </label>
-        <div *ngIf="isFieldInvalid('termsAccepted')" class="form-error">
-          <span>You must accept the terms and conditions</span>
-        </div>
-      </div>
-
-      <!-- Success Message -->
-      <div *ngIf="successMessage()" class="success-alert slide-up">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-          <path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="2"/>
-        </svg>
-        {{ successMessage() }}
-      </div>
-
-      <!-- Error Message -->
-      <div *ngIf="errorMessage()" class="error-alert slide-up">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-          <line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" stroke-width="2"/>
-          <line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2"/>
-        </svg>
-        {{ errorMessage() }}
-      </div>
-
-      <!-- Submit Button -->
-      <button
-        type="submit"
-        class="btn btn-primary register-btn"
-        [disabled]="registerForm.invalid || isLoading()"
-      >
-        <span *ngIf="!isLoading()">Create Account</span>
-        <span *ngIf="isLoading()" class="loading-content">
-          <div class="loading"></div>
-          Creating Account...
-        </span>
-      </button>
-    </form>
-
-    <div class="login-section">
-      <p>Already have an account?</p>
-      <a (click)="navigateToLogin()" class="login-link">Sign In</a>
-    </div>
-
-    <div class="register-footer">
-      <p>&copy; 2024 LoanSecure. All rights reserved.</p>
     </div>
   </div>
 </div>
-

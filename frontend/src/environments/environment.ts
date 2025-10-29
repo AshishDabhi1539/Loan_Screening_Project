@@ -1,21 +1,19 @@
 export const environment = {
   production: false,
   apiUrl: 'http://localhost:8080/api',
-  appName: 'Loan Screening Application',
-  version: '1.0.0',
-  enableLogging: true,
-  tokenExpirationTime: 3600000, // 1 hour in milliseconds
-  refreshTokenExpirationTime: 604800000, // 7 days in milliseconds
-  fileUploadMaxSize: 10485760, // 10MB in bytes
-  supportedFileTypes: ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'],
-  pagination: {
-    defaultPageSize: 10,
-    maxPageSize: 100
+  api: {
+    timeout: 30000, // 30 seconds
+    retryAttempts: 2
+  },
+  auth: {
+    tokenKey: 'loan_screening_token',
+    refreshTokenKey: 'loan_screening_refresh_token',
+    tokenExpiryBuffer: 300000 // 5 minutes before expiry
   },
   features: {
     enableNotifications: true,
     enableFileUpload: true,
-    enableRealTimeUpdates: true,
-    enableAnalytics: false
+    maxFileSize: 10485760, // 10MB
+    allowedFileTypes: ['pdf', 'jpg', 'jpeg', 'png', 'webp']
   }
 };

@@ -1,2 +1,53 @@
-<app-loader *ngIf="showLoader"></app-loader>
-<router-outlet *ngIf="!showLoader" />
+<!-- Loan Screening Application -->
+
+<!-- Conditional Layout: Show MainLayout when authenticated, show auth pages when not -->
+@if (isAuthenticated()) {
+  <!-- Authenticated Users: Show Main Layout -->
+  <app-main-layout></app-main-layout>
+} @else {
+  <!-- Non-authenticated Users: Show Auth Pages -->
+  <div class="min-h-screen bg-gray-50">
+    <!-- Simple Header for Auth Pages -->
+    <header class="bg-white shadow-sm border-b">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center h-16">
+          <div class="flex items-center">
+            <div class="flex-shrink-0">
+              <div class="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
+                <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4zM18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z"></path>
+                </svg>
+              </div>
+            </div>
+            <div class="ml-3">
+              <h1 class="text-lg font-semibold text-gray-900">LoanScreen</h1>
+              <p class="text-xs text-gray-500">Loan Management System</p>
+            </div>
+          </div>
+          <div class="flex items-center space-x-4">
+            <span class="text-sm text-gray-600">Welcome to LoanScreen</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Auth Pages Content -->
+    <main class="flex-1">
+      <router-outlet></router-outlet>
+    </main>
+
+    <!-- Simple Footer for Auth Pages -->
+    <footer class="bg-white border-t border-gray-200 mt-auto">
+      <div class="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
+        <div class="text-center">
+          <p class="text-sm text-gray-500">
+            © 2024 LoanScreen. Secure Loan Management System.
+          </p>
+        </div>
+      </div>
+    </footer>
+  </div>
+}
+
+<!-- Toast Notifications -->
+<app-toast></app-toast>
