@@ -1,0 +1,184 @@
+<div class="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+  <div class="sm:mx-auto sm:w-full sm:max-w-md">
+    <div class="text-center">
+      <div class="mx-auto h-12 w-12 flex items-center justify-center rounded-full bg-primary-100">
+        <svg class="h-6 w-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+        </svg>
+      </div>
+      <h2 class="mt-6 text-3xl font-bold text-gray-900">
+        Verify your email
+      </h2>
+      <p class="mt-2 text-sm text-gray-600">
+        @if (email()) {
+          We've sent a verification code to
+          <span class="font-medium text-gray-900">{{ email() }}</span>
+        } @else {
+          Enter the verification code sent to your email
+        }
+      </p>
+    </div>
+  </div>
+
+  <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+    <div class="card">
+      <div class="card-body">
+        <!-- Verification Success Message -->
+        @if (verificationSuccess()) {
+          <div class="mb-4 p-4 rounded-md bg-green-50 border border-green-200">
+            <div class="flex">
+              <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+              </div>
+              <div class="ml-3">
+                <h3 class="text-sm font-medium text-green-800">
+                  Email Verified Successfully!
+                </h3>
+                <div class="mt-2 text-sm text-green-700">
+                  Your account has been verified. Redirecting to login...
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- Verification Error Alert -->
+        @if (verificationError()) {
+          <div class="mb-4 p-4 rounded-md bg-red-50 border border-red-200">
+            <div class="flex">
+              <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                </svg>
+              </div>
+              <div class="ml-3">
+                <h3 class="text-sm font-medium text-red-800">
+                  Verification Failed
+                </h3>
+                <div class="mt-2 text-sm text-red-700">
+                  {{ verificationError() }}
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- Verification Form -->
+        <form [formGroup]="verifyForm" (ngSubmit)="onSubmit()" class="space-y-6">
+          <!-- OTP Code Field -->
+          <div class="form-group">
+            <label for="otpCode" class="form-label">
+              Verification Code
+            </label>
+            <div class="mt-1">
+              <input
+                id="otpCode"
+                name="otpCode"
+                type="text"
+                formControlName="otpCode"
+                autocomplete="one-time-code"
+                placeholder="Enter 6-digit code"
+                maxlength="6"
+                (input)="onOtpInput($event)"
+                [class]="'form-control text-center text-lg tracking-widest' + (hasFieldError('otpCode') ? ' error' : '')"
+                style="letter-spacing: 0.5em;"
+              />
+            </div>
+            @if (getFieldError('otpCode')) {
+              <div class="form-error">
+                {{ getFieldError('otpCode') }}
+              </div>
+            }
+            <div class="mt-1 text-xs text-gray-500 text-center">
+              Enter the 6-digit code sent to your email
+            </div>
+          </div>
+
+          <!-- Submit Button -->
+          <div>
+            <button
+              type="submit"
+              [disabled]="isLoading() || verificationSuccess()"
+              class="btn btn-primary w-full flex justify-center items-center"
+            >
+              @if (isLoading()) {
+                <div class="spinner mr-2"></div>
+                Verifying...
+              } @else if (verificationSuccess()) {
+                <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                Verified
+              } @else {
+                Verify Email
+              }
+            </button>
+          </div>
+        </form>
+
+        <!-- Resend OTP Section -->
+        <div class="mt-6">
+          <div class="text-center">
+            <p class="text-sm text-gray-600">
+              Didn't receive the code?
+            </p>
+            <div class="mt-2">
+              @if (resendCooldown() > 0) {
+                <span class="text-sm text-gray-500">
+                  Resend available in {{ resendCooldown() }} seconds
+                </span>
+              } @else {
+                <button
+                  type="button"
+                  (click)="resendOtp()"
+                  [disabled]="isResendingOtp() || !email()"
+                  class="text-sm font-medium text-primary-600 hover:text-primary-500 disabled:text-gray-400 disabled:cursor-not-allowed"
+                >
+                  @if (isResendingOtp()) {
+                    <span class="flex items-center justify-center">
+                      <div class="spinner-sm mr-1"></div>
+                      Sending...
+                    </span>
+                  } @else {
+                    Resend verification code
+                  }
+                </button>
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- Navigation Links -->
+        <div class="mt-6">
+          <div class="relative">
+            <div class="absolute inset-0 flex items-center">
+              <div class="w-full border-t border-gray-300"></div>
+            </div>
+            <div class="relative flex justify-center text-sm">
+              <span class="px-2 bg-white text-gray-500">Need help?</span>
+            </div>
+          </div>
+
+          <div class="mt-6 grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              (click)="goBackToRegistration()"
+              class="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+            >
+              Back to Register
+            </button>
+            <button
+              type="button"
+              (click)="goToLogin()"
+              class="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+            >
+              Go to Login
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

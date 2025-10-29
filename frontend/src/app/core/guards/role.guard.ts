@@ -1,46 +1,54 @@
-import { Injectable } from '@angular/core';
-import { CanActivate, Router, ActivatedRouteSnapshot, RouterStateSnapshot } from '@angular/router';
+import { Injectable, inject } from '@angular/core';
+import { CanActivate, ActivatedRouteSnapshot, Router, UrlTree } from '@angular/router';
 import { Observable } from 'rxjs';
-import { AuthService } from '../services/auth.service';
-import { UserRole } from '../models/user.model';
+
+import { AuthService, User } from '../services/auth.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class RoleGuard implements CanActivate {
-  constructor(
-    private authService: AuthService,
-    private router: Router
-  ) {}
+  private authService = inject(AuthService);
+  private router = inject(Router);
 
-  canActivate(
-    route: ActivatedRouteSnapshot,
-    state: RouterStateSnapshot
-  ): Observable<boolean> | Promise<boolean> | boolean {
+  canActivate(route: ActivatedRouteSnapshot): Observable<boolean | UrlTree> | Promise<boolean | UrlTree> | boolean | UrlTree {
+    const currentUser = this.authService.currentUser();
     
-    // First check if user is authenticated
-    if (!this.authService.isAuthenticated()) {
-      this.router.navigate(['/auth/login']);
-      return false;
+    if (!currentUser) {
+      return this.router.createUrlTree(['/auth/login']);
     }
 
-    // Get required roles from route data
-    const requiredRoles = route.data['roles'] as UserRole[];
+    const requiredRoles = route.data['roles'] as string[];
     
     if (!requiredRoles || requiredRoles.length === 0) {
-      // No specific roles required, just need to be authenticated
       return true;
     }
 
     // Check if user has any of the required roles
-    const hasRequiredRole = this.authService.hasAnyRole(requiredRoles);
+    const hasRequiredRole = requiredRoles.includes(currentUser.role);
     
-    if (!hasRequiredRole) {
-      // User doesn't have required role, redirect to appropriate dashboard
-      this.authService.navigateToRoleDashboard();
-      return false;
+    if (hasRequiredRole) {
+      return true;
     }
 
-    return true;
+    // Redirect based on user's actual role
+    return this.redirectToUserDashboard(currentUser);
+  }
+
+  private redirectToUserDashboard(user: User): UrlTree {
+    switch (user.role) {
+      case 'APPLICANT':
+        return this.router.createUrlTree(['/applicant/dashboard']);
+      case 'LOAN_OFFICER':
+      case 'SENIOR_LOAN_OFFICER':
+        return this.router.createUrlTree(['/loan-officer/dashboard']);
+      case 'COMPLIANCE_OFFICER':
+      case 'SENIOR_COMPLIANCE_OFFICER':
+        return this.router.createUrlTree(['/compliance-officer/dashboard']);
+      case 'ADMIN':
+        return this.router.createUrlTree(['/admin/dashboard']);
+      default:
+        return this.router.createUrlTree(['/auth/login']);
+    }
   }
 }
