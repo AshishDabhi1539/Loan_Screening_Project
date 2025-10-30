@@ -91,6 +91,13 @@ export class AdminService {
   }
 
   /**
+   * Get applicant details by ID
+   */
+  getApplicantById(applicantId: string): Observable<UserResponse> {
+    return this.apiService.get<UserResponse>(`/admin/applicants/${applicantId}`);
+  }
+
+  /**
    * Create a new officer
    */
   createOfficer(request: OfficerCreationRequest): Observable<string> {

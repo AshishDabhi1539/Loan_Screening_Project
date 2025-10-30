@@ -3,14 +3,13 @@
 .toast-container {
   max-height: calc(100vh - 2rem);
   overflow-y: auto;
-  min-width: 320px;
-  max-width: 420px;
+  width: 280px;
+  max-width: calc(100vw - 2rem);
 }
 
 /* Ensure proper width and spacing */
 .toast-wrapper {
   width: 100%;
-  min-width: 320px;
 }
 
 /* Toast notification base styles */
@@ -107,35 +106,23 @@
 /* Responsive adjustments */
 @media (max-width: 640px) {
   .toast-container {
-    left: 1rem;
-    right: 1rem;
-    top: 1rem;
-    padding: 0.5rem;
-    min-width: auto;
-    max-width: none;
-  }
-  
-  .toast-wrapper {
-    min-width: auto;
-    width: 100%;
-  }
-  
-  .toast-notification {
-    margin-bottom: 0.75rem;
+    left: 0.5rem;
+    right: 0.5rem;
+    top: 0.5rem;
+    width: auto;
+    max-width: calc(100vw - 1rem);
   }
   
   .toast-content {
-    padding: 1rem;
+    padding: 0.5rem;
   }
   
   .toast-title {
-    font-size: 0.875rem;
-    line-height: 1.25rem;
+    font-size: 0.75rem;
   }
   
   .toast-message {
-    font-size: 0.8125rem;
-    line-height: 1.125rem;
+    font-size: 0.6875rem;
   }
 }
 

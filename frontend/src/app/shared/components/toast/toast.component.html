@@ -1,7 +1,8 @@
 <!-- Toast Container -->
 <div 
-  class="fixed top-4 right-4 z-[9999] p-4 space-y-4 pointer-events-none toast-container"
+  class="fixed top-4 right-4 z-[9999] p-2 space-y-2 pointer-events-none"
   [@listAnimation]="notifications().length"
+  style="width: 280px; max-width: calc(100vw - 2rem);"
 >
   @for (notification of notifications(); track notification.id) {
     <div 
@@ -9,13 +10,13 @@
       [class]="getNotificationClasses(notification.type)"
       class="pointer-events-auto toast-wrapper"
     >
-      <div class="p-5 toast-content">
-        <div class="flex items-start">
+      <div class="p-3 toast-content">
+        <div class="flex items-center">
           <div class="flex-shrink-0">
             <!-- Icon -->
             <svg 
               [class]="getIconClasses(notification.type)"
-              class="h-7 w-7 toast-icon" 
+              class="h-4 w-4 toast-icon" 
               fill="none" 
               viewBox="0 0 24 24" 
               stroke="currentColor"
@@ -29,32 +30,26 @@
             </svg>
           </div>
           
-          <div class="ml-4 flex-1 min-w-0">
+          <div class="ml-2 flex-1 min-w-0">
             <!-- Title -->
-            <p class="text-base font-semibold text-gray-900 leading-5 toast-title">
+            <p class="text-xs font-medium text-gray-900 leading-tight toast-title">
               {{ notification.title }}
             </p>
             
-            <!-- Message -->
-            <p class="mt-2 text-sm text-gray-600 leading-relaxed break-words toast-message">
+            <!-- Message (truncated if too long) -->
+            <p class="text-xs text-gray-600 leading-tight break-words toast-message truncate">
               {{ notification.message }}
-            </p>
-            
-            <!-- Timestamp -->
-            <p class="mt-2 text-xs text-gray-400 toast-timestamp">
-              {{ formatTime(notification.timestamp) }}
             </p>
           </div>
           
           <!-- Close Button -->
-          <div class="ml-3 flex-shrink-0 flex">
+          <div class="ml-1 flex-shrink-0">
             <button
               type="button"
               (click)="closeNotification(notification.id)"
-              class="bg-transparent rounded-full p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors duration-200 toast-close-btn"
+              class="text-gray-400 hover:text-gray-600 p-0.5 rounded toast-close-btn"
             >
-              <span class="sr-only">Close</span>
-              <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <svg class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
                 <path 
                   fill-rule="evenodd" 
                   d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" 

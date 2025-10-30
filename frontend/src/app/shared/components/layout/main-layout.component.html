@@ -82,7 +82,7 @@
   <!-- Main Content -->
   <div class="flex-1 flex flex-col overflow-hidden">
     <!-- Top Header -->
-    <header class="bg-white shadow-sm border-b border-gray-200">
+    <header class="sticky top-0 z-40 bg-white shadow-sm border-b border-gray-200">
       <div class="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
         <!-- Left side -->
         <div class="flex items-center">
@@ -98,18 +98,18 @@
 
           <!-- Breadcrumb or page title -->
           <div class="ml-4 lg:ml-0">
-            <h1 class="text-lg font-semibold text-gray-900">Dashboard</h1>
+            <h1 class="text-lg font-semibold text-gray-900">{{ pageTitle() }}</h1>
           </div>
         </div>
 
         <!-- Right side -->
         <div class="flex items-center space-x-4">
           <!-- Notifications -->
-          <button class="p-2 text-gray-400 hover:text-gray-500 hover:bg-gray-100 rounded-full">
+          <!-- <button class="p-2 text-gray-400 hover:text-gray-500 hover:bg-gray-100 rounded-full">
             <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5zM4.868 19.718c.064-.316.106-.648.126-.99C5.126 16.729 6.881 15 9.083 15h5.834c2.202 0 3.957 1.729 4.089 3.728.02.342.062.674.126.99M9 12a3 3 0 006 0v-1a3 3 0 00-6 0v1z" />
             </svg>
-          </button>
+          </button> -->
 
           <!-- User menu -->
           <div class="relative">
