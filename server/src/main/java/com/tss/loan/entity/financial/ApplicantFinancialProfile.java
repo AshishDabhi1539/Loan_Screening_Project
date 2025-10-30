@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import com.tss.loan.entity.enums.EmploymentType;
+import com.tss.loan.entity.enums.IncomeType;
 import com.tss.loan.entity.enums.VerificationStatus;
 import com.tss.loan.entity.loan.LoanApplication;
 
@@ -94,6 +95,10 @@ public class ApplicantFinancialProfile {
     private String companyAddress;
     
     // ========== INCOME DETAILS ==========
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private IncomeType incomeType;
+    
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal primaryMonthlyIncome; // From employment
     
@@ -104,6 +109,9 @@ public class ApplicantFinancialProfile {
     private BigDecimal otherIncome = BigDecimal.ZERO; // Investment, freelance, etc.
     
     // ========== EXPENSE DETAILS ==========
+    @Column(precision = 12, scale = 2)
+    private BigDecimal creditCardOutstanding = BigDecimal.ZERO;
+    
     @Column(precision = 12, scale = 2)
     private BigDecimal monthlyExpenses = BigDecimal.ZERO;
     
@@ -127,6 +135,9 @@ public class ApplicantFinancialProfile {
     private String branchName;
     
     // ========== BANK STATEMENT ANALYSIS ==========
+    @Column(precision = 15, scale = 2)
+    private BigDecimal currentBankBalance; // Current account balance
+    
     @Column(precision = 15, scale = 2)
     private BigDecimal avgMonthlyCredits; // Last 6 months average
     

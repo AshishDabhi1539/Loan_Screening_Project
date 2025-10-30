@@ -4,8 +4,12 @@
     
     <!-- Header -->
     <div class="text-center mb-8">
-      <h1 class="text-3xl font-bold text-gray-900">Complete Your Profile</h1>
-      <p class="mt-2 text-gray-600">Please provide your personal details to continue with loan application</p>
+      <h1 class="text-3xl font-bold text-gray-900">
+        {{ isEditMode() ? 'Edit Personal Details' : 'Complete Your Profile' }}
+      </h1>
+      <p class="mt-2 text-gray-600">
+        {{ isEditMode() ? 'Update your personal information' : 'Please provide your personal details to continue with loan application' }}
+      </p>
     </div>
 
     <!-- Progress Bar -->
@@ -131,12 +135,21 @@
                 <div>
                   <label for="dateOfBirth" class="block text-sm font-medium text-gray-700 mb-1">
                     Date of Birth <span class="text-red-500">*</span>
+                    @if (!isFieldEditable('dateOfBirth')) {
+                      <span class="ml-1 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
+                        <svg class="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                        Cannot be changed
+                      </span>
+                    }
                   </label>
                   <input
                     type="date"
                     id="dateOfBirth"
                     formControlName="dateOfBirth"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    [disabled]="!isFieldEditable('dateOfBirth')"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                     [class.border-red-500]="personalDetailsForm.get('dateOfBirth')?.invalid && personalDetailsForm.get('dateOfBirth')?.touched"
                   >
                   @if (getFieldError('dateOfBirth')) {
@@ -259,14 +272,23 @@
                 <div>
                   <label for="panNumber" class="block text-sm font-medium text-gray-700 mb-1">
                     PAN Number <span class="text-red-500">*</span>
+                    @if (!isFieldEditable('panNumber')) {
+                      <span class="ml-1 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
+                        <svg class="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                        Cannot be changed
+                      </span>
+                    }
                   </label>
                   <input
                     type="text"
                     id="panNumber"
                     formControlName="panNumber"
                     (input)="onPanInput($event)"
+                    [disabled]="!isFieldEditable('panNumber')"
                     maxlength="10"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                     [class.border-red-500]="personalDetailsForm.get('panNumber')?.invalid && personalDetailsForm.get('panNumber')?.touched"
                     placeholder="ABCDE1234F"
                     style="text-transform: uppercase;"
@@ -281,14 +303,23 @@
                 <div>
                   <label for="aadhaarNumber" class="block text-sm font-medium text-gray-700 mb-1">
                     Aadhaar Number <span class="text-red-500">*</span>
+                    @if (!isFieldEditable('aadhaarNumber')) {
+                      <span class="ml-1 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
+                        <svg class="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                        Cannot be changed
+                      </span>
+                    }
                   </label>
                   <input
                     type="text"
                     id="aadhaarNumber"
                     formControlName="aadhaarNumber"
                     (input)="onAadhaarInput($event)"
+                    [disabled]="!isFieldEditable('aadhaarNumber')"
                     maxlength="12"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                     [class.border-red-500]="personalDetailsForm.get('aadhaarNumber')?.invalid && personalDetailsForm.get('aadhaarNumber')?.touched"
                     placeholder="123456789012"
                   >
@@ -422,7 +453,7 @@
                     <!-- Address Line 1 -->
                     <div class="md:col-span-2">
                       <label for="permanentAddressLine1" class="block text-sm font-medium text-gray-700 mb-1">
-                        Address Line 1
+                        Address Line 1 <span class="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
@@ -450,7 +481,7 @@
                     <!-- City -->
                     <div>
                       <label for="permanentCity" class="block text-sm font-medium text-gray-700 mb-1">
-                        City
+                        City <span class="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
@@ -464,7 +495,7 @@
                     <!-- State -->
                     <div>
                       <label for="permanentState" class="block text-sm font-medium text-gray-700 mb-1">
-                        State
+                        State <span class="text-red-500">*</span>
                       </label>
                       <select
                         id="permanentState"
@@ -481,7 +512,7 @@
                     <!-- PIN Code -->
                     <div>
                       <label for="permanentPincode" class="block text-sm font-medium text-gray-700 mb-1">
-                        PIN Code
+                        PIN Code <span class="text-red-500">*</span>
                       </label>
                       <input
                         type="text"

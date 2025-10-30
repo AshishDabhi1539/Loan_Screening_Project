@@ -26,6 +26,14 @@ export class PersonalDetailsComponent implements OnInit {
   isLoading = signal(false);
   currentStep = signal(1);
   totalSteps = 3;
+  isEditMode = signal(false); // Track if user is editing existing data
+  
+  // Fields that cannot be edited in edit mode (as per real-world regulations)
+  readonly nonEditableFields = [
+    'panNumber',        // PAN cannot be changed
+    'aadhaarNumber',    // Aadhaar cannot be changed
+    'dateOfBirth'       // Date of birth cannot be changed
+  ];
 
   // Form validation patterns
   readonly patterns = {
@@ -120,6 +128,12 @@ export class PersonalDetailsComponent implements OnInit {
 
     // Watch for same as current address changes
     this.personalDetailsForm.get('sameAsCurrent')?.valueChanges.subscribe(sameAsCurrent => {
+      const permAddrLine1 = this.personalDetailsForm.get('permanentAddressLine1');
+      const permAddrLine2 = this.personalDetailsForm.get('permanentAddressLine2');
+      const permCity = this.personalDetailsForm.get('permanentCity');
+      const permState = this.personalDetailsForm.get('permanentState');
+      const permPincode = this.personalDetailsForm.get('permanentPincode');
+      
       if (sameAsCurrent) {
         // Copy current address to permanent address
         const currentAddressLine1 = this.personalDetailsForm.get('currentAddressLine1')?.value;
@@ -136,30 +150,35 @@ export class PersonalDetailsComponent implements OnInit {
           permanentPincode: currentPincode
         });
         
-        // Disable permanent address fields
-        this.personalDetailsForm.get('permanentAddressLine1')?.disable();
-        this.personalDetailsForm.get('permanentAddressLine2')?.disable();
-        this.personalDetailsForm.get('permanentCity')?.disable();
-        this.personalDetailsForm.get('permanentState')?.disable();
-        this.personalDetailsForm.get('permanentPincode')?.disable();
+        // Remove validators and clear errors when same as current
+        permAddrLine1?.clearValidators();
+        permCity?.clearValidators();
+        permState?.clearValidators();
+        permPincode?.clearValidators();
+        
+        permAddrLine1?.updateValueAndValidity();
+        permCity?.updateValueAndValidity();
+        permState?.updateValueAndValidity();
+        permPincode?.updateValueAndValidity();
       } else {
-        // Enable permanent address fields
-        this.personalDetailsForm.get('permanentAddressLine1')?.enable();
-        this.personalDetailsForm.get('permanentAddressLine2')?.enable();
-        this.personalDetailsForm.get('permanentCity')?.enable();
-        this.personalDetailsForm.get('permanentState')?.enable();
-        this.personalDetailsForm.get('permanentPincode')?.enable();
+        // Add validators when permanent address is different
+        permAddrLine1?.setValidators([Validators.required, Validators.maxLength(100)]);
+        permCity?.setValidators([Validators.required, Validators.maxLength(50)]);
+        permState?.setValidators([Validators.required]);
+        permPincode?.setValidators([Validators.required, Validators.pattern(this.patterns.pincode)]);
+        
+        permAddrLine1?.updateValueAndValidity();
+        permCity?.updateValueAndValidity();
+        permState?.updateValueAndValidity();
+        permPincode?.updateValueAndValidity();
         
         // Clear permanent address fields
         this.personalDetailsForm.patchValue({
           permanentAddressLine1: '',
-          permanentAddressLine2: [''],
-          permanentCity: [''],
-          permanentState: [''],
-          permanentPincode: [''],
-          alternatePhoneNumber: [''],
-          dependentsCount: [0, [Validators.min(0), Validators.max(20)]],
-          spouseName: ['']
+          permanentAddressLine2: '',
+          permanentCity: '',
+          permanentState: '',
+          permanentPincode: ''
         });
       }
     });
@@ -173,14 +192,30 @@ export class PersonalDetailsComponent implements OnInit {
     
     this.userProfileService.getPersonalDetails().subscribe({
       next: (details) => {
-        this.populateForm(details);
+        if (details && details.firstName) {
+          // Data exists - this is EDIT mode
+          this.isEditMode.set(true);
+          this.populateForm(details);
+          this.disableNonEditableFields();
+          console.log('✅ Edit mode - data loaded for editing');
+        }
         this.isLoading.set(false);
       },
       error: (error) => {
-        // No existing data, continue with empty form
-        console.log('No existing personal details found');
+        // No existing data - this is CREATE mode
+        this.isEditMode.set(false);
+        console.log('✅ Create mode - no existing data');
         this.isLoading.set(false);
       }
+    });
+  }
+  
+  /**
+   * Disable fields that cannot be edited in edit mode
+   */
+  private disableNonEditableFields(): void {
+    this.nonEditableFields.forEach(fieldName => {
+      this.personalDetailsForm.get(fieldName)?.disable();
     });
   }
 
@@ -233,13 +268,18 @@ export class PersonalDetailsComponent implements OnInit {
 
   /**
    * Check if current step is valid
+   * Note: Disabled fields are considered valid if they have a value
    */
   isStepValid(step: number): boolean {
     switch (step) {
       case 1: // Personal Information
+        // For disabled fields (edit mode), check if they have a value instead of valid status
+        const dobControl = this.personalDetailsForm.get('dateOfBirth');
+        const isDobValid = dobControl?.disabled ? !!dobControl?.value : dobControl?.valid;
+        
         const isBasicInfoValid = !!(this.personalDetailsForm.get('firstName')?.valid &&
                this.personalDetailsForm.get('lastName')?.valid &&
-               this.personalDetailsForm.get('dateOfBirth')?.valid &&
+               isDobValid &&
                this.personalDetailsForm.get('gender')?.valid &&
                this.personalDetailsForm.get('maritalStatus')?.valid &&
                this.personalDetailsForm.get('fatherName')?.valid &&
@@ -256,8 +296,14 @@ export class PersonalDetailsComponent implements OnInit {
         return isBasicInfoValid;
       
       case 2: // Identity Information
-        return !!(this.personalDetailsForm.get('panNumber')?.valid &&
-               this.personalDetailsForm.get('aadhaarNumber')?.valid);
+        // For disabled fields (edit mode), check if they have a value instead of valid status
+        const panControl = this.personalDetailsForm.get('panNumber');
+        const aadhaarControl = this.personalDetailsForm.get('aadhaarNumber');
+        
+        const isPanValid = panControl?.disabled ? !!panControl?.value : panControl?.valid;
+        const isAadhaarValid = aadhaarControl?.disabled ? !!aadhaarControl?.value : aadhaarControl?.valid;
+        
+        return !!(isPanValid && isAadhaarValid);
       
       case 3: // Address Information (both current and permanent)
         const currentAddressValid = !!(this.personalDetailsForm.get('currentAddressLine1')?.valid &&
@@ -294,7 +340,8 @@ export class PersonalDetailsComponent implements OnInit {
     }
 
     this.isLoading.set(true);
-    const formData = this.personalDetailsForm.value;
+    // Use getRawValue() to include disabled fields (PAN, Aadhaar, DOB in edit mode)
+    const formData = this.personalDetailsForm.getRawValue();
     
     const personalDetailsRequest = {
       firstName: formData.firstName.trim(),
@@ -331,10 +378,16 @@ export class PersonalDetailsComponent implements OnInit {
     this.userProfileService.savePersonalDetailsNew(personalDetailsRequest).subscribe({
       next: (response) => {
         this.isLoading.set(false);
-        this.notificationService.success('Success', 'Personal details saved successfully!');
         
-        // Navigate back to dashboard
-        this.router.navigate(['/applicant/dashboard']);
+        if (this.isEditMode()) {
+          // EDIT mode - return to profile
+          this.notificationService.success('Success', 'Profile updated successfully!');
+          this.router.navigate(['/applicant/profile']);
+        } else {
+          // CREATE mode - return to dashboard
+          this.notificationService.success('Success', 'Personal details saved successfully!');
+          this.router.navigate(['/applicant/dashboard']);
+        }
       },
       error: (error) => {
         this.isLoading.set(false);
@@ -363,52 +416,35 @@ export class PersonalDetailsComponent implements OnInit {
       }
     });
   }
-
+  
+  /**
+   * Check if a field is editable
+   */
+  isFieldEditable(fieldName: string): boolean {
+    if (!this.isEditMode()) return true; // All fields editable in create mode
+    return !this.nonEditableFields.includes(fieldName);
+  }
+  
   /**
    * Get field error message
    */
-  getFieldError(fieldName: string, parentGroup?: string): string {
+  getFieldError(fieldName: string): string {
     const control = this.personalDetailsForm.get(fieldName);
-    
     if (control?.errors && control.touched) {
-      if (control.errors['required']) return `${this.getFieldLabel(fieldName)} is required`;
-      if (control.errors['minlength']) return `${this.getFieldLabel(fieldName)} must be at least ${control.errors['minlength'].requiredLength} characters`;
-      if (control.errors['maxlength']) return `${this.getFieldLabel(fieldName)} must not exceed ${control.errors['maxlength'].requiredLength} characters`;
-      if (control.errors['pattern']) return `${this.getFieldLabel(fieldName)} format is invalid`;
+      if (control.errors['required']) return 'This field is required';
+      if (control.errors['minlength']) return `Minimum ${control.errors['minlength'].requiredLength} characters required`;
+      if (control.errors['maxlength']) return `Maximum ${control.errors['maxlength'].requiredLength} characters allowed`;
+      if (control.errors['pattern']) {
+        if (fieldName === 'panNumber') return 'Invalid PAN format (e.g., ABCDE1234F)';
+        if (fieldName === 'aadhaarNumber') return 'Invalid Aadhaar format (12 digits)';
+        if (fieldName === 'alternatePhoneNumber') return 'Invalid phone number (10 digits)';
+        if (fieldName.includes('Pincode')) return 'Invalid PIN code (6 digits)';
+        return 'Invalid format';
+      }
+      if (control.errors['min']) return `Minimum value is ${control.errors['min'].min}`;
+      if (control.errors['max']) return `Maximum value is ${control.errors['max'].max}`;
     }
     return '';
-  }
-
-  /**
-   * Get user-friendly field label
-   */
-  private getFieldLabel(fieldName: string): string {
-    const labels: { [key: string]: string } = {
-      firstName: 'First Name',
-      lastName: 'Last Name',
-      middleName: 'Middle Name',
-      fatherName: "Father's Name",
-      motherName: "Mother's Name",
-      dateOfBirth: 'Date of Birth',
-      gender: 'Gender',
-      maritalStatus: 'Marital Status',
-      panNumber: 'PAN Number',
-      aadhaarNumber: 'Aadhaar Number',
-      currentAddressLine1: 'Current Address Line 1',
-      currentAddressLine2: 'Current Address Line 2',
-      currentCity: 'Current City',
-      currentState: 'Current State',
-      currentPincode: 'Current PIN Code',
-      permanentAddressLine1: 'Permanent Address Line 1',
-      permanentAddressLine2: 'Permanent Address Line 2',
-      permanentCity: 'Permanent City',
-      permanentState: 'Permanent State',
-      permanentPincode: 'Permanent PIN Code',
-      alternatePhoneNumber: 'Alternate Phone Number',
-      dependentsCount: 'Number of Dependents',
-      spouseName: "Spouse's Name"
-    };
-    return labels[fieldName] || fieldName;
   }
 
   /**
