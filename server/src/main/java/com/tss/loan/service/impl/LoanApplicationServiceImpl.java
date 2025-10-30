@@ -11,6 +11,10 @@ import org.springframework.transaction.annotation.Transactional;
 import com.tss.loan.dto.request.ApplicantFinancialDetailsRequest;
 import com.tss.loan.dto.request.ApplicantPersonalDetailsRequest;
 import com.tss.loan.dto.request.LoanApplicationRequest;
+import com.tss.loan.dto.request.ProfessionalEmploymentDetailsRequest;
+import com.tss.loan.dto.request.FreelancerEmploymentDetailsRequest;
+import com.tss.loan.dto.request.RetiredEmploymentDetailsRequest;
+import com.tss.loan.dto.request.StudentEmploymentDetailsRequest;
 import com.tss.loan.dto.response.LoanApplicationResponse;
 import com.tss.loan.dto.response.LoanApplicationCreateResponse;
 import com.tss.loan.dto.response.PersonalDetailsUpdateResponse;
@@ -18,8 +22,13 @@ import com.tss.loan.dto.response.FinancialDetailsCreateResponse;
 import com.tss.loan.entity.loan.LoanApplication;
 import com.tss.loan.mapper.LoanApplicationMapper;
 import com.tss.loan.entity.financial.ApplicantFinancialProfile;
+import com.tss.loan.entity.financial.ProfessionalEmploymentDetails;
+import com.tss.loan.entity.financial.FreelancerEmploymentDetails;
+import com.tss.loan.entity.financial.RetiredEmploymentDetails;
+import com.tss.loan.entity.financial.StudentEmploymentDetails;
 import com.tss.loan.entity.applicant.ApplicantPersonalDetails;
 import com.tss.loan.entity.enums.ApplicationStatus;
+import com.tss.loan.entity.enums.EmploymentType;
 import com.tss.loan.entity.enums.NotificationType;
 import com.tss.loan.entity.enums.RiskLevel;
 import com.tss.loan.entity.user.User;
@@ -240,6 +249,7 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
     }
 
     @Override
+    @Transactional
     public LoanApplication submitLoanApplication(UUID applicationId, User user) {
         log.info("Submitting loan application: {}", applicationId);
         
@@ -313,6 +323,7 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public LoanApplicationResponse getLoanApplicationById(UUID applicationId) {
         LoanApplication entity = getLoanApplicationEntityById(applicationId);
         return loanApplicationMapper.toResponse(entity);
@@ -325,6 +336,7 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<LoanApplicationResponse> getLoanApplicationsByUser(User user) {
         List<LoanApplication> entities = loanApplicationRepository.findByApplicantIdOrderByCreatedAtDesc(user.getId());
         return entities.stream()
@@ -610,6 +622,9 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
         financialProfile.setUpdatedAt(LocalDateTime.now());
         ApplicantFinancialProfile savedProfile = financialProfileRepository.save(financialProfile);
         
+        // Handle employment type specific details
+        handleEmploymentTypeSpecificDetails(savedProfile, request);
+        
         // Update application timestamp
         application.setUpdatedAt(LocalDateTime.now());
         loanApplicationRepository.save(application);
@@ -688,7 +703,14 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
         financialProfile.setCurrentBankBalance(request.getBankAccountBalance());
         
         financialProfile.setUpdatedAt(LocalDateTime.now());
+        
+        // Clear existing employment type specific details before updating
+        clearEmploymentTypeSpecificDetails(financialProfile);
+        
         ApplicantFinancialProfile savedProfile = financialProfileRepository.save(financialProfile);
+        
+        // Handle new employment type specific details
+        handleEmploymentTypeSpecificDetails(savedProfile, request);
         
         // Update application timestamp
         application.setUpdatedAt(LocalDateTime.now());
@@ -848,5 +870,176 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
             case EMPLOYMENT_CERTIFICATE: return "Upload employment certificate or offer letter";
             default: return "Upload clear, recent document";
         }
+    }
+    
+    /**
+     * Clear existing employment type specific details
+     * Called when updating to prevent orphaned records
+     */
+    private void clearEmploymentTypeSpecificDetails(ApplicantFinancialProfile financialProfile) {
+        financialProfile.setProfessionalDetails(null);
+        financialProfile.setFreelancerDetails(null);
+        financialProfile.setRetiredDetails(null);
+        financialProfile.setStudentDetails(null);
+    }
+    
+    /**
+     * Handle employment type specific details
+     * Creates and saves type-specific employment details based on employment type
+     */
+    private void handleEmploymentTypeSpecificDetails(ApplicantFinancialProfile financialProfile, 
+                                                     ApplicantFinancialDetailsRequest request) {
+        EmploymentType empType = request.getEmploymentType();
+        
+        if (empType == null) {
+            return; // No type-specific details needed
+        }
+        
+        switch (empType) {
+            case PROFESSIONAL:
+                if (request.getProfessionalDetails() != null) {
+                    ProfessionalEmploymentDetails profDetails = mapToProfessionalDetails(
+                        request.getProfessionalDetails(), financialProfile);
+                    financialProfile.setProfessionalDetails(profDetails);
+                }
+                break;
+                
+            case FREELANCER:
+                if (request.getFreelancerDetails() != null) {
+                    FreelancerEmploymentDetails freelanceDetails = mapToFreelancerDetails(
+                        request.getFreelancerDetails(), financialProfile);
+                    financialProfile.setFreelancerDetails(freelanceDetails);
+                }
+                break;
+                
+            case RETIRED:
+                if (request.getRetiredDetails() != null) {
+                    RetiredEmploymentDetails retiredDetails = mapToRetiredDetails(
+                        request.getRetiredDetails(), financialProfile);
+                    financialProfile.setRetiredDetails(retiredDetails);
+                }
+                break;
+                
+            case STUDENT:
+                if (request.getStudentDetails() != null) {
+                    StudentEmploymentDetails studentDetails = mapToStudentDetails(
+                        request.getStudentDetails(), financialProfile);
+                    financialProfile.setStudentDetails(studentDetails);
+                }
+                break;
+                
+            default:
+                // SALARIED, SELF_EMPLOYED, BUSINESS_OWNER, UNEMPLOYED don't need additional details
+                break;
+        }
+    }
+    
+    /**
+     * Map ProfessionalEmploymentDetailsRequest to entity
+     */
+    private ProfessionalEmploymentDetails mapToProfessionalDetails(
+            ProfessionalEmploymentDetailsRequest request, ApplicantFinancialProfile profile) {
+        ProfessionalEmploymentDetails details = new ProfessionalEmploymentDetails();
+        details.setFinancialProfile(profile);
+        details.setProfessionType(request.getProfessionType());
+        details.setRegistrationNumber(request.getRegistrationNumber());
+        details.setRegistrationAuthority(request.getRegistrationAuthority());
+        details.setProfessionalQualification(request.getProfessionalQualification());
+        details.setUniversity(request.getUniversity());
+        details.setYearOfQualification(request.getYearOfQualification());
+        details.setPracticeArea(request.getPracticeArea());
+        details.setClinicOrFirmName(request.getClinicOrFirmName());
+        details.setClinicOrFirmAddress(request.getClinicOrFirmAddress());
+        details.setAdditionalCertifications(request.getAdditionalCertifications());
+        return details;
+    }
+    
+    /**
+     * Map FreelancerEmploymentDetailsRequest to entity
+     */
+    private FreelancerEmploymentDetails mapToFreelancerDetails(
+            FreelancerEmploymentDetailsRequest request, ApplicantFinancialProfile profile) {
+        FreelancerEmploymentDetails details = new FreelancerEmploymentDetails();
+        details.setFinancialProfile(profile);
+        details.setFreelanceType(request.getFreelanceType());
+        details.setFreelanceSince(request.getFreelanceSince());
+        details.setPrimaryClients(request.getPrimaryClients());
+        details.setAverageMonthlyIncome(request.getAverageMonthlyIncome());
+        details.setPortfolioUrl(request.getPortfolioUrl());
+        details.setFreelancePlatform(request.getFreelancePlatform());
+        details.setSkillSet(request.getSkillSet());
+        details.setProjectTypes(request.getProjectTypes());
+        details.setActiveClientsCount(request.getActiveClientsCount());
+        details.setPaymentMethods(request.getPaymentMethods());
+        return details;
+    }
+    
+    /**
+     * Map RetiredEmploymentDetailsRequest to entity
+     */
+    private RetiredEmploymentDetails mapToRetiredDetails(
+            RetiredEmploymentDetailsRequest request, ApplicantFinancialProfile profile) {
+        RetiredEmploymentDetails details = new RetiredEmploymentDetails();
+        details.setFinancialProfile(profile);
+        details.setPensionType(request.getPensionType());
+        details.setPensionProvider(request.getPensionProvider());
+        details.setPpoNumber(request.getPpoNumber());
+        details.setMonthlyPensionAmount(request.getMonthlyPensionAmount());
+        details.setRetirementDate(request.getRetirementDate());
+        details.setPreviousEmployer(request.getPreviousEmployer());
+        details.setPreviousDesignation(request.getPreviousDesignation());
+        details.setYearsOfService(request.getYearsOfService());
+        details.setPensionAccountNumber(request.getPensionAccountNumber());
+        details.setPensionBankName(request.getPensionBankName());
+        details.setAdditionalRetirementBenefits(request.getAdditionalRetirementBenefits());
+        details.setGratuityAmount(request.getGratuityAmount());
+        return details;
+    }
+    
+    /**
+     * Map StudentEmploymentDetailsRequest to entity
+     */
+    private StudentEmploymentDetails mapToStudentDetails(
+            StudentEmploymentDetailsRequest request, ApplicantFinancialProfile profile) {
+        StudentEmploymentDetails details = new StudentEmploymentDetails();
+        details.setFinancialProfile(profile);
+        
+        // Education details
+        details.setInstitutionName(request.getInstitutionName());
+        details.setInstitutionAddress(request.getInstitutionAddress());
+        details.setInstitutionCity(request.getInstitutionCity());
+        details.setInstitutionState(request.getInstitutionState());
+        details.setCourseName(request.getCourseName());
+        details.setSpecialization(request.getSpecialization());
+        details.setYearOfStudy(request.getYearOfStudy());
+        details.setTotalCourseDuration(request.getTotalCourseDuration());
+        details.setExpectedGraduationYear(request.getExpectedGraduationYear());
+        details.setStudentIdNumber(request.getStudentIdNumber());
+        details.setCurrentCGPA(request.getCurrentCGPA());
+        
+        // Guardian details
+        details.setGuardianName(request.getGuardianName());
+        details.setGuardianRelation(request.getGuardianRelation());
+        details.setGuardianOccupation(request.getGuardianOccupation());
+        details.setGuardianEmployer(request.getGuardianEmployer());
+        details.setGuardianDesignation(request.getGuardianDesignation());
+        details.setGuardianMonthlyIncome(request.getGuardianMonthlyIncome());
+        details.setGuardianAnnualIncome(request.getGuardianAnnualIncome());
+        details.setGuardianContact(request.getGuardianContact());
+        details.setGuardianEmail(request.getGuardianEmail());
+        details.setGuardianAddress(request.getGuardianAddress());
+        details.setGuardianCity(request.getGuardianCity());
+        details.setGuardianState(request.getGuardianState());
+        details.setGuardianPincode(request.getGuardianPincode());
+        details.setGuardianPanNumber(request.getGuardianPanNumber());
+        details.setGuardianAadharNumber(request.getGuardianAadharNumber());
+        
+        // Financial support
+        details.setScholarshipAmount(request.getScholarshipAmount());
+        details.setScholarshipProvider(request.getScholarshipProvider());
+        details.setFamilySavingsForEducation(request.getFamilySavingsForEducation());
+        details.setAdditionalFinancialSupport(request.getAdditionalFinancialSupport());
+        
+        return details;
     }
 }

@@ -168,10 +168,10 @@
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <!-- New Application -->
         @if (canApplyForLoan()) {
-          <a
-            routerLink="/applicant/apply-loan"
+          <button
+            type="button"
             (click)="startNewApplication()"
-            class="group relative bg-gradient-to-r from-primary-500 to-primary-600 rounded-lg p-6 text-white hover:from-primary-600 hover:to-primary-700 transition-all duration-200 transform hover:scale-105"
+            class="group relative bg-gradient-to-r from-primary-500 to-primary-600 rounded-lg p-6 text-white hover:from-primary-600 hover:to-primary-700 transition-all duration-200 transform hover:scale-105 w-full text-left cursor-pointer"
           >
             <div class="flex items-center">
               <svg class="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -182,7 +182,7 @@
                 <p class="text-primary-100">Apply for a new loan</p>
               </div>
             </div>
-          </a>
+          </button>
         } @else {
           <button
             (click)="startNewApplication()"
@@ -291,12 +291,13 @@
         <h3 class="mt-4 text-lg font-medium text-gray-900">No applications yet</h3>
         <p class="mt-2 text-gray-500">Get started by creating your first loan application.</p>
         <div class="mt-6">
-          <a
-            routerLink="/applicant/apply-loan"
+          <button
+            type="button"
+            (click)="startNewApplication()"
             class="btn btn-primary"
           >
             Apply for Loan
-          </a>
+          </button>
         </div>
       </div>
     } @else {
@@ -353,9 +354,12 @@
                 }
                 <button
                   (click)="viewApplication(application.id)"
-                  class="text-primary-600 hover:text-primary-700 font-medium text-sm"
+                  class="px-4 py-2 rounded-md font-medium text-sm transition-colors"
+                  [ngClass]="application.status === 'DRAFT' ? 
+                    'bg-primary-600 text-white hover:bg-primary-700' : 
+                    'text-primary-600 hover:text-primary-700 hover:bg-primary-50'"
                 >
-                  View Details
+                  {{ getViewButtonText(application) }}
                 </button>
               </div>
             </div>

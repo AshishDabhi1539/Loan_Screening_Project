@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angula
 import { Router, ActivatedRoute } from '@angular/router';
 import { LoanApplicationService } from '../../../../core/services/loan-application.service';
 import { NotificationService } from '../../../../core/services/notification.service';
+import { LoanEligibilityService, EmploymentTypeEligibility } from '../../../../core/services/loan-eligibility.service';
 
 // Employment & Financial Details Request Interface (matching backend)
 export interface EmploymentFinancialRequest {
@@ -46,10 +47,12 @@ export interface EmploymentFinancialRequest {
   branchName: string;
 }
 
+import { FoirCalculatorComponent } from '../../../../shared/components/foir-calculator/foir-calculator.component';
+
 @Component({
   selector: 'app-employment-details',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, FoirCalculatorComponent],
   templateUrl: './employment-details.component.html',
   styleUrl: './employment-details.component.css'
 })
@@ -59,6 +62,7 @@ export class EmploymentDetailsComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private loanApplicationService = inject(LoanApplicationService);
   private notificationService = inject(NotificationService);
+  private eligibilityService = inject(LoanEligibilityService);
 
   employmentForm!: FormGroup;
   isLoading = signal(false);
@@ -70,34 +74,52 @@ export class EmploymentDetailsComponent implements OnInit {
   loanType = signal<string | null>(null);
   loanAmount = signal<number>(0);
   selectedEmploymentType = signal<string | null>(null);
+  
+  // Employment type eligibility from backend
+  employmentEligibility = signal<EmploymentTypeEligibility[]>([]);
+  isLoadingEligibility = signal(false);
+  minimumIncome = signal<number>(25000);
 
-  // Employment types (3 main types covering 95% of users)
-  employmentTypes = [
-    { 
-      value: 'SALARIED', 
-      label: 'Salaried Employee', 
-      icon: '💼',
-      description: 'Working for a company or organization',
-      minIncome: 25000,
-      recommended: true
-    },
-    { 
-      value: 'SELF_EMPLOYED', 
-      label: 'Self Employed', 
-      icon: '📊',
-      description: 'Running own practice or consultancy',
-      minIncome: 30000,
-      recommended: true
-    },
-    { 
-      value: 'BUSINESS_OWNER', 
-      label: 'Business Owner', 
-      icon: '🏢',
-      description: 'Registered company or firm owner',
-      minIncome: 50000,
-      recommended: true
-    }
+  // All employment types with display metadata
+  allEmploymentTypes = [
+    { value: 'SALARIED', label: 'Salaried Employee', icon: '💼', description: 'Working for a company or organization' },
+    { value: 'SELF_EMPLOYED', label: 'Self Employed', icon: '📊', description: 'Running own practice or consultancy' },
+    { value: 'BUSINESS_OWNER', label: 'Business Owner', icon: '🏢', description: 'Registered company or firm owner' },
+    { value: 'PROFESSIONAL', label: 'Professional', icon: '⚕️', description: 'Doctor, Lawyer, CA, Architect' },
+    { value: 'FREELANCER', label: 'Freelancer', icon: '💻', description: 'Independent contractor or consultant' },
+    { value: 'RETIRED', label: 'Retired', icon: '🏖️', description: 'Receiving pension or retirement income' },
+    { value: 'STUDENT', label: 'Student', icon: '🎓', description: 'Currently pursuing education' },
+    { value: 'UNEMPLOYED', label: 'Unemployed', icon: '⚠️', description: 'Not currently employed' }
   ];
+  
+  // Computed: Show ONLY eligible employment types
+  employmentTypes = computed(() => {
+    const eligibility = this.employmentEligibility();
+    console.log('Computing employment types. Eligibility data:', eligibility);
+    
+    // If eligibility data is not loaded yet, show all types with loading state
+    if (eligibility.length === 0) {
+      return this.allEmploymentTypes.map(empType => ({
+        ...empType,
+        eligible: false,
+        reason: 'Loading...',
+        minimumDurationMonths: undefined
+      }));
+    }
+    
+    // Filter and show ONLY eligible types
+    return this.allEmploymentTypes
+      .map(empType => {
+        const eligibilityInfo = eligibility.find(e => e.employmentType === empType.value);
+        return {
+          ...empType,
+          eligible: eligibilityInfo?.eligible ?? false,
+          reason: eligibilityInfo?.reason ?? 'Not eligible for this loan type',
+          minimumDurationMonths: eligibilityInfo?.minimumDurationMonths
+        };
+      })
+      .filter(empType => empType.eligible); // ✨ Show only eligible types
+  });
 
   // Income types
   incomeTypes = [
@@ -125,11 +147,27 @@ export class EmploymentDetailsComponent implements OnInit {
   ];
 
   ngOnInit(): void {
-    // Get application ID from route
+    // Get application ID and loan type from route
     this.route.queryParams.subscribe(params => {
+      console.log('🔍 Query params received:', params);
       const appId = params['applicationId'];
+      const loanTypeParam = params['loanType'];
+      
+      console.log('📋 Application ID:', appId);
+      console.log('💼 Loan Type from params:', loanTypeParam);
+      
       if (appId) {
         this.applicationId.set(appId);
+        
+        // Set loan type if provided
+        if (loanTypeParam) {
+          console.log('✅ Loan type found, loading eligibility for:', loanTypeParam);
+          this.loanType.set(loanTypeParam);
+          this.loadEmploymentEligibility(loanTypeParam);
+        } else {
+          console.warn('⚠️ No loanType in query params');
+        }
+        
         this.loadApplicationDetails(appId);
       } else {
         this.notificationService.error('Error', 'Application ID not found');
@@ -141,16 +179,57 @@ export class EmploymentDetailsComponent implements OnInit {
   }
 
   /**
+   * Load employment eligibility based on loan type
+   */
+  private loadEmploymentEligibility(loanType: string): void {
+    console.log('🚀 loadEmploymentEligibility called with loanType:', loanType);
+    this.isLoadingEligibility.set(true);
+    
+    console.log('📡 Making API call to fetch eligibility...');
+    this.eligibilityService.getEligibleEmploymentTypes(loanType).subscribe({
+      next: (response) => {
+        console.log('Raw API response:', response);
+        console.log('Employment types from response:', response.employmentTypes);
+        
+        this.employmentEligibility.set(response.employmentTypes);
+        this.minimumIncome.set(response.minimumIncome);
+        this.isLoadingEligibility.set(false);
+        
+        console.log('Signal value after set:', this.employmentEligibility());
+        console.log('Minimum income:', response.minimumIncome);
+      },
+      error: (error) => {
+        console.error('Failed to load employment eligibility:', error);
+        this.isLoadingEligibility.set(false);
+        // Don't show error to user, fall back to showing all types
+        this.notificationService.warning('Note', 'Could not load employment type filters. Showing all options.');
+      }
+    });
+  }
+
+  /**
    * Load application details
    */
   private loadApplicationDetails(applicationId: string): void {
+    console.log('📡 Loading application details for ID:', applicationId);
+    
     this.loanApplicationService.getApplicationById(applicationId).subscribe({
       next: (application) => {
-        this.loanType.set(application.loanType);
+        console.log('✅ Application loaded:', application);
+        const appLoanType = application.loanType;
+        console.log('💼 Loan type from application:', appLoanType);
+        
+        this.loanType.set(appLoanType);
         this.loanAmount.set(application.requestedAmount);
+        
+        // Always load eligibility when we get the loan type from backend
+        if (appLoanType) {
+          console.log('🚀 Loading eligibility for loan type:', appLoanType);
+          this.loadEmploymentEligibility(appLoanType);
+        }
       },
       error: (error) => {
-        console.error('Failed to load application:', error);
+        console.error('❌ Failed to load application:', error);
         this.notificationService.error('Error', 'Failed to load application details');
       }
     });
@@ -195,7 +274,67 @@ export class EmploymentDetailsComponent implements OnInit {
       // Step 5: Financial Obligations
       monthlyExpenses: ['', [Validators.required, Validators.min(0)]],
       existingLoanEmi: [0],
-      creditCardOutstanding: [0]
+      creditCardOutstanding: [0],
+      
+      // PROFESSIONAL specific fields
+      professionType: [''],
+      registrationNumber: [''],
+      registrationAuthority: [''],
+      professionalQualification: [''],
+      university: [''],
+      yearOfQualification: [''],
+      practiceArea: [''],
+      clinicOrFirmName: [''],
+      clinicOrFirmAddress: [''],
+      additionalCertifications: [''],
+      
+      // FREELANCER specific fields
+      freelanceType: [''],
+      freelanceSince: [''],
+      primaryClients: [''],
+      averageMonthlyIncome: [''],
+      portfolioUrl: [''],
+      freelancePlatform: [''],
+      skillSet: [''],
+      projectTypes: [''],
+      activeClientsCount: [''],
+      paymentMethods: [''],
+      
+      // RETIRED specific fields
+      pensionType: [''],
+      pensionProvider: [''],
+      ppoNumber: [''],
+      monthlyPensionAmount: [''],
+      retirementDate: [''],
+      previousEmployer: [''],
+      previousDesignation: [''],
+      yearsOfService: [''],
+      pensionAccountNumber: [''],
+      pensionBankName: [''],
+      additionalRetirementBenefits: [''],
+      gratuityAmount: [''],
+      
+      // STUDENT specific fields
+      institutionName: [''],
+      courseName: [''],
+      specialization: [''],
+      yearOfStudy: [''],
+      totalCourseDuration: [''],
+      expectedGraduationYear: [''],
+      guardianName: [''],
+      guardianRelation: [''],
+      guardianOccupation: [''],
+      guardianEmployer: [''],
+      guardianMonthlyIncome: [''],
+      guardianContact: [''],
+      guardianEmail: [''],
+      guardianPanNumber: [''],
+      
+      // UNEMPLOYED specific fields
+      unemploymentReason: [''],
+      lastEmploymentDate: [''],
+      currentIncomeSource: [''],
+      assetsOwned: ['']
     });
 
     // Listen for employment type changes
@@ -221,25 +360,105 @@ export class EmploymentDetailsComponent implements OnInit {
     });
 
     // Employment type specific validators
-    if (employmentType === 'SALARIED') {
-      this.employmentForm.get('workPhone')?.setValidators([Validators.pattern(/^[0-9]{10}$/)]);
-      this.employmentForm.get('workEmail')?.setValidators([Validators.email]);
-      this.employmentForm.get('incomeType')?.setValue('SALARY');
-      // Don't disable - will use readonly in HTML
-      
-      // Update validators
-      this.employmentForm.get('workPhone')?.updateValueAndValidity();
-      this.employmentForm.get('workEmail')?.updateValueAndValidity();
-    } else if (employmentType === 'SELF_EMPLOYED' || employmentType === 'BUSINESS_OWNER') {
-      // For business types, workPhone is optional but if filled must be valid
-      this.employmentForm.get('workPhone')?.setValidators([Validators.pattern(/^[0-9]{10}$/)]);
-      this.employmentForm.get('workEmail')?.setValidators([Validators.email]);
-      this.employmentForm.get('incomeType')?.setValue('BUSINESS');
-      // Don't disable - will use readonly in HTML
-      
-      // Update validators
-      this.employmentForm.get('workPhone')?.updateValueAndValidity();
-      this.employmentForm.get('workEmail')?.updateValueAndValidity();
+    switch (employmentType) {
+      case 'SALARIED':
+        this.employmentForm.get('workPhone')?.setValidators([Validators.pattern(/^[0-9]{10}$/)]);
+        this.employmentForm.get('workEmail')?.setValidators([Validators.email]);
+        this.employmentForm.get('incomeType')?.setValue('SALARY');
+        this.employmentForm.get('workPhone')?.updateValueAndValidity();
+        this.employmentForm.get('workEmail')?.updateValueAndValidity();
+        break;
+        
+      case 'SELF_EMPLOYED':
+      case 'BUSINESS_OWNER':
+        this.employmentForm.get('workPhone')?.setValidators([Validators.pattern(/^[0-9]{10}$/)]);
+        this.employmentForm.get('workEmail')?.setValidators([Validators.email]);
+        this.employmentForm.get('incomeType')?.setValue('BUSINESS');
+        this.employmentForm.get('workPhone')?.updateValueAndValidity();
+        this.employmentForm.get('workEmail')?.updateValueAndValidity();
+        break;
+        
+      case 'PROFESSIONAL':
+        // Professional specific required fields
+        this.employmentForm.get('professionType')?.setValidators([Validators.required]);
+        this.employmentForm.get('registrationNumber')?.setValidators([Validators.required]);
+        this.employmentForm.get('registrationAuthority')?.setValidators([Validators.required]);
+        this.employmentForm.get('professionalQualification')?.setValidators([Validators.required]);
+        this.employmentForm.get('incomeType')?.setValue('BUSINESS');
+        
+        this.employmentForm.get('professionType')?.updateValueAndValidity();
+        this.employmentForm.get('registrationNumber')?.updateValueAndValidity();
+        this.employmentForm.get('registrationAuthority')?.updateValueAndValidity();
+        this.employmentForm.get('professionalQualification')?.updateValueAndValidity();
+        break;
+        
+      case 'FREELANCER':
+        // Freelancer specific required fields
+        this.employmentForm.get('freelanceType')?.setValidators([Validators.required]);
+        this.employmentForm.get('freelanceSince')?.setValidators([Validators.required]);
+        this.employmentForm.get('primaryClients')?.setValidators([Validators.required]);
+        this.employmentForm.get('incomeType')?.setValue('FREELANCE');
+        
+        this.employmentForm.get('freelanceType')?.updateValueAndValidity();
+        this.employmentForm.get('freelanceSince')?.updateValueAndValidity();
+        this.employmentForm.get('primaryClients')?.updateValueAndValidity();
+        break;
+        
+      case 'RETIRED':
+        // Retired specific required fields
+        this.employmentForm.get('pensionType')?.setValidators([Validators.required]);
+        this.employmentForm.get('pensionProvider')?.setValidators([Validators.required]);
+        this.employmentForm.get('monthlyPensionAmount')?.setValidators([Validators.required, Validators.min(0)]);
+        this.employmentForm.get('retirementDate')?.setValidators([Validators.required]);
+        this.employmentForm.get('previousEmployer')?.setValidators([Validators.required]);
+        this.employmentForm.get('previousDesignation')?.setValidators([Validators.required]);
+        this.employmentForm.get('incomeType')?.setValue('OTHER');
+        
+        this.employmentForm.get('pensionType')?.updateValueAndValidity();
+        this.employmentForm.get('pensionProvider')?.updateValueAndValidity();
+        this.employmentForm.get('monthlyPensionAmount')?.updateValueAndValidity();
+        this.employmentForm.get('retirementDate')?.updateValueAndValidity();
+        this.employmentForm.get('previousEmployer')?.updateValueAndValidity();
+        this.employmentForm.get('previousDesignation')?.updateValueAndValidity();
+        break;
+        
+      case 'STUDENT':
+        // Student specific required fields
+        this.employmentForm.get('institutionName')?.setValidators([Validators.required]);
+        this.employmentForm.get('courseName')?.setValidators([Validators.required]);
+        this.employmentForm.get('yearOfStudy')?.setValidators([Validators.required]);
+        this.employmentForm.get('totalCourseDuration')?.setValidators([Validators.required]);
+        this.employmentForm.get('expectedGraduationYear')?.setValidators([Validators.required, Validators.min(2024), Validators.max(2035)]);
+        this.employmentForm.get('guardianName')?.setValidators([Validators.required]);
+        this.employmentForm.get('guardianRelation')?.setValidators([Validators.required]);
+        this.employmentForm.get('guardianOccupation')?.setValidators([Validators.required]);
+        this.employmentForm.get('guardianEmployer')?.setValidators([Validators.required]);
+        this.employmentForm.get('guardianMonthlyIncome')?.setValidators([Validators.required, Validators.min(30000)]);
+        this.employmentForm.get('guardianContact')?.setValidators([Validators.required, Validators.pattern(/^[0-9]{10}$/)]);
+        this.employmentForm.get('incomeType')?.setValue('OTHER');
+        
+        this.employmentForm.get('institutionName')?.updateValueAndValidity();
+        this.employmentForm.get('courseName')?.updateValueAndValidity();
+        this.employmentForm.get('yearOfStudy')?.updateValueAndValidity();
+        this.employmentForm.get('totalCourseDuration')?.updateValueAndValidity();
+        this.employmentForm.get('expectedGraduationYear')?.updateValueAndValidity();
+        this.employmentForm.get('guardianName')?.updateValueAndValidity();
+        this.employmentForm.get('guardianRelation')?.updateValueAndValidity();
+        this.employmentForm.get('guardianOccupation')?.updateValueAndValidity();
+        this.employmentForm.get('guardianEmployer')?.updateValueAndValidity();
+        this.employmentForm.get('guardianMonthlyIncome')?.updateValueAndValidity();
+        this.employmentForm.get('guardianContact')?.updateValueAndValidity();
+        break;
+        
+      case 'UNEMPLOYED':
+        // Unemployed specific required fields
+        this.employmentForm.get('unemploymentReason')?.setValidators([Validators.required]);
+        this.employmentForm.get('currentIncomeSource')?.setValidators([Validators.required]);
+        this.employmentForm.get('incomeType')?.setValue('OTHER');
+        
+        this.employmentForm.get('unemploymentReason')?.updateValueAndValidity();
+        this.employmentForm.get('currentIncomeSource')?.updateValueAndValidity();
+        break;
     }
   }
 
@@ -261,6 +480,19 @@ export class EmploymentDetailsComponent implements OnInit {
   isIncomeTypeReadonly(): boolean {
     const employmentType = this.employmentForm.get('employmentType')?.value;
     return employmentType === 'SALARIED' || employmentType === 'SELF_EMPLOYED' || employmentType === 'BUSINESS_OWNER';
+  }
+
+  /**
+   * Select employment type and move to next step
+   */
+  selectEmploymentType(type: string): void {
+    console.log('Selected employment type:', type);
+    this.selectedEmploymentType.set(type);
+    this.employmentForm.patchValue({ employmentType: type });
+    this.updateValidators(type);
+    
+    // Move to next step
+    this.nextStep();
   }
 
   /**
@@ -370,12 +602,39 @@ export class EmploymentDetailsComponent implements OnInit {
   formatCurrency(value: number): string {
     return '₹' + value.toLocaleString('en-IN');
   }
+  
+  /**
+   * Calculate estimated EMI based on loan amount
+   * Simple formula: (P x R x (1+R)^N) / ((1+R)^N - 1)
+   */
+  calculateEstimatedEMI(): number {
+    const loanAmount = this.loanAmount();
+    if (!loanAmount || loanAmount <= 0) {
+      return 0;
+    }
+    
+    // Assume 12% annual interest and 36 months (3 years) tenure as default
+    const monthlyRate = 0.12 / 12; // 1% per month
+    const tenure = 36; // months
+    
+    const emi = (loanAmount * monthlyRate * Math.pow(1 + monthlyRate, tenure)) / 
+                (Math.pow(1 + monthlyRate, tenure) - 1);
+    
+    return Math.round(emi);
+  }
 
   /**
    * Get progress percentage
    */
   getProgressPercentage(): number {
     return Math.round((this.currentStep() / this.totalSteps) * 100);
+  }
+  
+  /**
+   * Get current year for max date validation
+   */
+  getCurrentYear(): number {
+    return new Date().getFullYear();
   }
 
   /**
@@ -431,10 +690,15 @@ export class EmploymentDetailsComponent implements OnInit {
     this.loanApplicationService.updateFinancialDetails(appId, request).subscribe({
       next: (response) => {
         this.isLoading.set(false);
-        this.notificationService.success('Success', 'Financial details saved successfully!');
+        this.notificationService.success('Success', 'Financial details saved successfully! Proceeding to document upload...');
         
-        // Navigate to dashboard or documents upload
-        this.router.navigate(['/applicant/dashboard']);
+        // Navigate to document upload with application ID and employment type
+        this.router.navigate(['/applicant/document-upload'], {
+          queryParams: {
+            applicationId: appId,
+            employmentType: formData.employmentType
+          }
+        });
       },
       error: (error) => {
         this.isLoading.set(false);

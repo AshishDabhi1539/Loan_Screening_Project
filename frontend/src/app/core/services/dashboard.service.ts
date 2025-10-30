@@ -22,6 +22,11 @@ export interface LoanApplicationSummary {
   progress: number;
   applicantName?: string;
   assignedOfficerName?: string;
+  // Progress tracking
+  hasPersonalDetails?: boolean;
+  hasFinancialProfile?: boolean;
+  documentsCount?: number;
+  employmentType?: string;
 }
 
 export interface DashboardData {
@@ -129,7 +134,11 @@ export class DashboardService {
       nextAction: this.getNextAction(app.status),
       progress: this.calculateProgress(app.status),
       applicantName: app.applicantName,
-      assignedOfficerName: app.assignedOfficerName
+      assignedOfficerName: app.assignedOfficerName,
+      hasPersonalDetails: app.hasPersonalDetails,
+      hasFinancialProfile: app.hasFinancialProfile,
+      documentsCount: app.documentsCount || 0,
+      employmentType: app.employmentType
     }));
   }
 

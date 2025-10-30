@@ -24,6 +24,7 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
+import jakarta.persistence.CascadeType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +32,12 @@ import lombok.RequiredArgsConstructor;
 /**
  * OPTIMIZED: Combines Employment + Financial data to avoid redundancy
  * Single source of truth for all financial and employment information
+ * 
+ * RELATED ENTITIES (based on employmentType):
+ * - PROFESSIONAL → ProfessionalEmploymentDetails
+ * - FREELANCER → FreelancerEmploymentDetails
+ * - RETIRED → RetiredEmploymentDetails
+ * - STUDENT → StudentEmploymentDetails
  */
 @Entity
 @Table(name = "applicant_financial_profile", indexes = {
@@ -149,6 +156,21 @@ public class ApplicantFinancialProfile {
     
     @Column(columnDefinition = "TEXT")
     private String financialAnomalies; // Red flags from bank statement
+    
+    // ========== EMPLOYMENT TYPE SPECIFIC RELATIONSHIPS ==========
+    // Only ONE of these will be populated based on employmentType
+    
+    @OneToOne(mappedBy = "financialProfile", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private ProfessionalEmploymentDetails professionalDetails;
+    
+    @OneToOne(mappedBy = "financialProfile", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private FreelancerEmploymentDetails freelancerDetails;
+    
+    @OneToOne(mappedBy = "financialProfile", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private RetiredEmploymentDetails retiredDetails;
+    
+    @OneToOne(mappedBy = "financialProfile", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private StudentEmploymentDetails studentDetails;
     
     // ========== VERIFICATION STATUS ==========
     @Enumerated(EnumType.STRING)

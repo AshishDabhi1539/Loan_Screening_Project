@@ -70,4 +70,7 @@ public class LoanApplicationResponse {
     // Status flags
     private boolean hasPersonalDetails;
     private boolean hasFinancialProfile;
+    
+    // Employment type for routing
+    private String employmentType;
 }

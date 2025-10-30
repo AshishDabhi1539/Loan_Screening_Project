@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -22,17 +23,17 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.tss.loan.dto.request.ApplicantFinancialDetailsRequest;
 import com.tss.loan.dto.request.LoanApplicationRequest;
-import com.tss.loan.dto.response.LoanApplicationResponse;
-import com.tss.loan.dto.response.LoanApplicationCreateResponse;
-import com.tss.loan.dto.response.FinancialDetailsCreateResponse;
 import com.tss.loan.dto.response.DocumentUploadResponse;
+import com.tss.loan.dto.response.FinancialDetailsCreateResponse;
+import com.tss.loan.dto.response.LoanApplicationCreateResponse;
+import com.tss.loan.dto.response.LoanApplicationResponse;
 import com.tss.loan.dto.response.LoanDocumentResponse;
+import com.tss.loan.entity.enums.DocumentType;
 import com.tss.loan.entity.loan.LoanApplication;
 import com.tss.loan.entity.loan.LoanDocument;
-import com.tss.loan.mapper.LoanDocumentMapper;
-import com.tss.loan.mapper.LoanApplicationMapper;
-import com.tss.loan.entity.enums.DocumentType;
 import com.tss.loan.entity.user.User;
+import com.tss.loan.mapper.LoanApplicationMapper;
+import com.tss.loan.mapper.LoanDocumentMapper;
 import com.tss.loan.service.DocumentUploadService;
 import com.tss.loan.service.LoanApplicationService;
 import com.tss.loan.service.UserService;
@@ -141,6 +142,27 @@ public class LoanApplicationController {
         List<LoanDocument> documents = documentUploadService.getDocumentsByLoanApplication(applicationId);
         List<LoanDocumentResponse> documentResponses = loanDocumentMapper.toResponseList(documents);
         return ResponseEntity.ok(documentResponses);
+    }
+    
+    /**
+     * Delete document
+     */
+    @DeleteMapping("/{applicationId}/documents/{documentId}")
+    public ResponseEntity<Void> deleteDocument(
+            @PathVariable UUID applicationId,
+            @PathVariable Long documentId,
+            Authentication authentication) {
+        
+        log.info("Deleting document {} for application: {}", documentId, applicationId);
+        
+        User user = getCurrentUser(authentication);
+        try {
+            documentUploadService.deleteDocument(documentId, user);
+            return ResponseEntity.noContent().build();
+        } catch (IOException e) {
+            log.error("Failed to delete document: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
     
     /**

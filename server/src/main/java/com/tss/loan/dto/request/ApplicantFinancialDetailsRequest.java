@@ -9,6 +9,7 @@ import com.tss.loan.entity.enums.IncomeType;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -93,4 +94,19 @@ public class ApplicantFinancialDetailsRequest {
     
     @NotBlank(message = "Branch name is required")
     private String branchName;
+    
+    // ========== EMPLOYMENT TYPE SPECIFIC DETAILS ==========
+    // Only ONE of these should be populated based on employmentType
+    
+    @Valid
+    private ProfessionalEmploymentDetailsRequest professionalDetails;
+    
+    @Valid
+    private FreelancerEmploymentDetailsRequest freelancerDetails;
+    
+    @Valid
+    private RetiredEmploymentDetailsRequest retiredDetails;
+    
+    @Valid
+    private StudentEmploymentDetailsRequest studentDetails;
 }

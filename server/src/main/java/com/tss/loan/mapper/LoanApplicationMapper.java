@@ -67,9 +67,16 @@ public class LoanApplicationMapper {
                 .updatedAt(entity.getUpdatedAt())
                 .version(entity.getVersion())
                 
+                // Counts (safely handle lazy loading)
+                .documentsCount(safeGetDocumentsCount(entity))
+                .fraudCheckResultsCount(0) // Default to 0 as fraudCheckResults collection doesn't exist yet
+                
                 // Status flags
                 .hasPersonalDetails(entity.getApplicant() != null && hasPersonalDetails(entity.getApplicant().getId()))
                 .hasFinancialProfile(entity.getFinancialProfile() != null)
+                
+                // Employment type (safely handle lazy loading)
+                .employmentType(safeGetEmploymentType(entity))
                 .build();
     }
     
@@ -81,5 +88,33 @@ public class LoanApplicationMapper {
             return false;
         }
         return personalDetailsRepository.existsByUserId(userId);
+    }
+    
+    /**
+     * Safely get documents count without triggering lazy loading exception
+     */
+    private int safeGetDocumentsCount(LoanApplication entity) {
+        try {
+            return (entity.getDocuments() != null) ? entity.getDocuments().size() : 0;
+        } catch (Exception e) {
+            // LazyInitializationException or other hibernate exception
+            return 0;
+        }
+    }
+    
+    /**
+     * Safely get employment type without triggering lazy loading exception
+     */
+    private String safeGetEmploymentType(LoanApplication entity) {
+        try {
+            if (entity.getFinancialProfile() != null && 
+                entity.getFinancialProfile().getEmploymentType() != null) {
+                return entity.getFinancialProfile().getEmploymentType().name();
+            }
+            return null;
+        } catch (Exception e) {
+            // LazyInitializationException or other hibernate exception
+            return null;
+        }
     }
 }

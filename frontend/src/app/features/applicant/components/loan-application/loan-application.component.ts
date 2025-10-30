@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angula
 import { Router } from '@angular/router';
 import { LoanApplicationService, LoanApplicationRequest } from '../../../../core/services/loan-application.service';
 import { NotificationService } from '../../../../core/services/notification.service';
+import { UserProfileService } from '../../../../core/services/user-profile.service';
 
 @Component({
   selector: 'app-loan-application',
@@ -17,9 +18,11 @@ export class LoanApplicationComponent implements OnInit {
   private router = inject(Router);
   private loanApplicationService = inject(LoanApplicationService);
   private notificationService = inject(NotificationService);
+  private userProfileService = inject(UserProfileService);
 
   loanApplicationForm!: FormGroup;
   isLoading = signal(false);
+  isCheckingProfile = signal(true);
   currentStep = signal(1);
   totalSteps = 2;
 
@@ -57,8 +60,50 @@ export class LoanApplicationComponent implements OnInit {
   ];
 
   ngOnInit(): void {
-    this.initializeForm();
-    this.setupValueChangeListeners();
+    this.checkPersonalDetailsCompletion();
+  }
+
+  /**
+   * Check if user has completed personal details before allowing loan application
+   */
+  private checkPersonalDetailsCompletion(): void {
+    this.isCheckingProfile.set(true);
+    
+    this.userProfileService.hasPersonalDetails().subscribe({
+      next: (hasDetails) => {
+        this.isCheckingProfile.set(false);
+        
+        if (!hasDetails) {
+          this.notificationService.warning(
+            'Complete Your Profile First',
+            'Please complete your personal details before applying for a loan.'
+          );
+          
+          // Redirect to personal details page
+          setTimeout(() => {
+            this.router.navigate(['/applicant/personal-details']);
+          }, 2000);
+        } else {
+          // Personal details exist, initialize form
+          this.initializeForm();
+          this.setupValueChangeListeners();
+        }
+      },
+      error: (error) => {
+        this.isCheckingProfile.set(false);
+        console.error('Failed to check personal details status:', error);
+        
+        this.notificationService.error(
+          'Error',
+          'Failed to verify your profile. Please try again.'
+        );
+        
+        // Redirect to dashboard on error
+        setTimeout(() => {
+          this.router.navigate(['/applicant/dashboard']);
+        }, 2000);
+      }
+    });
   }
 
   /**
@@ -183,9 +228,12 @@ export class LoanApplicationComponent implements OnInit {
         if (response.nextStepUrl) {
           this.router.navigateByUrl(response.nextStepUrl);
         } else {
-          // Default: navigate to employment details with application ID
+          // Default: navigate to employment details with application ID and loan type
           this.router.navigate(['/applicant/employment-details'], {
-            queryParams: { applicationId: response.id }
+            queryParams: { 
+              applicationId: response.id,
+              loanType: formData.loanType  // Pass loan type for smart filtering
+            }
           });
         }
       },

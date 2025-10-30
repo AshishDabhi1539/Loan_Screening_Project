@@ -26,6 +26,14 @@ export const applicantRoutes: Routes = [
     path: 'employment-details',
     loadComponent: () => import('./components/employment-details/employment-details.component').then(m => m.EmploymentDetailsComponent)
   },
+  {
+    path: 'document-upload',
+    loadComponent: () => import('./components/document-upload/document-upload.component').then(m => m.DocumentUploadComponent)
+  },
+  {
+    path: 'application-summary',
+    loadComponent: () => import('./components/application-summary/application-summary.component').then(m => m.ApplicationSummaryComponent)
+  },
 //   {
 //     path: 'applications',
 //     loadComponent: () => import('./components/my-applications/my-applications.component').then(m => m.MyApplicationsComponent)

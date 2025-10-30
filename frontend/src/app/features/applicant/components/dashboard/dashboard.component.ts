@@ -1,6 +1,6 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, RouterLink } from '@angular/router';
+import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 
 import { AuthService } from '../../../../core/services/auth.service';
 import { NotificationService } from '../../../../core/services/notification.service';
@@ -16,6 +16,7 @@ import { UserProfileService, UserProfile } from '../../../../core/services/user-
 })
 export class DashboardComponent implements OnInit {
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
   private authService = inject(AuthService);
   private notificationService = inject(NotificationService);
   private dashboardService = inject(DashboardService);
@@ -65,8 +66,30 @@ export class DashboardComponent implements OnInit {
   );
 
   ngOnInit(): void {
+    this.checkSubmissionSuccess();
     this.loadUserProfile();
     this.loadDashboardData();
+  }
+
+  /**
+   * Check if user just submitted an application and show success message
+   */
+  private checkSubmissionSuccess(): void {
+    const submitted = this.route.snapshot.queryParams['submitted'];
+    
+    if (submitted === 'true') {
+      // Show success notification
+      this.notificationService.success(
+        '🎉 Application Submitted!',
+        'Your loan application has been submitted successfully and is under review. We will notify you once the verification is complete.'
+      );
+      
+      // Clear query parameter to avoid showing message on refresh
+      this.router.navigate([], {
+        queryParams: {},
+        replaceUrl: true
+      });
+    }
   }
 
   /**
@@ -182,32 +205,131 @@ export class DashboardComponent implements OnInit {
   }
 
   /**
-   * Navigate to new loan application
+   * Start a new loan application with personal details validation
    */
   startNewApplication(): void {
-    const profile = this.userProfile();
-    if (!this.canApplyForLoan()) {
-      if (!profile?.hasPersonalDetails) {
-        this.notificationService.warning('Profile Incomplete', 'Please complete your personal details before applying for a loan.');
-        // TODO: Navigate to profile completion page
-        return;
+    // Check if personal details are complete before allowing application
+    this.userProfileService.hasPersonalDetails().subscribe({
+      next: (hasDetails) => {
+        if (!hasDetails) {
+          this.notificationService.warning(
+            'Complete Your Profile First',
+            'Please complete your personal details before applying for a loan.'
+          );
+          
+          // Navigate to personal details page
+          setTimeout(() => {
+            this.router.navigate(['/applicant/personal-details']);
+          }, 1500);
+        } else {
+          // Personal details complete, proceed to loan application
+          this.notificationService.success('Profile Complete', 'Redirecting to loan application...');
+          setTimeout(() => {
+            this.router.navigate(['/applicant/apply-loan']);
+          }, 500);
+        }
+      },
+      error: (error) => {
+        console.error('Failed to check personal details:', error);
+        this.notificationService.error(
+          'Error',
+          'Failed to verify your profile. Please try again.'
+        );
       }
-      this.notificationService.warning('Cannot Apply', 'You are not eligible to apply for a loan at this time.');
-      return;
-    }
-    
-    this.notificationService.info('New Application', 'Starting new loan application process...');
-    // Router navigation will be handled by routerLink in template
+    });
   }
 
   /**
-   * View application details
+   * View application details - routes to appropriate step based on progress
    */
   viewApplication(applicationId: string): void {
-    // Navigate to employment details to continue the application
-    this.router.navigate(['/applicant/employment-details'], {
-      queryParams: { applicationId: applicationId }
+    // Find the application to check its progress
+    const application = this.recentApplications().find(app => app.id === applicationId);
+    
+    if (!application) {
+      this.notificationService.error('Error', 'Application not found');
+      return;
+    }
+
+    // Route based on application completion status
+    this.routeToNextStep(application);
+  }
+
+  /**
+   * Intelligent routing based on application completion
+   */
+  private routeToNextStep(application: LoanApplicationSummary): void {
+    const appId = application.id;
+    
+    // Check if application is already submitted
+    if (application.status !== 'DRAFT') {
+      // Application already submitted - show summary
+      this.router.navigate(['/applicant/application-summary'], {
+        queryParams: {
+          applicationId: appId,
+          employmentType: application.employmentType || 'SALARIED'
+        }
+      });
+      return;
+    }
+
+    // For DRAFT status - route to where they left off
+    if (!application.hasPersonalDetails) {
+      this.notificationService.info('Complete Profile', 'Please complete your personal details first');
+      this.router.navigate(['/applicant/personal-details']);
+      return;
+    }
+
+    if (!application.hasFinancialProfile) {
+      this.notificationService.info('Continue Application', 'Please complete employment and financial details');
+      this.router.navigate(['/applicant/employment-details'], {
+        queryParams: { applicationId: appId }
+      });
+      return;
+    }
+
+    if (!application.documentsCount || application.documentsCount === 0) {
+      this.notificationService.info('Upload Documents', 'Please upload required documents');
+      this.router.navigate(['/applicant/document-upload'], {
+        queryParams: {
+          applicationId: appId,
+          employmentType: application.employmentType || 'SALARIED'
+        }
+      });
+      return;
+    }
+
+    // All steps complete, show summary for final submission
+    this.router.navigate(['/applicant/application-summary'], {
+      queryParams: {
+        applicationId: appId,
+        employmentType: application.employmentType || 'SALARIED'
+      }
     });
+  }
+
+  /**
+   * Get appropriate button text based on application status
+   */
+  getViewButtonText(application: LoanApplicationSummary): string {
+    if (application.status !== 'DRAFT') {
+      return 'View Details';
+    }
+
+    // For draft applications, show what step is next
+    if (!application.hasPersonalDetails) {
+      return 'Complete Profile';
+    }
+
+    if (!application.hasFinancialProfile) {
+      return 'Complete Employment';
+    }
+
+    if (!application.documentsCount || application.documentsCount === 0) {
+      return 'Upload Documents';
+    }
+
+    return 'Submit Application';
   }
 
   /**
