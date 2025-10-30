@@ -1,6 +1,7 @@
 package com.tss.loan.controller.admin;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,6 +11,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -94,6 +96,36 @@ public class AdminController {
         } catch (Exception e) {
             log.error("❌ Error in getAllUsers(): ", e);
             throw e;
+        }
+    }
+    
+    /**
+     * Get Applicant Details by ID
+     */
+    @GetMapping("/applicants/{applicantId}")
+    public ResponseEntity<UserResponse> getApplicantById(@PathVariable String applicantId) {
+        log.info("Fetching applicant details for ID: {}", applicantId);
+        
+        try {
+            UUID applicantUuid = UUID.fromString(applicantId);
+            User applicant = userService.findById(applicantUuid);
+            
+            // Verify the user is an applicant
+            if (!"APPLICANT".equals(applicant.getRole().name())) {
+                log.warn("User {} is not an applicant, role: {}", applicantId, applicant.getRole());
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+            }
+            
+            UserResponse response = userMapper.toResponse(applicant);
+            log.info("Successfully fetched applicant details for ID: {}", applicantId);
+            return ResponseEntity.ok(response);
+            
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid UUID format for applicant ID: {}", applicantId);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        } catch (Exception e) {
+            log.error("Error fetching applicant details for ID: {}", applicantId, e);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
     }
     
