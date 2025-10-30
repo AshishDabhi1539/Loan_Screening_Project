@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 
 import { AdminService, UserResponse } from '../../../../core/services/admin.service';
 import { NotificationService } from '../../../../core/services/notification.service';
@@ -16,6 +16,7 @@ import { NotificationService } from '../../../../core/services/notification.serv
 export class OfficerManagementComponent implements OnInit {
   private adminService = inject(AdminService);
   private notificationService = inject(NotificationService);
+  private router = inject(Router);
 
   // State signals
   officers = signal<UserResponse[]>([]);
@@ -184,11 +185,12 @@ export class OfficerManagementComponent implements OnInit {
   }
 
   /**
-   * Handle officer actions (placeholder for future implementation)
+   * View officer details
    */
   viewOfficer(officer: UserResponse): void {
-    console.log('View officer:', officer);
-    // TODO: Navigate to officer details page
+    this.router.navigate(['/admin/users/officers/view'], {
+      state: { officerId: officer.id }
+    });
   }
 
   editOfficer(officer: UserResponse): void {

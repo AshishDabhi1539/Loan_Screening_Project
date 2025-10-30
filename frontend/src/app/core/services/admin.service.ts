@@ -37,6 +37,37 @@ export interface UserResponse {
   displayName?: string;
 }
 
+export interface OfficerDetailsResponse {
+  // User Account Information
+  id: string;
+  email: string;
+  phone: string;
+  role: string;
+  status: string;
+  isEmailVerified: boolean;
+  isPhoneVerified: boolean;
+  failedLoginAttempts: number;
+  lastLoginAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  
+  // Officer Personal Details
+  firstName?: string;
+  lastName?: string;
+  middleName?: string;
+  fullName?: string;
+  employeeId?: string;
+  department?: string;
+  designation?: string;
+  phoneNumber?: string;
+  workLocation?: string;
+  
+  // Statistics
+  totalAssignedApplications?: number;
+  activeApplications?: number;
+  completedApplications?: number;
+}
+
 export interface OfficerCreationRequest {
   email: string;
   phone: string;
@@ -81,6 +112,27 @@ export class AdminService {
    */
   getAllOfficers(): Observable<OfficerResponse[]> {
     return this.apiService.get<OfficerResponse[]>('/admin/officers');
+  }
+
+  /**
+   * Get officer details by ID (comprehensive)
+   */
+  getOfficerById(officerId: string): Observable<OfficerDetailsResponse> {
+    return this.apiService.get<OfficerDetailsResponse>(`/admin/officers/${officerId}`);
+  }
+
+  /**
+   * Get officer's assigned applications
+   */
+  getOfficerAssignedApplications(officerId: string): Observable<any[]> {
+    return this.apiService.get<any[]>(`/admin/officers/${officerId}/applications`);
+  }
+
+  /**
+   * Toggle officer status (soft delete with validation)
+   */
+  toggleOfficerStatus(officerId: string): Observable<string> {
+    return this.apiService.post<string>(`/admin/officers/${officerId}/toggle-status`, {});
   }
 
   /**

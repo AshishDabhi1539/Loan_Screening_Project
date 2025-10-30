@@ -19,6 +19,14 @@ export const adminRoutes: Routes = [
     loadComponent: () => import('./components/officer-management/officer-management.component').then(m => m.OfficerManagementComponent)
   },
   {
+    path: 'users/officers/view',
+    loadComponent: () => import('./components/officer-details/officer-details.component').then(m => m.OfficerDetailsComponent)
+  },
+  {
+    path: 'officers/applications',
+    loadComponent: () => import('./components/officer-applications/officer-applications.component').then(m => m.OfficerApplicationsComponent)
+  },
+  {
     path: 'users/applicants',
     loadComponent: () => import('./components/applicant-management/applicant-management.component').then(m => m.ApplicantManagementComponent)
   },
