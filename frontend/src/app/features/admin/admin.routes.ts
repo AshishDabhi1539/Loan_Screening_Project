@@ -13,5 +13,9 @@ export const adminRoutes: Routes = [
   {
     path: 'officers/create',
     loadComponent: () => import('./components/create-officer/create-officer.component').then(m => m.CreateOfficerComponent)
+  },
+  {
+    path: 'users/officers',
+    loadComponent: () => import('./components/officer-management/officer-management.component').then(m => m.OfficerManagementComponent)
   }
 ];

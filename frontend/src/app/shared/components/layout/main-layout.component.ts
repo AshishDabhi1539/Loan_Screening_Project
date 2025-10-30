@@ -146,7 +146,19 @@ export class MainLayoutComponent {
     const user = this.currentUser();
     if (!user) return 'Guest';
     
-    return user.displayName || user.email || 'User';
+    // If displayName exists, use it
+    if (user.displayName) {
+      return user.displayName;
+    }
+    
+    // If email exists, extract username part (before @)
+    if (user.email) {
+      const username = user.email.split('@')[0];
+      // Capitalize first letter and make it more readable
+      return username.charAt(0).toUpperCase() + username.slice(1);
+    }
+    
+    return 'User';
   });
 
   /**
