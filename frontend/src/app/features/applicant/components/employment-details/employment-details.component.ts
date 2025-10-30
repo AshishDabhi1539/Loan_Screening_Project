@@ -351,13 +351,24 @@ export class EmploymentDetailsComponent implements OnInit {
     // Clear validators first
     this.clearValidators();
 
-    // Common required fields for all types
-    const commonFields = ['companyName', 'jobTitle', 'employmentStartDate', 'companyAddress', 'companyCity', 'companyState', 'companyPincode'];
+    // Common required fields ONLY for employment types that have companies
+    // NOT for STUDENT, RETIRED, UNEMPLOYED, FREELANCER
+    const needsCompanyDetails = ['SALARIED', 'SELF_EMPLOYED', 'BUSINESS_OWNER', 'PROFESSIONAL'];
     
-    commonFields.forEach(field => {
-      this.employmentForm.get(field)?.setValidators([Validators.required]);
-      this.employmentForm.get(field)?.updateValueAndValidity();
-    });
+    if (needsCompanyDetails.includes(employmentType)) {
+      const commonFields = ['companyName', 'jobTitle', 'employmentStartDate', 'companyAddress', 'companyCity', 'companyState', 'companyPincode'];
+      commonFields.forEach(field => {
+        this.employmentForm.get(field)?.setValidators([Validators.required]);
+        this.employmentForm.get(field)?.updateValueAndValidity();
+      });
+    } else {
+      // Clear company fields for types that don't need them
+      const companyFields = ['companyName', 'jobTitle', 'employmentStartDate', 'companyAddress', 'companyCity', 'companyState', 'companyPincode', 'workPhone', 'workEmail', 'hrPhone', 'hrEmail', 'managerName', 'managerPhone'];
+      companyFields.forEach(field => {
+        this.employmentForm.get(field)?.clearValidators();
+        this.employmentForm.get(field)?.updateValueAndValidity();
+      });
+    }
 
     // Employment type specific validators
     switch (employmentType) {
@@ -455,9 +466,12 @@ export class EmploymentDetailsComponent implements OnInit {
         this.employmentForm.get('unemploymentReason')?.setValidators([Validators.required]);
         this.employmentForm.get('currentIncomeSource')?.setValidators([Validators.required]);
         this.employmentForm.get('incomeType')?.setValue('OTHER');
+        // Allow zero income for unemployed
+        this.employmentForm.get('monthlyIncome')?.setValidators([Validators.required, Validators.min(0)]);
         
         this.employmentForm.get('unemploymentReason')?.updateValueAndValidity();
         this.employmentForm.get('currentIncomeSource')?.updateValueAndValidity();
+        this.employmentForm.get('monthlyIncome')?.updateValueAndValidity();
         break;
     }
   }
@@ -499,9 +513,64 @@ export class EmploymentDetailsComponent implements OnInit {
    * Navigate to next step
    */
   nextStep(): void {
+    const employmentType = this.selectedEmploymentType();
+    
+    // Auto-populate income for specific employment types before moving to step 3
+    if (this.currentStep() === 2 && employmentType) {
+      this.autoPopulateIncomeFromEmploymentData(employmentType);
+    }
+    
     if (this.currentStep() < this.totalSteps) {
       this.currentStep.set(this.currentStep() + 1);
       window.scrollTo(0, 0);
+    }
+  }
+
+  /**
+   * Auto-populate income based on employment type data already collected
+   */
+  private autoPopulateIncomeFromEmploymentData(employmentType: string): void {
+    switch (employmentType) {
+      case 'STUDENT':
+        // Use guardian's income for student loans
+        const guardianIncome = this.employmentForm.get('guardianMonthlyIncome')?.value;
+        if (guardianIncome) {
+          this.employmentForm.patchValue({
+            monthlyIncome: guardianIncome,
+            incomeType: 'OTHER'
+          });
+        }
+        break;
+        
+      case 'RETIRED':
+        // Use pension amount as monthly income
+        const pensionAmount = this.employmentForm.get('monthlyPensionAmount')?.value;
+        if (pensionAmount) {
+          this.employmentForm.patchValue({
+            monthlyIncome: pensionAmount,
+            incomeType: 'OTHER'
+          });
+        }
+        break;
+        
+      case 'FREELANCER':
+        // Use average monthly income already provided
+        const avgIncome = this.employmentForm.get('averageMonthlyIncome')?.value;
+        if (avgIncome) {
+          this.employmentForm.patchValue({
+            monthlyIncome: avgIncome,
+            incomeType: 'FREELANCE'
+          });
+        }
+        break;
+        
+      case 'UNEMPLOYED':
+        // Set minimum income with warning
+        this.employmentForm.patchValue({
+          monthlyIncome: 0,
+          incomeType: 'OTHER'
+        });
+        break;
     }
   }
 
@@ -519,16 +588,45 @@ export class EmploymentDetailsComponent implements OnInit {
    * Check if current step is valid
    */
   isStepValid(step: number): boolean {
+    const employmentType = this.employmentForm.get('employmentType')?.value;
+    
     switch (step) {
       case 1:
         return !!this.employmentForm.get('employmentType')?.valid;
       case 2:
-        return !!( 
-          this.employmentForm.get('companyName')?.valid &&
-          this.employmentForm.get('jobTitle')?.valid &&
-          this.employmentForm.get('employmentStartDate')?.valid &&
-          this.employmentForm.get('companyAddress')?.valid
-        );
+        // Different validation based on employment type
+        if (employmentType === 'STUDENT') {
+          return !!(
+            this.employmentForm.get('institutionName')?.valid &&
+            this.employmentForm.get('courseName')?.valid &&
+            this.employmentForm.get('yearOfStudy')?.valid
+          );
+        } else if (employmentType === 'RETIRED') {
+          return !!(
+            this.employmentForm.get('pensionType')?.valid &&
+            this.employmentForm.get('pensionProvider')?.valid &&
+            this.employmentForm.get('monthlyPensionAmount')?.valid
+          );
+        } else if (employmentType === 'UNEMPLOYED') {
+          return !!(
+            this.employmentForm.get('unemploymentReason')?.valid &&
+            this.employmentForm.get('currentIncomeSource')?.valid
+          );
+        } else if (employmentType === 'FREELANCER') {
+          return !!(
+            this.employmentForm.get('freelanceType')?.valid &&
+            this.employmentForm.get('freelanceSince')?.valid &&
+            this.employmentForm.get('primaryClients')?.valid
+          );
+        } else {
+          // For SALARIED, SELF_EMPLOYED, BUSINESS_OWNER, PROFESSIONAL
+          return !!( 
+            this.employmentForm.get('companyName')?.valid &&
+            this.employmentForm.get('jobTitle')?.valid &&
+            this.employmentForm.get('employmentStartDate')?.valid &&
+            this.employmentForm.get('companyAddress')?.valid
+          );
+        }
       case 3:
         return !!this.employmentForm.get('monthlyIncome')?.valid;
       case 4:
@@ -653,19 +751,6 @@ export class EmploymentDetailsComponent implements OnInit {
     // Prepare request matching backend DTO
     const request: any = {
       employmentType: formData.employmentType,
-      companyName: formData.companyName,
-      jobTitle: formData.jobTitle,
-      employmentStartDate: formData.employmentStartDate,
-      companyAddress: formData.companyAddress,
-      companyCity: formData.companyCity,
-      companyState: formData.companyState,
-      companyPincode: formData.companyPincode,
-      workPhone: formData.workPhone,
-      workEmail: formData.workEmail,
-      hrPhone: formData.hrPhone,
-      hrEmail: formData.hrEmail,
-      managerName: formData.managerName,
-      managerPhone: formData.managerPhone,
       incomeType: formData.incomeType,
       monthlyIncome: formData.monthlyIncome,
       additionalIncome: formData.additionalIncome,
@@ -679,6 +764,24 @@ export class EmploymentDetailsComponent implements OnInit {
       accountType: formData.accountType,
       branchName: formData.branchName
     };
+
+    // Add company details only for relevant employment types
+    const needsCompanyDetails = ['SALARIED', 'SELF_EMPLOYED', 'BUSINESS_OWNER', 'PROFESSIONAL'];
+    if (needsCompanyDetails.includes(formData.employmentType)) {
+      request.companyName = formData.companyName;
+      request.jobTitle = formData.jobTitle;
+      request.employmentStartDate = formData.employmentStartDate;
+      request.companyAddress = formData.companyAddress;
+      request.companyCity = formData.companyCity;
+      request.companyState = formData.companyState;
+      request.companyPincode = formData.companyPincode;
+      request.workPhone = formData.workPhone;
+      request.workEmail = formData.workEmail;
+      request.hrPhone = formData.hrPhone;
+      request.hrEmail = formData.hrEmail;
+      request.managerName = formData.managerName;
+      request.managerPhone = formData.managerPhone;
+    }
 
     const appId = this.applicationId();
     if (!appId) {
@@ -736,5 +839,59 @@ export class EmploymentDetailsComponent implements OnInit {
    */
   getCurrentDate(): string {
     return new Date().toISOString().split('T')[0];
+  }
+
+  /**
+   * Check if current employment type needs company details
+   */
+  needsCompanyDetails(): boolean {
+    const employmentType = this.selectedEmploymentType();
+    return ['SALARIED', 'SELF_EMPLOYED', 'BUSINESS_OWNER', 'PROFESSIONAL'].includes(employmentType || '');
+  }
+
+  /**
+   * Check if income is auto-populated from employment data
+   */
+  isIncomeAutoPopulated(): boolean {
+    const employmentType = this.selectedEmploymentType();
+    return ['STUDENT', 'RETIRED', 'FREELANCER'].includes(employmentType || '');
+  }
+
+  /**
+   * Get income source label based on employment type
+   */
+  getIncomeSourceLabel(): string {
+    const employmentType = this.selectedEmploymentType();
+    switch (employmentType) {
+      case 'STUDENT':
+        return "Guardian's Monthly Income";
+      case 'RETIRED':
+        return 'Monthly Pension Amount';
+      case 'FREELANCER':
+        return 'Average Monthly Income';
+      case 'UNEMPLOYED':
+        return 'Monthly Income (if any)';
+      default:
+        return 'Monthly Income';
+    }
+  }
+
+  /**
+   * Show income help text based on employment type
+   */
+  getIncomeHelpText(): string {
+    const employmentType = this.selectedEmploymentType();
+    switch (employmentType) {
+      case 'STUDENT':
+        return 'Auto-populated from guardian income provided in Step 2';
+      case 'RETIRED':
+        return 'Auto-populated from pension amount provided in Step 2';
+      case 'FREELANCER':
+        return 'Auto-populated from average income provided in Step 2';
+      case 'UNEMPLOYED':
+        return 'Enter any income from family support, savings, or investments';
+      default:
+        return 'Minimum: ₹10,000';
+    }
   }
 }

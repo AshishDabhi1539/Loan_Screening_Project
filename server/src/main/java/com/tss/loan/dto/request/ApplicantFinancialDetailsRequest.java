@@ -23,25 +23,14 @@ public class ApplicantFinancialDetailsRequest {
     @NotNull(message = "Employment type is required")
     private EmploymentType employmentType;
     
-    @NotBlank(message = "Company name is required")
+    // Company details (OPTIONAL - only for SALARIED, SELF_EMPLOYED, BUSINESS_OWNER, PROFESSIONAL)
+    // NOT needed for STUDENT, RETIRED, FREELANCER, UNEMPLOYED
     private String companyName;
-    
-    @NotBlank(message = "Job title is required")
     private String jobTitle;
-    
-    @NotNull(message = "Employment start date is required")
     private LocalDate employmentStartDate;
-    
-    @NotBlank(message = "Company address is required")
     private String companyAddress;
-    
-    @NotBlank(message = "Company city is required")
     private String companyCity;
-    
-    @NotBlank(message = "Company state is required")
     private String companyState;
-    
-    @NotBlank(message = "Company pincode is required")
     private String companyPincode;
     
     // Company Contact Details
@@ -57,7 +46,7 @@ public class ApplicantFinancialDetailsRequest {
     private IncomeType incomeType;
     
     @NotNull(message = "Monthly income is required")
-    @DecimalMin(value = "10000.0", message = "Minimum monthly income is ₹10,000")
+    @DecimalMin(value = "0.0", message = "Income cannot be negative")
     private BigDecimal monthlyIncome;
     
     private BigDecimal additionalIncome = BigDecimal.ZERO;

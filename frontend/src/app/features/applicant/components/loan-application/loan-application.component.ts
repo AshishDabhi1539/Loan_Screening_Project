@@ -98,10 +98,13 @@ export class LoanApplicationComponent implements OnInit {
           'Failed to verify your profile. Please try again.'
         );
         
-        // Redirect to dashboard on error
-        setTimeout(() => {
+        // Navigate using the backend's nextStepUrl (proper workflow)
+        if (error.nextStepUrl) {
+          this.router.navigateByUrl(error.nextStepUrl);
+        } else {
+          // Fallback: go to dashboard if no URL provided
           this.router.navigate(['/applicant/dashboard']);
-        }, 2000);
+        }
       }
     });
   }

@@ -330,13 +330,13 @@ public class DocumentUploadServiceImpl implements DocumentUploadService {
         if (canSubmit) {
             responseBuilder
                 .message("✅ All required documents uploaded! Ready to submit application.")
-                .nextStep("Submit Application")
-                .nextStepUrl("/api/loan-application/" + loanApplicationId + "/submit");
+                .nextStep("Review & Submit Application")
+                .nextStepUrl("/applicant/application-summary?applicationId=" + loanApplicationId);
         } else {
             responseBuilder
                 .message("✅ Document uploaded successfully!")
                 .nextStep("Upload More Documents")
-                .nextStepUrl("/api/loan-application/" + loanApplicationId + "/documents/upload");
+                .nextStepUrl("/applicant/document-upload?applicationId=" + loanApplicationId);
         }
         
         return responseBuilder.build();

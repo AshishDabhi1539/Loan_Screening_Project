@@ -465,8 +465,8 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
             .status(savedApplication.getStatus().toString())
             .message("✅ Loan application created successfully!")
             .createdAt(savedApplication.getCreatedAt())
-            .nextStep("Add Financial Details")
-            .nextStepUrl("/api/loan-application/" + savedApplication.getId() + "/financial-details")
+            .nextStep("Add Employment & Financial Details")
+            .nextStepUrl("/applicant/employment-details?applicationId=" + savedApplication.getId() + "&loanType=" + savedApplication.getLoanType())
             .build();
     }
     
@@ -551,8 +551,8 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
             .isComplete(isComplete)
             .nextStep(isComplete ? "Submit Application" : "Complete Financial Details")
             .nextStepUrl(isComplete ? 
-                "/api/loan-application/" + applicationId + "/submit" : 
-                "/api/loan-application/" + applicationId + "/financial-details")
+                "/applicant/employment-details?applicationId=" + applicationId : 
+                "/applicant/employment-details?applicationId=" + applicationId)
             .updatedAt(LocalDateTime.now())
             .build();
     }
@@ -640,7 +640,7 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
             .message("✅ Financial details created successfully!")
             .isComplete(false) // Always false until documents are uploaded
             .nextStep("Upload Required Documents")
-            .nextStepUrl("/api/loan-application/" + applicationId + "/documents/upload")
+            .nextStepUrl("/applicant/document-upload?applicationId=" + applicationId)
             .updatedAt(savedProfile.getUpdatedAt())
             .build();
     }
@@ -727,7 +727,7 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
             .message("✅ Financial details updated successfully!")
             .isComplete(false) // Check if documents are uploaded
             .nextStep("Upload Required Documents")
-            .nextStepUrl("/api/loan-application/" + applicationId + "/documents/upload")
+            .nextStepUrl("/applicant/document-upload?applicationId=" + applicationId)
             .updatedAt(savedProfile.getUpdatedAt())
             .build();
     }

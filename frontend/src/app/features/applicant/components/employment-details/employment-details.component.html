@@ -100,8 +100,9 @@
               </div>
             }
             
-            <!-- Generic Employment Fields (NOT for STUDENT or UNEMPLOYED) -->
-            @if (selectedEmploymentType() !== 'STUDENT' && selectedEmploymentType() !== 'UNEMPLOYED') {
+            <!-- Generic Employment Fields (ONLY for SALARIED, SELF_EMPLOYED, BUSINESS_OWNER, PROFESSIONAL) -->
+            <!-- STUDENT, RETIRED, UNEMPLOYED, FREELANCER have their own specific sections below -->
+            @if (needsCompanyDetails()) {
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label class="block text-sm font-medium mb-1">
@@ -689,13 +690,46 @@
           <div class="space-y-4">
             <h2 class="text-xl font-semibold mb-4">Income Details</h2>
             
+            <!-- Employment-Type-Specific Message -->
+            @if (selectedEmploymentType() === 'STUDENT') {
+              <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-4">
+                <p class="text-sm text-blue-700">
+                  <span class="font-semibold">👨‍🎓 Student Loan:</span> Since you're a student, we'll use your guardian's income (provided in Step 2) for loan eligibility assessment.
+                </p>
+              </div>
+            }
+            
+            @if (selectedEmploymentType() === 'RETIRED') {
+              <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-4">
+                <p class="text-sm text-blue-700">
+                  <span class="font-semibold">🏖️ Retired Applicant:</span> Your monthly pension amount (provided in Step 2) will be used as your regular income.
+                </p>
+              </div>
+            }
+            
+            @if (selectedEmploymentType() === 'FREELANCER') {
+              <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-4">
+                <p class="text-sm text-blue-700">
+                  <span class="font-semibold">💻 Freelancer:</span> Your average monthly income (provided in Step 2) will be used for loan assessment.
+                </p>
+              </div>
+            }
+            
+            @if (selectedEmploymentType() === 'UNEMPLOYED') {
+              <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
+                <p class="text-sm text-yellow-700">
+                  <span class="font-semibold">⚠️ Unemployed Applicant:</span> Please provide any income from family support, savings, investments, or other sources. Minimal income may affect loan eligibility.
+                </p>
+              </div>
+            }
+            
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label class="block text-sm font-medium mb-1">Income Type *</label>
                 <select formControlName="incomeType"
-                  [class]="'w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-primary-500 ' + (isIncomeTypeReadonly() ? 'bg-gray-100 cursor-not-allowed' : '')"
-                  [attr.readonly]="isIncomeTypeReadonly() ? true : null"
-                  (mousedown)="isIncomeTypeReadonly() ? $event.preventDefault() : null">
+                  [class]="'w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-primary-500 ' + (isIncomeTypeReadonly() || isIncomeAutoPopulated() ? 'bg-gray-100 cursor-not-allowed' : '')"
+                  [attr.readonly]="isIncomeTypeReadonly() || isIncomeAutoPopulated() ? true : null"
+                  (mousedown)="(isIncomeTypeReadonly() || isIncomeAutoPopulated()) ? $event.preventDefault() : null">
                   <option value="">Select Type</option>
                   @for (type of incomeTypes; track type.value) {
                     <option [value]="type.value">{{ type.label }}</option>
@@ -704,23 +738,24 @@
                 @if (getFieldError('incomeType')) {
                   <p class="text-red-600 text-xs mt-1">{{ getFieldError('incomeType') }}</p>
                 }
-                @if (isIncomeTypeReadonly()) {
+                @if (isIncomeTypeReadonly() || isIncomeAutoPopulated()) {
                   <p class="text-xs text-blue-600 mt-1">ℹ️ Auto-selected based on your employment type</p>
                 }
               </div>
 
               <div>
-                <label class="block text-sm font-medium mb-1">Monthly Income *</label>
+                <label class="block text-sm font-medium mb-1">{{ getIncomeSourceLabel() }} *</label>
                 <div class="relative">
                   <span class="absolute left-3 top-2.5 text-gray-500">₹</span>
                   <input type="number" formControlName="monthlyIncome"
-                    class="w-full pl-8 pr-3 py-2 border rounded-md focus:ring-2 focus:ring-primary-500"
+                    [class]="'w-full pl-8 pr-3 py-2 border rounded-md focus:ring-2 focus:ring-primary-500 ' + (isIncomeAutoPopulated() ? 'bg-gray-100 cursor-not-allowed' : '')"
+                    [attr.readonly]="isIncomeAutoPopulated() ? true : null"
                     placeholder="50000">
                 </div>
                 @if (getFieldError('monthlyIncome')) {
                   <p class="text-red-600 text-xs mt-1">{{ getFieldError('monthlyIncome') }}</p>
                 }
-                <p class="text-xs text-gray-500 mt-1">Minimum: ₹10,000</p>
+                <p class="text-xs text-gray-500 mt-1">{{ getIncomeHelpText() }}</p>
               </div>
             </div>
 
@@ -760,6 +795,23 @@
         @if (currentStep() === 4) {
           <div class="space-y-4">
             <h2 class="text-xl font-semibold mb-4">Banking Details</h2>
+            
+            <!-- Employment-Type-Specific Banking Message -->
+            @if (selectedEmploymentType() === 'STUDENT') {
+              <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-4">
+                <p class="text-sm text-blue-700">
+                  <span class="font-semibold">🏦 Student Account:</span> Provide the bank account where loan disbursement should be made. This can be your account or your guardian's account.
+                </p>
+              </div>
+            }
+            
+            @if (selectedEmploymentType() === 'UNEMPLOYED') {
+              <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
+                <p class="text-sm text-yellow-700">
+                  <span class="font-semibold">🏦 Banking Details:</span> Provide your savings account details. A co-applicant may be required for loan approval.
+                </p>
+              </div>
+            }
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -836,6 +888,31 @@
         @if (currentStep() === 5) {
           <div class="space-y-4">
             <h2 class="text-xl font-semibold mb-4">Financial Obligations</h2>
+            
+            <!-- Employment-Type-Specific Financial Obligations Message -->
+            @if (selectedEmploymentType() === 'STUDENT') {
+              <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-4">
+                <p class="text-sm text-blue-700">
+                  <span class="font-semibold">💰 Student Expenses:</span> Enter your typical monthly expenses. Existing loans/credit cards can be left at ₹0 if none. Your guardian's obligations are already considered.
+                </p>
+              </div>
+            }
+            
+            @if (selectedEmploymentType() === 'RETIRED') {
+              <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-4">
+                <p class="text-sm text-blue-700">
+                  <span class="font-semibold">💰 Retired Applicant:</span> Include your regular monthly expenses and any existing loan EMIs or credit card dues. This helps assess your disposable income.
+                </p>
+              </div>
+            }
+            
+            @if (selectedEmploymentType() === 'UNEMPLOYED') {
+              <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
+                <p class="text-sm text-yellow-700">
+                  <span class="font-semibold">⚠️ Financial Obligations:</span> Provide accurate monthly expenses. Existing loans will impact eligibility. Consider adding a co-applicant to strengthen your application.
+                </p>
+              </div>
+            }
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
