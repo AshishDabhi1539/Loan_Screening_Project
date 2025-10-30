@@ -1,0 +1,446 @@
+<!-- Employment Details Form - COMPLETE & WORKING -->
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="container mx-auto px-4 max-w-4xl">
+    
+    <!-- Header -->
+    <div class="mb-6">
+      <h1 class="text-2xl font-bold text-gray-900">Employment & Financial Details</h1>
+      <p class="text-gray-600">Step {{ currentStep() }} of {{ totalSteps }} - {{ getProgressPercentage() }}% Complete</p>
+    </div>
+
+    <!-- Progress Bar -->
+    <div class="mb-6">
+      <div class="w-full bg-gray-200 rounded-full h-2">
+        <div class="bg-primary-600 h-2 rounded-full transition-all" [style.width.%]="getProgressPercentage()"></div>
+      </div>
+    </div>
+
+    <!-- Form -->
+    <div class="bg-white rounded-lg shadow p-6">
+      <form [formGroup]="employmentForm" (ngSubmit)="onSubmit()">
+        
+        <!-- Step 1: Employment Type -->
+        @if (currentStep() === 1) {
+          <div class="space-y-4">
+            <h2 class="text-xl font-semibold mb-4">Select Employment Type</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              @for (type of employmentTypes; track type.value) {
+                <button type="button" (click)="employmentForm.patchValue({employmentType: type.value})"
+                  class="p-4 border-2 rounded-lg text-center transition"
+                  [class.border-primary-500]="employmentForm.get('employmentType')?.value === type.value"
+                  [class.bg-primary-50]="employmentForm.get('employmentType')?.value === type.value"
+                  [class.border-gray-200]="employmentForm.get('employmentType')?.value !== type.value">
+                  <div class="text-3xl mb-2">{{ type.icon }}</div>
+                  <div class="font-medium">{{ type.label }}</div>
+                  <div class="text-xs text-gray-500 mt-1">{{ type.description }}</div>
+                </button>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- Step 2: Employment Details -->
+        @if (currentStep() === 2) {
+          <div class="space-y-4">
+            <h2 class="text-xl font-semibold mb-4">Employment Details</h2>
+            
+            @if (selectedEmploymentType() === 'SELF_EMPLOYED' || selectedEmploymentType() === 'BUSINESS_OWNER') {
+              <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-4">
+                <p class="text-sm text-blue-700">
+                  <span class="font-semibold">ℹ️ Note:</span> Please fill the form fields with your business details. 
+                  The labels are adapted based on your employment type. Additional specific fields (GST, Registration Numbers, etc.) 
+                  will be requested during document upload.
+                </p>
+              </div>
+            }
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium mb-1">
+                  @if (selectedEmploymentType() === 'SALARIED') {
+                    Company Name *
+                  } @else if (selectedEmploymentType() === 'SELF_EMPLOYED') {
+                    Business/Practice Name *
+                  } @else if (selectedEmploymentType() === 'BUSINESS_OWNER') {
+                    Company/Business Name *
+                  } @else {
+                    Company Name *
+                  }
+                </label>
+                <input type="text" formControlName="companyName" 
+                  class="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-primary-500"
+                  [placeholder]="selectedEmploymentType() === 'SALARIED' ? 'Enter company name' : 
+                                 selectedEmploymentType() === 'SELF_EMPLOYED' ? 'Enter business/practice name' :
+                                 selectedEmploymentType() === 'BUSINESS_OWNER' ? 'Enter company name' : 'Enter name'">
+                @if (getFieldError('companyName')) {
+                  <p class="text-red-600 text-xs mt-1">{{ getFieldError('companyName') }}</p>
+                }
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium mb-1">
+                  @if (selectedEmploymentType() === 'SALARIED') {
+                    Designation *
+                  } @else if (selectedEmploymentType() === 'SELF_EMPLOYED') {
+                    Nature of Business *
+                  } @else if (selectedEmploymentType() === 'BUSINESS_OWNER') {
+                    Business Type *
+                  } @else {
+                    Job Title *
+                  }
+                </label>
+                <input type="text" formControlName="jobTitle"
+                  class="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-primary-500"
+                  [placeholder]="selectedEmploymentType() === 'SALARIED' ? 'Your designation' : 
+                                 selectedEmploymentType() === 'SELF_EMPLOYED' ? 'e.g., Consultancy, Medical Practice' :
+                                 selectedEmploymentType() === 'BUSINESS_OWNER' ? 'e.g., Proprietorship, Partnership, Pvt Ltd' : 'Your title'">
+                @if (getFieldError('jobTitle')) {
+                  <p class="text-red-600 text-xs mt-1">{{ getFieldError('jobTitle') }}</p>
+                }
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium mb-1">
+                  @if (selectedEmploymentType() === 'SALARIED') {
+                    Employment Start Date *
+                  } @else if (selectedEmploymentType() === 'SELF_EMPLOYED') {
+                    Business Start Date *
+                  } @else if (selectedEmploymentType() === 'BUSINESS_OWNER') {
+                    Date of Incorporation *
+                  } @else {
+                    Start Date *
+                  }
+                </label>
+                <input type="date" formControlName="employmentStartDate"
+                  [max]="getCurrentDate()"
+                  class="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-primary-500">
+                @if (getFieldError('employmentStartDate')) {
+                  <p class="text-red-600 text-xs mt-1">{{ getFieldError('employmentStartDate') }}</p>
+                }
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium mb-1">
+                  @if (selectedEmploymentType() === 'SALARIED') {
+                    Work Phone
+                  } @else {
+                    Business Phone
+                  }
+                </label>
+                <input type="tel" formControlName="workPhone" maxlength="10"
+                  class="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-primary-500"
+                  [placeholder]="selectedEmploymentType() === 'SALARIED' ? '10-digit work number' : '10-digit business number'">
+                @if (getFieldError('workPhone')) {
+                  <p class="text-red-600 text-xs mt-1">{{ getFieldError('workPhone') }}</p>
+                }
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium mb-1">
+                @if (selectedEmploymentType() === 'SALARIED') {
+                  Office Address *
+                } @else if (selectedEmploymentType() === 'SELF_EMPLOYED') {
+                  Business Address *
+                } @else if (selectedEmploymentType() === 'BUSINESS_OWNER') {
+                  Registered Office Address *
+                } @else {
+                  Address *
+                }
+              </label>
+              <input type="text" formControlName="companyAddress"
+                class="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-primary-500"
+                placeholder="Building, Street, Area">
+              @if (getFieldError('companyAddress')) {
+                <p class="text-red-600 text-xs mt-1">{{ getFieldError('companyAddress') }}</p>
+              }
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label class="block text-sm font-medium mb-1">City *</label>
+                <input type="text" formControlName="companyCity"
+                  class="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-primary-500">
+                @if (getFieldError('companyCity')) {
+                  <p class="text-red-600 text-xs mt-1">{{ getFieldError('companyCity') }}</p>
+                }
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium mb-1">State *</label>
+                <select formControlName="companyState"
+                  class="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-primary-500">
+                  <option value="">Select State</option>
+                  @for (state of states; track state) {
+                    <option [value]="state">{{ state }}</option>
+                  }
+                </select>
+                @if (getFieldError('companyState')) {
+                  <p class="text-red-600 text-xs mt-1">{{ getFieldError('companyState') }}</p>
+                }
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium mb-1">PIN Code *</label>
+                <input type="text" formControlName="companyPincode" maxlength="6"
+                  class="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-primary-500"
+                  placeholder="6-digit PIN">
+                @if (getFieldError('companyPincode')) {
+                  <p class="text-red-600 text-xs mt-1">{{ getFieldError('companyPincode') }}</p>
+                }
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- Step 3: Income Details -->
+        @if (currentStep() === 3) {
+          <div class="space-y-4">
+            <h2 class="text-xl font-semibold mb-4">Income Details</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium mb-1">Income Type *</label>
+                <select formControlName="incomeType"
+                  [class]="'w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-primary-500 ' + (isIncomeTypeReadonly() ? 'bg-gray-100 cursor-not-allowed' : '')"
+                  [attr.readonly]="isIncomeTypeReadonly() ? true : null"
+                  (mousedown)="isIncomeTypeReadonly() ? $event.preventDefault() : null">
+                  <option value="">Select Type</option>
+                  @for (type of incomeTypes; track type.value) {
+                    <option [value]="type.value">{{ type.label }}</option>
+                  }
+                </select>
+                @if (getFieldError('incomeType')) {
+                  <p class="text-red-600 text-xs mt-1">{{ getFieldError('incomeType') }}</p>
+                }
+                @if (isIncomeTypeReadonly()) {
+                  <p class="text-xs text-blue-600 mt-1">ℹ️ Auto-selected based on your employment type</p>
+                }
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium mb-1">Monthly Income *</label>
+                <div class="relative">
+                  <span class="absolute left-3 top-2.5 text-gray-500">₹</span>
+                  <input type="number" formControlName="monthlyIncome"
+                    class="w-full pl-8 pr-3 py-2 border rounded-md focus:ring-2 focus:ring-primary-500"
+                    placeholder="50000">
+                </div>
+                @if (getFieldError('monthlyIncome')) {
+                  <p class="text-red-600 text-xs mt-1">{{ getFieldError('monthlyIncome') }}</p>
+                }
+                <p class="text-xs text-gray-500 mt-1">Minimum: ₹10,000</p>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium mb-1">Additional Income (Optional)</label>
+              <div class="relative">
+                <span class="absolute left-3 top-2.5 text-gray-500">₹</span>
+                <input type="number" formControlName="additionalIncome"
+                  class="w-full pl-8 pr-3 py-2 border rounded-md focus:ring-2 focus:ring-primary-500"
+                  placeholder="0">
+              </div>
+            </div>
+
+            @if (getTotalIncome() > 0) {
+              <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div class="flex justify-between items-center">
+                  <span class="font-medium">Total Monthly Income:</span>
+                  <span class="text-xl font-bold text-green-600">{{ formatCurrency(getTotalIncome()) }}</span>
+                </div>
+              </div>
+            }
+          </div>
+        }
+
+        <!-- Step 4: Banking Details -->
+        @if (currentStep() === 4) {
+          <div class="space-y-4">
+            <h2 class="text-xl font-semibold mb-4">Banking Details</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium mb-1">Bank Name *</label>
+                <input type="text" formControlName="bankName"
+                  class="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-primary-500"
+                  placeholder="e.g., HDFC Bank">
+                @if (getFieldError('bankName')) {
+                  <p class="text-red-600 text-xs mt-1">{{ getFieldError('bankName') }}</p>
+                }
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium mb-1">Account Type *</label>
+                <select formControlName="accountType"
+                  class="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-primary-500">
+                  <option value="">Select Type</option>
+                  @for (type of accountTypes; track type.value) {
+                    <option [value]="type.value">{{ type.label }}</option>
+                  }
+                </select>
+                @if (getFieldError('accountType')) {
+                  <p class="text-red-600 text-xs mt-1">{{ getFieldError('accountType') }}</p>
+                }
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium mb-1">Account Number *</label>
+                <input type="text" formControlName="accountNumber"
+                  class="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-primary-500"
+                  placeholder="Account number">
+                @if (getFieldError('accountNumber')) {
+                  <p class="text-red-600 text-xs mt-1">{{ getFieldError('accountNumber') }}</p>
+                }
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium mb-1">IFSC Code *</label>
+                <input type="text" formControlName="ifscCode" maxlength="11"
+                  class="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-primary-500"
+                  placeholder="HDFC0001234" style="text-transform: uppercase;">
+                @if (getFieldError('ifscCode')) {
+                  <p class="text-red-600 text-xs mt-1">{{ getFieldError('ifscCode') }}</p>
+                }
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium mb-1">Branch Name *</label>
+                <input type="text" formControlName="branchName"
+                  class="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-primary-500"
+                  placeholder="Branch name">
+                @if (getFieldError('branchName')) {
+                  <p class="text-red-600 text-xs mt-1">{{ getFieldError('branchName') }}</p>
+                }
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium mb-1">Avg. Balance *</label>
+                <div class="relative">
+                  <span class="absolute left-3 top-2.5 text-gray-500">₹</span>
+                  <input type="number" formControlName="bankAccountBalance"
+                    class="w-full pl-8 pr-3 py-2 border rounded-md focus:ring-2 focus:ring-primary-500"
+                    placeholder="50000">
+                </div>
+                @if (getFieldError('bankAccountBalance')) {
+                  <p class="text-red-600 text-xs mt-1">{{ getFieldError('bankAccountBalance') }}</p>
+                }
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- Step 5: Financial Obligations -->
+        @if (currentStep() === 5) {
+          <div class="space-y-4">
+            <h2 class="text-xl font-semibold mb-4">Financial Obligations</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium mb-1">Monthly Expenses *</label>
+                <div class="relative">
+                  <span class="absolute left-3 top-2.5 text-gray-500">₹</span>
+                  <input type="number" formControlName="monthlyExpenses"
+                    class="w-full pl-8 pr-3 py-2 border rounded-md focus:ring-2 focus:ring-primary-500"
+                    placeholder="20000">
+                </div>
+                @if (getFieldError('monthlyExpenses')) {
+                  <p class="text-red-600 text-xs mt-1">{{ getFieldError('monthlyExpenses') }}</p>
+                }
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium mb-1">Existing Loan EMI</label>
+                <div class="relative">
+                  <span class="absolute left-3 top-2.5 text-gray-500">₹</span>
+                  <input type="number" formControlName="existingLoanEmi"
+                    class="w-full pl-8 pr-3 py-2 border rounded-md focus:ring-2 focus:ring-primary-500"
+                    placeholder="0">
+                </div>
+              </div>
+
+              <div class="md:col-span-2">
+                <label class="block text-sm font-medium mb-1">Credit Card Outstanding</label>
+                <div class="relative">
+                  <span class="absolute left-3 top-2.5 text-gray-500">₹</span>
+                  <input type="number" formControlName="creditCardOutstanding"
+                    class="w-full pl-8 pr-3 py-2 border rounded-md focus:ring-2 focus:ring-primary-500"
+                    placeholder="0">
+                </div>
+              </div>
+            </div>
+
+            <!-- Financial Summary -->
+            @if (getTotalIncome() > 0) {
+              <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
+                <h3 class="font-semibold">Financial Summary</h3>
+                <div class="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <span class="text-gray-600">Total Income:</span>
+                    <span class="font-medium ml-2">{{ formatCurrency(getTotalIncome()) }}</span>
+                  </div>
+                  <div>
+                    <span class="text-gray-600">Obligations:</span>
+                    <span class="font-medium ml-2">{{ formatCurrency(getTotalObligations()) }}</span>
+                  </div>
+                  <div>
+                    <span class="text-gray-600">Disposable Income:</span>
+                    <span class="font-medium ml-2 text-green-600">{{ formatCurrency(getDisposableIncome()) }}</span>
+                  </div>
+                  <div>
+                    <span class="text-gray-600">FOIR:</span>
+                    <span class="font-medium ml-2" [class.text-green-600]="getFOIR() < 50" 
+                      [class.text-yellow-600]="getFOIR() >= 50 && getFOIR() < 70"
+                      [class.text-red-600]="getFOIR() >= 70">
+                      {{ getFOIR() }}%
+                    </span>
+                  </div>
+                </div>
+                @if (getFOIR() >= 70) {
+                  <p class="text-xs text-red-600">⚠️ High FOIR - Loan approval may be affected</p>
+                } @else if (getFOIR() >= 50) {
+                  <p class="text-xs text-yellow-600">⚠️ Moderate FOIR - Consider reducing obligations</p>
+                } @else {
+                  <p class="text-xs text-green-600">✓ Good FOIR - Healthy financial profile</p>
+                }
+              </div>
+            }
+          </div>
+        }
+
+        <!-- Form Actions -->
+        <div class="flex justify-between items-center mt-6 pt-6 border-t">
+          <button type="button" (click)="cancel()"
+            class="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50">
+            Cancel
+          </button>
+
+          <div class="space-x-2">
+            @if (currentStep() > 1) {
+              <button type="button" (click)="previousStep()"
+                class="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50">
+                Previous
+              </button>
+            }
+
+            @if (currentStep() < totalSteps) {
+              <button type="button" (click)="nextStep()" [disabled]="!isStepValid(currentStep())"
+                class="px-6 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                Next
+              </button>
+            } @else {
+              <button type="submit" [disabled]="!employmentForm.valid || isLoading()"
+                class="px-6 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                @if (isLoading()) {
+                  <span>Saving...</span>
+                } @else {
+                  <span>Submit & Continue</span>
+                }
+              </button>
+            }
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

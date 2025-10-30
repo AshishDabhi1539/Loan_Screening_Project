@@ -21,18 +21,13 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.tss.loan.dto.request.ApplicantFinancialDetailsRequest;
-import com.tss.loan.dto.request.ApplicantPersonalDetailsRequest;
 import com.tss.loan.dto.request.LoanApplicationRequest;
 import com.tss.loan.dto.response.LoanApplicationResponse;
 import com.tss.loan.dto.response.LoanApplicationCreateResponse;
-import com.tss.loan.dto.response.ProfileStatusResponse;
-import com.tss.loan.dto.response.PersonalDetailsUpdateResponse;
-import com.tss.loan.dto.response.PersonalDetailsCreateResponse;
 import com.tss.loan.dto.response.FinancialDetailsCreateResponse;
 import com.tss.loan.dto.response.DocumentUploadResponse;
 import com.tss.loan.dto.response.LoanDocumentResponse;
 import com.tss.loan.entity.loan.LoanApplication;
-import com.tss.loan.service.ProfileCompletionService;
 import com.tss.loan.entity.loan.LoanDocument;
 import com.tss.loan.mapper.LoanDocumentMapper;
 import com.tss.loan.mapper.LoanApplicationMapper;
@@ -40,7 +35,6 @@ import com.tss.loan.entity.enums.DocumentType;
 import com.tss.loan.entity.user.User;
 import com.tss.loan.service.DocumentUploadService;
 import com.tss.loan.service.LoanApplicationService;
-import com.tss.loan.service.PersonalDetailsService;
 import com.tss.loan.service.UserService;
 
 import jakarta.validation.Valid;
@@ -61,11 +55,6 @@ public class LoanApplicationController {
     @Autowired
     private UserService userService;
     
-    @Autowired
-    private ProfileCompletionService profileCompletionService;
-    
-    @Autowired
-    private PersonalDetailsService personalDetailsService;
     
     @Autowired
     private LoanDocumentMapper loanDocumentMapper;
@@ -89,22 +78,6 @@ public class LoanApplicationController {
         return ResponseEntity.status(HttpStatus.CREATED).body(application);
     }
     
-    /**
-     * Update personal details for existing application (gets existing data from application context)
-     */
-    @PutMapping("/{applicationId}/personal-details")
-    public ResponseEntity<PersonalDetailsUpdateResponse> updatePersonalDetailsForApplication(
-            @PathVariable UUID applicationId,
-            @Valid @RequestBody ApplicantPersonalDetailsRequest request,
-            Authentication authentication) {
-        
-        log.info("Updating personal details for application: {}", applicationId);
-        
-        User user = getCurrentUser(authentication);
-        PersonalDetailsUpdateResponse response = loanApplicationService.updatePersonalDetailsFromApplication(applicationId, request, user);
-        
-        return ResponseEntity.ok(response);
-    }
     
     /**
      * Create financial details for application
@@ -234,34 +207,6 @@ public class LoanApplicationController {
         return ResponseEntity.ok(isComplete);
     }
     
-    /**
-     * Check if user has completed personal details (required before loan application)
-     */
-    @GetMapping("/profile-status")
-    public ResponseEntity<ProfileStatusResponse> hasPersonalDetails(Authentication authentication) {
-        log.info("Checking personal details completion for user: {}", authentication.getName());
-        
-        User user = getCurrentUser(authentication);
-        ProfileStatusResponse response = profileCompletionService.getProfileStatus(user);
-        
-        return ResponseEntity.ok(response);
-    }
-    
-    /**
-     * Create/Update personal details directly (not tied to specific loan application)
-     */
-    @PostMapping("/personal-details")
-    public ResponseEntity<PersonalDetailsCreateResponse> createPersonalDetails(
-            @Valid @RequestBody ApplicantPersonalDetailsRequest request,
-            Authentication authentication) {
-        
-        log.info("Creating/updating personal details for user: {}", authentication.getName());
-        
-        User user = getCurrentUser(authentication);
-        PersonalDetailsCreateResponse response = personalDetailsService.createOrUpdatePersonalDetailsWithResponse(request, user);
-        
-        return ResponseEntity.ok(response);
-    }
     
     /**
      * Get resubmission requirements for applicant

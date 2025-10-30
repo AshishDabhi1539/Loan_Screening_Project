@@ -17,6 +17,7 @@ public interface UserService {
     List<User> findAllUsers();
     User updateEmailVerificationStatus(User user, boolean verified);
     User updateUser(User user);
+    User saveUserDirectly(User user); // Save user without validation (for post-verification creation)
     boolean existsByEmail(String email);
     boolean existsByPhone(String phone);
 }

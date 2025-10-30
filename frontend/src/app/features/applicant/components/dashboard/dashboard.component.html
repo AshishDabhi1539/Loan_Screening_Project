@@ -15,12 +15,12 @@
               Complete Your Profile
             </h3>
             <p class="mt-1 text-sm text-orange-100">
-              You need to complete your personal details before you can apply for a loan.
+              You need to complete your personal details before you apply for a loan.
             </p>
           </div>
           <div class="ml-4">
             <a
-              routerLink="/applicant/profile"
+              routerLink="/applicant/personal-details"
               class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-lg transition-all duration-200 text-sm font-medium"
             >
               Complete Profile
@@ -169,7 +169,7 @@
         <!-- New Application -->
         @if (canApplyForLoan()) {
           <a
-            routerLink="/applicant/apply"
+            routerLink="/applicant/apply-loan"
             (click)="startNewApplication()"
             class="group relative bg-gradient-to-r from-primary-500 to-primary-600 rounded-lg p-6 text-white hover:from-primary-600 hover:to-primary-700 transition-all duration-200 transform hover:scale-105"
           >
@@ -217,21 +217,38 @@
           </div>
         </a>
 
-        <!-- Profile -->
-        <a
-          routerLink="/applicant/profile"
-          class="group relative bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-6 text-white hover:from-green-600 hover:to-green-700 transition-all duration-200 transform hover:scale-105"
-        >
-          <div class="flex items-center">
-            <svg class="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
-            <div class="ml-4">
-              <h3 class="text-lg font-semibold">My Profile</h3>
-              <p class="text-green-100">Update profile info</p>
+        <!-- Profile - Conditional based on hasPersonalDetails -->
+        @if (userProfile()?.hasPersonalDetails) {
+          <a
+            routerLink="/applicant/profile"
+            class="group relative bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-6 text-white hover:from-green-600 hover:to-green-700 transition-all duration-200 transform hover:scale-105"
+          >
+            <div class="flex items-center">
+              <svg class="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+              <div class="ml-4">
+                <h3 class="text-lg font-semibold">My Profile</h3>
+                <p class="text-green-100">View your details</p>
+              </div>
             </div>
-          </div>
-        </a>
+          </a>
+        } @else {
+          <a
+            routerLink="/applicant/personal-details"
+            class="group relative bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg p-6 text-white hover:from-orange-600 hover:to-orange-700 transition-all duration-200 transform hover:scale-105"
+          >
+            <div class="flex items-center">
+              <svg class="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+              <div class="ml-4">
+                <h3 class="text-lg font-semibold">Complete Profile</h3>
+                <p class="text-orange-100">Fill personal details</p>
+              </div>
+            </div>
+          </a>
+        }
       </div>
     </div>
   </div>
@@ -275,7 +292,7 @@
         <p class="mt-2 text-gray-500">Get started by creating your first loan application.</p>
         <div class="mt-6">
           <a
-            routerLink="/applicant/apply"
+            routerLink="/applicant/apply-loan"
             class="btn btn-primary"
           >
             Apply for Loan

@@ -56,6 +56,11 @@ public class PersonalDetailsServiceImpl implements PersonalDetailsService {
         personalDetails.setPhoneNumber(user.getPhone());
         personalDetails.setEmailAddress(user.getEmail());
         
+        // Additional optional fields
+        personalDetails.setAlternatePhoneNumber(request.getAlternatePhoneNumber());
+        personalDetails.setDependentsCount(request.getDependentsCount() != null ? request.getDependentsCount() : 0);
+        personalDetails.setSpouseName(request.getSpouseName());
+        
         // Current Address - combine address lines
         String currentFullAddress = request.getCurrentAddressLine1();
         if (request.getCurrentAddressLine2() != null && !request.getCurrentAddressLine2().trim().isEmpty()) {
@@ -132,6 +137,65 @@ public class PersonalDetailsServiceImpl implements PersonalDetailsService {
                 .canApplyForLoan(false)
                 .nextAction("Retry")
                 .nextActionUrl("/api/loan-application/personal-details")
+                .updatedAt(LocalDateTime.now())
+                .build();
+        }
+    }
+    
+    @Override
+    public PersonalDetailsCreateResponse getPersonalDetailsForUser(User user) {
+        log.info("Getting personal details for user: {}", user.getEmail());
+        
+        try {
+            // Get existing personal details
+            ApplicantPersonalDetails details = personalDetailsRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new LoanApiException("Personal details not found for user: " + user.getEmail()));
+            
+            log.info("Found personal details for user: {} - {}", user.getEmail(), details.getFirstName() + " " + details.getLastName());
+            
+            // Return success response with actual personal details data
+            return PersonalDetailsCreateResponse.builder()
+                .message("✅ Personal details found successfully!")
+                .canApplyForLoan(true)
+                .nextAction("Update Details")
+                .nextActionUrl("/api/applicant/profile/personal-details")
+                .updatedAt(details.getUpdatedAt())
+                // Add actual personal details data
+                .firstName(details.getFirstName())
+                .lastName(details.getLastName())
+                .middleName(details.getMiddleName())
+                .dateOfBirth(details.getDateOfBirth())
+                .gender(details.getGender())
+                .maritalStatus(details.getMaritalStatus())
+                .fatherName(details.getFatherName())
+                .motherName(details.getMotherName())
+                .panNumber(details.getPanNumber())
+                .aadhaarNumber(details.getAadhaarNumber())
+                .currentAddressLine1(details.getCurrentAddress())
+                .currentAddressLine2(null) // Entity doesn't have separate line2
+                .currentCity(details.getCurrentCity())
+                .currentState(details.getCurrentState())
+                .currentPincode(details.getCurrentPincode())
+                .sameAsCurrent(details.getIsSameAddress())
+                .permanentAddressLine1(details.getPermanentAddress())
+                .permanentAddressLine2(null) // Entity doesn't have separate line2
+                .permanentCity(details.getPermanentCity())
+                .permanentState(details.getPermanentState())
+                .permanentPincode(details.getPermanentPincode())
+                .alternatePhoneNumber(details.getAlternatePhoneNumber())
+                .dependentsCount(details.getDependentsCount())
+                .spouseName(details.getSpouseName())
+                .build();
+                
+        } catch (Exception e) {
+            log.warn("Personal details not found for user {}: {}", user.getEmail(), e.getMessage());
+            
+            // Return response indicating no data found
+            return PersonalDetailsCreateResponse.builder()
+                .message("ℹ️ No personal details found. Please complete your profile.")
+                .canApplyForLoan(false)
+                .nextAction("Complete Profile")
+                .nextActionUrl("/api/applicant/profile/personal-details")
                 .updatedAt(LocalDateTime.now())
                 .build();
         }

@@ -44,27 +44,40 @@ public class AuthServiceImpl implements AuthService {
     
     @Override
     public RegistrationResponse register(UserRegistrationRequest request) {
-        // Create user (validation happens in UserService)
-        User user = userService.createUser(request);
-        
-        // Generate and send OTP for email verification
-        boolean otpSent = otpService.generateAndSendEmailOtp(user);
-        
-        if (!otpSent) {
-            throw new LoanApiException("Registration successful but failed to send verification email. Please try resending OTP.");
+        // ✅ NEW APPROACH: Store registration data in-memory (NOT in database)
+        // Validate that email/phone don't exist in database
+        if (userService.existsByEmail(request.getEmail())) {
+            throw new LoanApiException("An account with this email already exists. Please login instead.");
+        }
+        if (userService.existsByPhone(request.getPhone())) {
+            throw new LoanApiException("An account with this phone number already exists. Please use a different number.");
         }
         
-        auditLogService.logAction(user, "USER_REGISTRATION_COMPLETED", "User", null, 
-        "User registration completed, OTP sent for verification");
+        // Encrypt password BEFORE storing in memory
+        String passwordHash = passwordEncoder.encode(request.getPassword());
+        
+        // Generate and send OTP (stores data in-memory for 5 minutes)
+        boolean otpSent = otpService.generateAndSendRegistrationOtp(
+            request.getEmail(), 
+            request.getPhone(), 
+            passwordHash
+        );
+        
+        if (!otpSent) {
+            throw new LoanApiException("Failed to send verification email. Please try again.");
+        }
+        
+        auditLogService.logAction(null, "REGISTRATION_INITIATED", "PendingRegistration", null, 
+            "Registration initiated for email: " + request.getEmail() + ". Data stored in-memory for 5 minutes.");
         
         return RegistrationResponse.builder()
-                .userId(user.getId())
-                .email(user.getEmail())
-                .status(user.getStatus().toString())
-                .role(user.getRole().toString())
+                .userId(null) // No user ID yet - user not created until verification
+                .email(request.getEmail())
+                .status("PENDING_VERIFICATION")
+                .role("APPLICANT")
                 .requiresEmailVerification(true)
                 .requiresPhoneVerification(false)
-                .message("📧 Registration successful! Your account is PENDING_VERIFICATION. Please check your email and verify to activate your account.")
+                .message("📧 Registration initiated! Please check your email and verify within 5 minutes to complete registration.")
                 .timestamp(LocalDateTime.now())
                 .build();
     }
@@ -129,20 +142,61 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public VerificationResponse verifyEmailOtp(OtpVerificationRequest request) {
         try {
-            // Find user
-            User user = userService.findByEmail(request.getEmail());
+            // ✅ NEW APPROACH: Check if this is a registration OTP or existing user OTP
+            com.tss.loan.dto.PendingRegistration pendingReg = otpService.verifyRegistrationOtp(
+                request.getEmail(), 
+                request.getOtpCode()
+            );
             
-            // Verify OTP
+            if (pendingReg != null) {
+                // This is a NEW REGISTRATION - Create user NOW after verification
+                User user = new User();
+                user.setEmail(pendingReg.getEmail());
+                user.setPhone(pendingReg.getPhone());
+                user.setPasswordHash(pendingReg.getPasswordHash()); // Already encrypted
+                user.setRole(com.tss.loan.entity.enums.RoleType.APPLICANT);
+                user.setStatus(com.tss.loan.entity.enums.UserStatus.ACTIVE); // Directly ACTIVE
+                user.setIsEmailVerified(true); // Already verified
+                user.setIsPhoneVerified(true);
+                user.setFailedLoginAttempts(0);
+                user.setCreatedAt(LocalDateTime.now());
+                user.setUpdatedAt(LocalDateTime.now());
+                
+                // Save user to database
+                user = userService.saveUserDirectly(user);
+                
+                // ✅ REMOVE from memory after successful user creation
+                otpService.removePendingRegistration(request.getEmail());
+                
+                // Send welcome email
+                emailService.sendWelcomeEmail(user.getEmail(), user.getEmail(), user);
+                
+                auditLogService.logAction(user, "USER_CREATED_AFTER_VERIFICATION", "User", null, 
+                    "User created successfully after email verification: " + user.getEmail());
+                
+                return VerificationResponse.builder()
+                    .message(String.format("🎉 Registration completed successfully! Welcome %s. Your account is now ACTIVE and you can login.", 
+                        user.getEmail()))
+                    .timestamp(LocalDateTime.now())
+                    .success(true)
+                    .userId(user.getId())
+                    .email(user.getEmail())
+                    .status(user.getStatus().toString())
+                    .role(user.getRole().toString())
+                    .requiresEmailVerification(false)
+                    .requiresPhoneVerification(false)
+                    .build();
+            }
+            
+            // This is an EXISTING USER verifying email (old flow)
+            User user = userService.findByEmail(request.getEmail());
             boolean isVerified = otpService.verifyEmailOtp(user, request.getOtpCode());
             
             if (!isVerified) {
                 throw new LoanApiException("OTP verification failed");
             }
             
-            // Update user email verification status
             user = userService.updateEmailVerificationStatus(user, true);
-            
-            // Send welcome email
             emailService.sendWelcomeEmail(user.getEmail(), user.getEmail(), user);
             
             auditLogService.logAction(user, "EMAIL_VERIFIED_SUCCESS", "User", null, 
@@ -157,7 +211,7 @@ public class AuthServiceImpl implements AuthService {
                 .email(user.getEmail())
                 .status(user.getStatus().toString())
                 .role(user.getRole().toString())
-                .requiresEmailVerification(false) // Now verified
+                .requiresEmailVerification(false)
                 .requiresPhoneVerification(false)
                 .build();
                 

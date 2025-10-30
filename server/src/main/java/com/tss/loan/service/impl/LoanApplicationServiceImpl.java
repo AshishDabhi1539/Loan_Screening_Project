@@ -570,11 +570,32 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
         financialProfile.setEmploymentStartDate(request.getEmploymentStartDate());
         financialProfile.setWorkAddress(request.getCompanyAddress());
         financialProfile.setWorkCity(request.getCompanyCity());
+        financialProfile.setWorkPhone(request.getWorkPhone());
+        financialProfile.setWorkEmail(request.getWorkEmail());
+        
+        // Set company contact details
+        financialProfile.setHrPhone(request.getHrPhone());
+        financialProfile.setHrEmail(request.getHrEmail());
+        financialProfile.setManagerName(request.getManagerName());
+        financialProfile.setManagerPhone(request.getManagerPhone());
+        // Store state and pincode in companyAddress field (since no separate columns exist)
+        if (request.getCompanyState() != null || request.getCompanyPincode() != null) {
+            String fullAddress = request.getCompanyAddress();
+            if (request.getCompanyState() != null) {
+                fullAddress += ", " + request.getCompanyState();
+            }
+            if (request.getCompanyPincode() != null) {
+                fullAddress += " - " + request.getCompanyPincode();
+            }
+            financialProfile.setCompanyAddress(fullAddress);
+        }
         
         // Set income details
+        financialProfile.setIncomeType(request.getIncomeType());
         financialProfile.setPrimaryMonthlyIncome(request.getMonthlyIncome());
         financialProfile.setSecondaryIncome(request.getAdditionalIncome());
         financialProfile.setExistingEmiAmount(request.getExistingLoanEmi());
+        financialProfile.setCreditCardOutstanding(request.getCreditCardOutstanding());
         financialProfile.setMonthlyExpenses(request.getMonthlyExpenses());
         
         // Set banking details
@@ -582,6 +603,8 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
         financialProfile.setPrimaryAccountNumber(request.getAccountNumber());
         financialProfile.setIfscCode(request.getIfscCode());
         financialProfile.setAccountType(request.getAccountType());
+        financialProfile.setBranchName(request.getBranchName());
+        financialProfile.setCurrentBankBalance(request.getBankAccountBalance());
         
         financialProfile.setCreatedAt(LocalDateTime.now());
         financialProfile.setUpdatedAt(LocalDateTime.now());
@@ -628,11 +651,32 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
         financialProfile.setEmploymentStartDate(request.getEmploymentStartDate());
         financialProfile.setWorkAddress(request.getCompanyAddress());
         financialProfile.setWorkCity(request.getCompanyCity());
+        financialProfile.setWorkPhone(request.getWorkPhone());
+        financialProfile.setWorkEmail(request.getWorkEmail());
+        
+        // Update company contact details
+        financialProfile.setHrPhone(request.getHrPhone());
+        financialProfile.setHrEmail(request.getHrEmail());
+        financialProfile.setManagerName(request.getManagerName());
+        financialProfile.setManagerPhone(request.getManagerPhone());
+        // Store state and pincode in companyAddress field (since no separate columns exist)
+        if (request.getCompanyState() != null || request.getCompanyPincode() != null) {
+            String fullAddress = request.getCompanyAddress();
+            if (request.getCompanyState() != null) {
+                fullAddress += ", " + request.getCompanyState();
+            }
+            if (request.getCompanyPincode() != null) {
+                fullAddress += " - " + request.getCompanyPincode();
+            }
+            financialProfile.setCompanyAddress(fullAddress);
+        }
         
         // Update income details
+        financialProfile.setIncomeType(request.getIncomeType());
         financialProfile.setPrimaryMonthlyIncome(request.getMonthlyIncome());
         financialProfile.setSecondaryIncome(request.getAdditionalIncome());
         financialProfile.setExistingEmiAmount(request.getExistingLoanEmi());
+        financialProfile.setCreditCardOutstanding(request.getCreditCardOutstanding());
         financialProfile.setMonthlyExpenses(request.getMonthlyExpenses());
         
         // Update banking details
@@ -640,6 +684,8 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
         financialProfile.setPrimaryAccountNumber(request.getAccountNumber());
         financialProfile.setIfscCode(request.getIfscCode());
         financialProfile.setAccountType(request.getAccountType());
+        financialProfile.setBranchName(request.getBranchName());
+        financialProfile.setCurrentBankBalance(request.getBankAccountBalance());
         
         financialProfile.setUpdatedAt(LocalDateTime.now());
         ApplicantFinancialProfile savedProfile = financialProfileRepository.save(financialProfile);

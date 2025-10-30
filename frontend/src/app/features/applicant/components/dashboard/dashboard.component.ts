@@ -1,6 +1,6 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 
 import { AuthService } from '../../../../core/services/auth.service';
 import { NotificationService } from '../../../../core/services/notification.service';
@@ -15,6 +15,7 @@ import { UserProfileService, UserProfile } from '../../../../core/services/user-
   styleUrl: './dashboard.component.css'
 })
 export class DashboardComponent implements OnInit {
+  private router = inject(Router);
   private authService = inject(AuthService);
   private notificationService = inject(NotificationService);
   private dashboardService = inject(DashboardService);
@@ -203,8 +204,10 @@ export class DashboardComponent implements OnInit {
    * View application details
    */
   viewApplication(applicationId: string): void {
-    this.notificationService.info('Application Details', `Loading details for application ${applicationId}...`);
-    // Router navigation will be handled by routerLink in template
+    // Navigate to employment details to continue the application
+    this.router.navigate(['/applicant/employment-details'], {
+      queryParams: { applicationId: applicationId }
+    });
   }
 
   /**

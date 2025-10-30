@@ -10,10 +10,22 @@ export const applicantRoutes: Routes = [
     path: 'dashboard',
     loadComponent: () => import('./components/dashboard/dashboard.component').then(m => m.DashboardComponent)
   },
-//   {
-//     path: 'apply',
-//     loadComponent: () => import('./components/loan-application/loan-application.component').then(m => m.LoanApplicationComponent)
-//   },
+  {
+    path: 'profile',
+    loadComponent: () => import('./components/profile/profile.component').then(m => m.ProfileComponent)
+  },
+  {
+    path: 'personal-details',
+    loadComponent: () => import('./components/personal-details/personal-details.component').then(m => m.PersonalDetailsComponent)
+  },
+  {
+    path: 'apply-loan',
+    loadComponent: () => import('./components/loan-application/loan-application.component').then(m => m.LoanApplicationComponent)
+  },
+  {
+    path: 'employment-details',
+    loadComponent: () => import('./components/employment-details/employment-details.component').then(m => m.EmploymentDetailsComponent)
+  },
 //   {
 //     path: 'applications',
 //     loadComponent: () => import('./components/my-applications/my-applications.component').then(m => m.MyApplicationsComponent)

@@ -78,8 +78,8 @@ export class UserProfileService {
    * Get current user profile
    */
   getCurrentUserProfile(): Observable<UserProfile> {
-    console.log('🔄 Fetching user profile from:', '/loan-application/profile-status');
-    return this.apiService.get<any>('/loan-application/profile-status').pipe(
+    console.log('🔄 Fetching user profile from:', '/applicant/profile/status');
+    return this.apiService.get<any>('/applicant/profile/status').pipe(
       map(response => {
         console.log('✅ Profile API response:', response);
         return this.transformUserProfile(response);
@@ -101,7 +101,7 @@ export class UserProfileService {
    * Check if user has completed personal details
    */
   hasPersonalDetails(): Observable<boolean> {
-    return this.apiService.get<any>('/loan-application/profile-status').pipe(
+    return this.apiService.get<any>('/applicant/profile/status').pipe(
       map(response => response.hasPersonalDetails || false),
       catchError(error => {
         console.error('Failed to check personal details status:', error);
@@ -114,7 +114,7 @@ export class UserProfileService {
    * Get user's personal details
    */
   getPersonalDetails(): Observable<PersonalDetailsResponse> {
-    return this.apiService.get<PersonalDetailsResponse>('/loan-application/personal-details').pipe(
+    return this.apiService.get<PersonalDetailsResponse>('/applicant/profile/personal-details').pipe(
       catchError(error => {
         console.error('Failed to get personal details:', error);
         throw error;
@@ -126,7 +126,7 @@ export class UserProfileService {
    * Create or update personal details
    */
   savePersonalDetails(details: PersonalDetailsRequest): Observable<PersonalDetailsResponse> {
-    return this.apiService.post<PersonalDetailsResponse>('/loan-application/personal-details', details).pipe(
+    return this.apiService.post<PersonalDetailsResponse>('/applicant/profile/personal-details', details).pipe(
       catchError(error => {
         console.error('Failed to save personal details:', error);
         throw error;
@@ -171,7 +171,7 @@ export class UserProfileService {
     completionPercentage: number;
     missingFields: string[];
   }> {
-    return this.apiService.get<any>('/loan-application/profile-status').pipe(
+    return this.apiService.get<any>('/applicant/profile/status').pipe(
       map(response => ({
         hasPersonalDetails: response.hasPersonalDetails || false,
         canApplyForLoan: response.canApplyForLoan || false,
@@ -319,5 +319,23 @@ export class UserProfileService {
       }
     }
     return aadhaar;
+  }
+
+  /**
+   * Save personal details using new backend structure
+   */
+  savePersonalDetailsNew(personalDetails: any): Observable<any> {
+    console.log('Saving personal details to backend:', personalDetails);
+    
+    return this.apiService.post('/applicant/profile/personal-details', personalDetails).pipe(
+      map((response: any) => {
+        console.log('Personal details saved successfully:', response);
+        return response;
+      }),
+      catchError(error => {
+        console.error('Failed to save personal details:', error);
+        throw error;
+      })
+    );
   }
 }

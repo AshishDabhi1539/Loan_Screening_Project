@@ -2,25 +2,44 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
 
-// We'll create these models later
+// Loan Application Request (matches backend LoanApplicationRequest.java)
 export interface LoanApplicationRequest {
-  loanType: string;
-  requestedAmount: number;
+  loanType: string;  // LoanType enum
+  loanAmount: number;  // Backend uses loanAmount, not requestedAmount
+  tenureMonths: number;  // Backend uses tenureMonths
   purpose: string;
-  tenure: number;
+  additionalNotes?: string;
 }
 
-export interface LoanApplicationResponse {
+// Loan Application Create Response (matches backend LoanApplicationCreateResponse.java)
+export interface LoanApplicationCreateResponse {
   id: string;
-  applicantId: string;
   loanType: string;
   requestedAmount: number;
-  purpose: string;
-  tenure: number;
+  tenureMonths: number;
   status: string;
-  progress: number;
-  createdAt: Date;
-  updatedAt: Date;
+  message: string;
+  createdAt: string;
+  nextStep: string;
+  nextStepUrl: string;
+}
+
+// Full Loan Application Response
+export interface LoanApplicationResponse {
+  id: string;
+  applicantName: string;
+  applicantEmail: string;
+  applicantPhone: string;
+  loanType: string;
+  requestedAmount: number;
+  tenureMonths: number;
+  purpose: string;
+  status: string;
+  riskLevel?: string;
+  priority?: string;
+  submittedAt: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface DocumentUploadResponse {
@@ -40,8 +59,8 @@ export class LoanApplicationService {
   /**
    * Create new loan application
    */
-  createApplication(applicationData: LoanApplicationRequest): Observable<LoanApplicationResponse> {
-    return this.apiService.post<LoanApplicationResponse>('/loan-application/create', applicationData);
+  createApplication(applicationData: LoanApplicationRequest): Observable<LoanApplicationCreateResponse> {
+    return this.apiService.post<LoanApplicationCreateResponse>('/loan-application/create', applicationData);
   }
 
   /**
@@ -59,10 +78,11 @@ export class LoanApplicationService {
   }
 
   /**
-   * Update personal details for application
+   * Update personal details for application (now uses global profile endpoint)
    */
   updatePersonalDetails(applicationId: string, personalData: any): Observable<any> {
-    return this.apiService.put(`/loan-application/${applicationId}/personal-details`, personalData);
+    // Personal details are now managed globally, not per application
+    return this.apiService.put('/applicant/profile/personal-details', personalData);
   }
 
   /**
@@ -115,14 +135,14 @@ export class LoanApplicationService {
    * Get profile status
    */
   getProfileStatus(): Observable<any> {
-    return this.apiService.get('/loan-application/profile-status');
+    return this.apiService.get('/applicant/profile/status');
   }
 
   /**
    * Create/Update personal details (not tied to specific application)
    */
   createPersonalDetails(personalData: any): Observable<any> {
-    return this.apiService.post('/loan-application/personal-details', personalData);
+    return this.apiService.post('/applicant/profile/personal-details', personalData);
   }
 
   /**
