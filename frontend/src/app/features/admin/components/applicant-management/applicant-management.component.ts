@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -23,6 +23,13 @@ export class ApplicantManagementComponent implements OnInit {
   isLoading = signal(false);
   searchTerm = signal('');
   selectedStatus = signal('');
+  
+  // Pagination signals
+  currentPage = signal(1);
+  itemsPerPage = signal(10);
+  
+  // Items per page options
+  itemsPerPageOptions = [5, 10, 25, 50, 100];
 
   // Computed properties
   filteredApplicants = computed(() => {
@@ -47,6 +54,44 @@ export class ApplicantManagementComponent implements OnInit {
     return filtered;
   });
 
+  // Computed paginated applicants (after filtering)
+  paginatedApplicants = computed(() => {
+    const filtered = this.filteredApplicants();
+    const page = this.currentPage();
+    const perPage = this.itemsPerPage();
+    
+    const startIndex = (page - 1) * perPage;
+    const endIndex = startIndex + perPage;
+    
+    return filtered.slice(startIndex, endIndex);
+  });
+
+  // Computed pagination info
+  totalPages = computed(() => {
+    const total = this.filteredApplicants().length;
+    const perPage = this.itemsPerPage();
+    return Math.ceil(total / perPage);
+  });
+
+  totalItems = computed(() => this.filteredApplicants().length);
+
+  showingFrom = computed(() => {
+    const page = this.currentPage();
+    const perPage = this.itemsPerPage();
+    return (page - 1) * perPage + 1;
+  });
+
+  showingTo = computed(() => {
+    const page = this.currentPage();
+    const perPage = this.itemsPerPage();
+    const total = this.filteredApplicants().length;
+    const to = page * perPage;
+    return to > total ? total : to;
+  });
+
+  canGoPrevious = computed(() => this.currentPage() > 1);
+  canGoNext = computed(() => this.currentPage() < this.totalPages());
+
   // Statistics
   applicantStats = computed(() => {
     const all = this.applicants();
@@ -57,6 +102,20 @@ export class ApplicantManagementComponent implements OnInit {
       inactive: all.filter(a => a.status === 'INACTIVE').length
     };
   });
+
+  constructor() {
+    // Reset to first page when filters change
+    effect(() => {
+      // Track filter changes
+      this.searchTerm();
+      this.selectedStatus();
+      
+      // Reset to page 1 (but not on initial load)
+      if (this.applicants().length > 0) {
+        this.currentPage.set(1);
+      }
+    });
+  }
 
   ngOnInit(): void {
     this.loadApplicants();
@@ -89,6 +148,42 @@ export class ApplicantManagementComponent implements OnInit {
   clearFilters(): void {
     this.searchTerm.set('');
     this.selectedStatus.set('');
+    this.currentPage.set(1); // Reset to first page
+  }
+
+  /**
+   * Change items per page
+   */
+  onItemsPerPageChange(value: number): void {
+    this.itemsPerPage.set(value);
+    this.currentPage.set(1); // Reset to first page when changing items per page
+  }
+
+  /**
+   * Go to previous page
+   */
+  previousPage(): void {
+    if (this.canGoPrevious()) {
+      this.currentPage.update(page => page - 1);
+    }
+  }
+
+  /**
+   * Go to next page
+   */
+  nextPage(): void {
+    if (this.canGoNext()) {
+      this.currentPage.update(page => page + 1);
+    }
+  }
+
+  /**
+   * Go to specific page
+   */
+  goToPage(page: number): void {
+    if (page >= 1 && page <= this.totalPages()) {
+      this.currentPage.set(page);
+    }
   }
 
   /**

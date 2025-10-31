@@ -1,86 +1,81 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { AdminService, UserResponse } from '../../../../core/services/admin.service';
+import { AdminService, OfficerDetailsResponse } from '../../../../core/services/admin.service';
 import { NotificationService } from '../../../../core/services/notification.service';
 
 @Component({
-  selector: 'app-applicant-details',
+  selector: 'app-officer-details',
   standalone: true,
   imports: [CommonModule, RouterLink],
-  templateUrl: './applicant-details.component.html',
-  styleUrl: './applicant-details.component.css'
+  templateUrl: './officer-details.component.html',
+  styleUrl: './officer-details.component.css'
 })
-export class ApplicantDetailsComponent implements OnInit {
+export class OfficerDetailsComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private adminService = inject(AdminService);
   private notificationService = inject(NotificationService);
 
-  applicant = signal<UserResponse | null>(null);
+  officer = signal<OfficerDetailsResponse | null>(null);
   isLoading = signal(true);
-  applicantId = signal<string>('');
+  officerId = signal<string>('');
 
   ngOnInit(): void {
-    // Get applicant ID from router state
+    // Get officer ID from router state
     const navigation = this.router.getCurrentNavigation();
-    const state = navigation?.extras?.state as { applicantId?: string };
+    const state = navigation?.extras?.state as { officerId?: string };
     
     // Also check history state for page refresh
-    const historyState = history.state as { applicantId?: string };
+    const historyState = history.state as { officerId?: string };
     
-    const id = state?.applicantId || historyState?.applicantId;
+    const id = state?.officerId || historyState?.officerId;
     
     if (id) {
-      this.applicantId.set(id);
-      this.loadApplicantDetails(id);
+      this.officerId.set(id);
+      this.loadOfficerDetails(id);
     } else {
-      this.notificationService.error('Error', 'Invalid applicant ID');
-      this.router.navigate(['/admin/users/applicants']);
+      this.notificationService.error('Error', 'Invalid officer ID');
+      this.router.navigate(['/admin/users/officers']);
     }
   }
 
   /**
-   * Load applicant details from API
+   * Load officer details from API
    */
-  loadApplicantDetails(id: string): void {
+  loadOfficerDetails(id: string): void {
     this.isLoading.set(true);
     
-    this.adminService.getApplicantById(id).subscribe({
-      next: (applicant) => {
-        this.applicant.set(applicant);
+    this.adminService.getOfficerById(id).subscribe({
+      next: (officer) => {
+        this.officer.set(officer);
         this.isLoading.set(false);
       },
       error: (error) => {
-        console.error('Error loading applicant details:', error);
-        this.notificationService.error('Error', 'Failed to load applicant details');
+        console.error('Error loading officer details:', error);
+        this.notificationService.error('Error', 'Failed to load officer details');
         this.isLoading.set(false);
-        this.router.navigate(['/admin/users/applicants']);
+        this.router.navigate(['/admin/users/officers']);
       }
     });
   }
 
   /**
-   * Navigate back to applicants list
+   * Navigate back to officers list
    */
   goBack(): void {
-    this.router.navigate(['/admin/users/applicants']);
+    this.router.navigate(['/admin/users/officers']);
   }
 
   /**
-   * Navigate to applicant's applications page
+   * View officer's assigned applications
    */
-  viewApplications(): void {
-    if (!this.applicantId()) return;
-    
-    const applicantName = this.applicant()?.displayName || this.applicant()?.email || 'Applicant';
-    
-    this.router.navigate(['/admin/applicants/applications'], {
-      state: { 
-        applicantId: this.applicantId(),
-        applicantName: applicantName
-      }
-    });
+  viewAssignedApplications(): void {
+    if (this.officerId()) {
+      this.router.navigate(['/admin/officers/applications'], {
+        state: { officerId: this.officerId(), officerName: this.officer()?.fullName || this.officer()?.email }
+      });
+    }
   }
 
   /**
@@ -111,6 +106,19 @@ export class ApplicantDetailsComponent implements OnInit {
       'LOCKED': 'Locked'
     };
     return statusMap[status] || status;
+  }
+
+  /**
+   * Get role display name
+   */
+  getRoleDisplayName(role: string): string {
+    const roleMap: { [key: string]: string } = {
+      'LOAN_OFFICER': 'Loan Officer',
+      'SENIOR_LOAN_OFFICER': 'Senior Loan Officer',
+      'COMPLIANCE_OFFICER': 'Compliance Officer',
+      'SENIOR_COMPLIANCE_OFFICER': 'Senior Compliance Officer'
+    };
+    return roleMap[role] || role;
   }
 
   /**

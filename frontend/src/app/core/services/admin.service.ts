@@ -37,6 +37,37 @@ export interface UserResponse {
   displayName?: string;
 }
 
+export interface OfficerDetailsResponse {
+  // User Account Information
+  id: string;
+  email: string;
+  phone: string;
+  role: string;
+  status: string;
+  isEmailVerified: boolean;
+  isPhoneVerified: boolean;
+  failedLoginAttempts: number;
+  lastLoginAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  
+  // Officer Personal Details
+  firstName?: string;
+  lastName?: string;
+  middleName?: string;
+  fullName?: string;
+  employeeId?: string;
+  department?: string;
+  designation?: string;
+  phoneNumber?: string;
+  workLocation?: string;
+  
+  // Statistics
+  totalAssignedApplications?: number;
+  activeApplications?: number;
+  completedApplications?: number;
+}
+
 export interface OfficerCreationRequest {
   email: string;
   phone: string;
@@ -84,6 +115,38 @@ export class AdminService {
   }
 
   /**
+   * Get officer details by ID (comprehensive)
+   */
+  getOfficerById(officerId: string): Observable<OfficerDetailsResponse> {
+    return this.apiService.get<OfficerDetailsResponse>(`/admin/officers/${officerId}`);
+  }
+
+  /**
+   * Get officer's assigned applications
+   */
+  getOfficerAssignedApplications(officerId: string): Observable<any[]> {
+    return this.apiService.get<any[]>(`/admin/officers/${officerId}/applications`);
+  }
+
+  /**
+   * Toggle officer status (soft delete with validation)
+   * Backend returns plain text string, not JSON
+   */
+  toggleOfficerStatus(officerId: string): Observable<string> {
+    // Use postText since backend returns plain string, not JSON
+    return this.apiService.postText(`/admin/officers/${officerId}/toggle-status`, {}).pipe(
+      map(response => {
+        console.log('✅ Toggle status response:', response);
+        return response;
+      }),
+      catchError(error => {
+        console.error('❌ Toggle status API error:', error);
+        throw error;
+      })
+    );
+  }
+
+  /**
    * Get all users from backend
    */
   getAllUsers(): Observable<UserResponse[]> {
@@ -95,6 +158,13 @@ export class AdminService {
    */
   getApplicantById(applicantId: string): Observable<UserResponse> {
     return this.apiService.get<UserResponse>(`/admin/applicants/${applicantId}`);
+  }
+
+  /**
+   * Get applicant's loan applications
+   */
+  getApplicantApplications(applicantId: string): Observable<any[]> {
+    return this.apiService.get<any[]>(`/admin/applicants/${applicantId}/applications`);
   }
 
   /**

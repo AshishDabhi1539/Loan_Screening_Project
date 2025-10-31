@@ -1,7 +1,7 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 
 import { AdminService, UserResponse } from '../../../../core/services/admin.service';
 import { NotificationService } from '../../../../core/services/notification.service';
@@ -16,6 +16,7 @@ import { NotificationService } from '../../../../core/services/notification.serv
 export class OfficerManagementComponent implements OnInit {
   private adminService = inject(AdminService);
   private notificationService = inject(NotificationService);
+  private router = inject(Router);
 
   // State signals
   officers = signal<UserResponse[]>([]);
@@ -23,6 +24,13 @@ export class OfficerManagementComponent implements OnInit {
   searchTerm = signal('');
   selectedRole = signal('ALL');
   selectedStatus = signal('ALL');
+  
+  // Pagination signals
+  currentPage = signal(1);
+  itemsPerPage = signal(10);
+  
+  // Items per page options
+  itemsPerPageOptions = [5, 10, 25, 50, 100];
 
   // Available filter options
   roleOptions = [
@@ -41,7 +49,7 @@ export class OfficerManagementComponent implements OnInit {
     { value: 'SUSPENDED', label: 'Suspended' }
   ];
 
-  // Computed filtered officers
+  // Computed filtered officers (before pagination)
   filteredOfficers = computed(() => {
     let filtered = this.officers();
 
@@ -70,6 +78,44 @@ export class OfficerManagementComponent implements OnInit {
     return filtered;
   });
 
+  // Computed paginated officers (after filtering)
+  paginatedOfficers = computed(() => {
+    const filtered = this.filteredOfficers();
+    const page = this.currentPage();
+    const perPage = this.itemsPerPage();
+    
+    const startIndex = (page - 1) * perPage;
+    const endIndex = startIndex + perPage;
+    
+    return filtered.slice(startIndex, endIndex);
+  });
+
+  // Computed pagination info
+  totalPages = computed(() => {
+    const total = this.filteredOfficers().length;
+    const perPage = this.itemsPerPage();
+    return Math.ceil(total / perPage);
+  });
+
+  totalItems = computed(() => this.filteredOfficers().length);
+
+  showingFrom = computed(() => {
+    const page = this.currentPage();
+    const perPage = this.itemsPerPage();
+    return (page - 1) * perPage + 1;
+  });
+
+  showingTo = computed(() => {
+    const page = this.currentPage();
+    const perPage = this.itemsPerPage();
+    const total = this.filteredOfficers().length;
+    const to = page * perPage;
+    return to > total ? total : to;
+  });
+
+  canGoPrevious = computed(() => this.currentPage() > 1);
+  canGoNext = computed(() => this.currentPage() < this.totalPages());
+
   // Stats computed from officers
   officerStats = computed(() => {
     const officers = this.officers();
@@ -82,6 +128,21 @@ export class OfficerManagementComponent implements OnInit {
       complianceOfficers: officers.filter(o => o.role === 'COMPLIANCE_OFFICER' || o.role === 'SENIOR_COMPLIANCE_OFFICER').length
     };
   });
+
+  constructor() {
+    // Reset to first page when filters change
+    effect(() => {
+      // Track filter changes
+      this.searchTerm();
+      this.selectedRole();
+      this.selectedStatus();
+      
+      // Reset to page 1 (but not on initial load)
+      if (this.officers().length > 0) {
+        this.currentPage.set(1);
+      }
+    });
+  }
 
   ngOnInit(): void {
     this.loadOfficers();
@@ -128,6 +189,42 @@ export class OfficerManagementComponent implements OnInit {
     this.searchTerm.set('');
     this.selectedRole.set('ALL');
     this.selectedStatus.set('ALL');
+    this.currentPage.set(1); // Reset to first page
+  }
+
+  /**
+   * Change items per page
+   */
+  onItemsPerPageChange(value: number): void {
+    this.itemsPerPage.set(value);
+    this.currentPage.set(1); // Reset to first page when changing items per page
+  }
+
+  /**
+   * Go to previous page
+   */
+  previousPage(): void {
+    if (this.canGoPrevious()) {
+      this.currentPage.update(page => page - 1);
+    }
+  }
+
+  /**
+   * Go to next page
+   */
+  nextPage(): void {
+    if (this.canGoNext()) {
+      this.currentPage.update(page => page + 1);
+    }
+  }
+
+  /**
+   * Go to specific page
+   */
+  goToPage(page: number): void {
+    if (page >= 1 && page <= this.totalPages()) {
+      this.currentPage.set(page);
+    }
   }
 
   /**
@@ -184,11 +281,12 @@ export class OfficerManagementComponent implements OnInit {
   }
 
   /**
-   * Handle officer actions (placeholder for future implementation)
+   * View officer details
    */
   viewOfficer(officer: UserResponse): void {
-    console.log('View officer:', officer);
-    // TODO: Navigate to officer details page
+    this.router.navigate(['/admin/users/officers/view'], {
+      state: { officerId: officer.id }
+    });
   }
 
   editOfficer(officer: UserResponse): void {
@@ -196,8 +294,51 @@ export class OfficerManagementComponent implements OnInit {
     // TODO: Navigate to officer edit page
   }
 
+  /**
+   * Toggle officer status (activate/deactivate)
+   */
   toggleOfficerStatus(officer: UserResponse): void {
-    console.log('Toggle status for officer:', officer);
-    // TODO: Implement status toggle API call
+    const action = officer.status === 'ACTIVE' ? 'deactivate' : 'activate';
+    const confirmMessage = officer.status === 'ACTIVE' 
+      ? `Are you sure you want to deactivate ${officer.displayName || officer.email}? This will prevent them from being assigned new applications.`
+      : `Are you sure you want to activate ${officer.displayName || officer.email}?`;
+
+    if (!confirm(confirmMessage)) {
+      return;
+    }
+
+    this.isLoading.set(true);
+    
+    this.adminService.toggleOfficerStatus(officer.id).subscribe({
+      next: (response) => {
+        console.log('✅ Officer status toggled successfully:', response);
+        
+        // Extract message from response (backend returns plain string)
+        const message = typeof response === 'string' ? response : 'Officer status updated successfully';
+        
+        this.notificationService.success('Success', message);
+        
+        // Reload officers list to get updated status
+        this.loadOfficers();
+      },
+      error: (error) => {
+        console.error('❌ Error toggling officer status:', error);
+        this.isLoading.set(false);
+        
+        // Extract error message
+        let errorMessage = 'Failed to update officer status';
+        if (error.error) {
+          if (typeof error.error === 'string') {
+            errorMessage = error.error;
+          } else if (error.error.message) {
+            errorMessage = error.error.message;
+          }
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        
+        this.notificationService.error('Error', errorMessage);
+      }
+    });
   }
 }
