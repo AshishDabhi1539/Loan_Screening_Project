@@ -1,6 +1,6 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { Router } from '@angular/router';
-import { Observable, BehaviorSubject, throwError, of } from 'rxjs';
+import { Observable, throwError } from 'rxjs';
 import { map, catchError, tap } from 'rxjs/operators';
 
 import { ApiService } from './api.service';
@@ -82,11 +82,13 @@ export class AuthService {
   private readonly _currentUser = signal<User | null>(null);
   private readonly _isAuthenticated = signal<boolean>(false);
   private readonly _isLoading = signal<boolean>(false);
+  private readonly _isInitializing = signal<boolean>(true);
 
   // Public readonly signals
   readonly currentUser = this._currentUser.asReadonly();
   readonly isAuthenticated = this._isAuthenticated.asReadonly();
   readonly isLoading = this._isLoading.asReadonly();
+  readonly isInitializing = this._isInitializing.asReadonly();
 
   // Computed signals
   readonly userRole = computed(() => this._currentUser()?.role || null);
@@ -106,19 +108,59 @@ export class AuthService {
 
   /**
    * Initialize authentication state from stored token
+   * Fixed to work with server-side JWT (24h expiry, 7d refresh)
    */
   private initializeAuth(): void {
     const token = this.getStoredToken();
-    if (token) {
-      this.validateToken().subscribe({
-        next: (user) => {
-          this._currentUser.set(user);
-          this._isAuthenticated.set(true);
+    
+    if (token && !this.isTokenExpired()) {
+      // Token exists and is valid - set authenticated immediately
+      this._isAuthenticated.set(true);
+      
+      // Extract user info from token payload (avoid HTTP call during init)
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const user: User = {
+          id: payload.userId,
+          email: payload.email || payload.sub,
+          role: payload.role as any,
+          status: 'ACTIVE' // Assume active if token is valid
+        };
+        this._currentUser.set(user);
+      } catch (error) {
+        console.error('Error extracting user from token:', error);
+      }
+      
+      this._isInitializing.set(false);
+    } else if (token) {
+      // Token expired, try refresh (delay to avoid circular dependency)
+      setTimeout(() => this.attemptTokenRefresh(), 100);
+    } else {
+      // No token, initialization complete
+      this._isInitializing.set(false);
+    }
+  }
+
+  /**
+   * Attempt token refresh
+   */
+  private attemptTokenRefresh(): void {
+    const refreshToken = this.getStoredRefreshToken();
+    if (refreshToken) {
+      this.refreshToken().subscribe({
+        next: () => {
+          // Refresh successful, user stays authenticated
+          this._isInitializing.set(false);
         },
         error: () => {
+          // Refresh failed, clear auth data
           this.clearAuthData();
+          this._isInitializing.set(false);
         }
       });
+    } else {
+      this.clearAuthData();
+      this._isInitializing.set(false);
     }
   }
 
@@ -135,7 +177,7 @@ export class AuthService {
             id: response.userId,
             email: response.email,
             role: response.role as any,
-            status: 'ACTIVE' // Assuming successful login means active
+            status: 'ACTIVE'
           };
           this.setAuthData(response.token, response.refreshToken, user);
         }
@@ -184,8 +226,6 @@ export class AuthService {
             role: response.role as any,
             status: response.status as any
           };
-          // For verification, we might not get tokens, so handle accordingly
-          // this.setAuthData(token, refreshToken, user);
         }
       }),
       catchError(error => {
@@ -209,7 +249,6 @@ export class AuthService {
   logout(): void {
     this._isLoading.set(true);
     
-    // Call logout API (optional)
     this.apiService.post('/auth/logout', {}).subscribe({
       complete: () => {
         this.clearAuthData();
@@ -217,7 +256,6 @@ export class AuthService {
         this._isLoading.set(false);
       },
       error: () => {
-        // Clear auth data even if API call fails
         this.clearAuthData();
         this.router.navigate(['/auth/login']);
         this._isLoading.set(false);
@@ -247,20 +285,19 @@ export class AuthService {
         }
       }),
       catchError(error => {
-        this.logout();
+        this.clearAuthData();
         return throwError(() => error);
       })
     );
   }
 
   /**
-   * Validate current token
+   * Validate current token with server
    */
   private validateToken(): Observable<User> {
     return this.apiService.get<any>('/auth/me').pipe(
-      map(response => response.data),
+      map(response => response.data || response),
       catchError(() => {
-        this.clearAuthData();
         return throwError(() => new Error('Token validation failed'));
       })
     );
@@ -276,8 +313,10 @@ export class AuthService {
     this._currentUser.set(user);
     this._isAuthenticated.set(true);
     
-    // Navigate based on user role and status
-    this.navigateAfterLogin(user);
+    // Only navigate after login, not during initialization
+    if (!this.isInitializing()) {
+      this.navigateAfterLogin(user);
+    }
   }
 
   /**
@@ -314,7 +353,6 @@ export class AuthService {
       return;
     }
 
-    // Navigate based on role
     switch (user.role) {
       case 'APPLICANT':
         if (user.requiresPersonalDetails) {
@@ -341,6 +379,7 @@ export class AuthService {
 
   /**
    * Check if token is expired
+   * Fixed to work with server JWT format (exp in seconds)
    */
   isTokenExpired(): boolean {
     const token = this.getStoredToken();
@@ -349,9 +388,29 @@ export class AuthService {
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
       const currentTime = Math.floor(Date.now() / 1000);
-      return payload.exp < (currentTime + environment.auth.tokenExpiryBuffer / 1000);
-    } catch {
+      
+      // Server JWT exp is in seconds, add 5-minute buffer
+      const bufferSeconds = 300; // 5 minutes
+      
+      return payload.exp <= (currentTime + bufferSeconds);
+    } catch (error) {
+      console.error('Error parsing token:', error);
       return true;
+    }
+  }
+
+  /**
+   * Get token expiration time
+   */
+  getTokenExpiration(): Date | null {
+    const token = this.getStoredToken();
+    if (!token) return null;
+
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return new Date(payload.exp * 1000);
+    } catch {
+      return null;
     }
   }
 
