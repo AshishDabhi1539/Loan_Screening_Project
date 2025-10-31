@@ -1,6 +1,6 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, ActivatedRoute } from '@angular/router';
+import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { HttpClient, HttpEventType, HttpHeaders } from '@angular/common/http';
 
 import { NotificationService } from '../../../../core/services/notification.service';
@@ -13,6 +13,7 @@ interface DocumentCategory {
   description: string;
   required: boolean;
   maxFiles: number;
+  maxFileSize: number; // in MB
   acceptedTypes: string[];
   documentTypes: string[]; // Backend DocumentType enum values
   icon: string;
@@ -34,7 +35,7 @@ interface UploadedDocument {
 @Component({
   selector: 'app-document-upload',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterLink],
   templateUrl: './document-upload.component.html',
   styleUrl: './document-upload.component.css'
 })
@@ -99,21 +100,23 @@ export class DocumentUploadComponent implements OnInit {
       {
         id: 'identity',
         name: 'Identity Proof',
-        description: 'Aadhaar Card (both sides) and PAN Card',
+        description: 'Government issued photo ID (Aadhaar, PAN, Passport, Driving License)',
         required: true,
-        maxFiles: 3,
-        acceptedTypes: ['image/jpeg', 'image/png', 'application/pdf'],
-        documentTypes: ['AADHAAR_CARD', 'PAN_CARD'],
+        maxFiles: 2,
+        maxFileSize: 5, // 5MB
+        acceptedTypes: ['application/pdf', 'image/jpeg', 'image/png'],
+        documentTypes: ['AADHAAR_CARD', 'PAN_CARD', 'PASSPORT', 'DRIVING_LICENSE'],
         icon: '🆔'
       },
       {
         id: 'address',
         name: 'Address Proof',
-        description: 'Utility bill, Rental Agreement, or Property Tax Receipt',
+        description: 'Utility bill, bank statement, or rental agreement (not older than 3 months)',
         required: true,
-        maxFiles: 2,
-        acceptedTypes: ['image/jpeg', 'image/png', 'application/pdf'],
-        documentTypes: ['UTILITY_BILL', 'RENTAL_AGREEMENT', 'PROPERTY_TAX_RECEIPT'],
+        maxFiles: 1,
+        maxFileSize: 5, // 5MB
+        acceptedTypes: ['application/pdf', 'image/jpeg', 'image/png'],
+        documentTypes: ['UTILITY_BILL', 'RENTAL_AGREEMENT', 'PROPERTY_DOCUMENTS'],
         icon: '🏠'
       },
       {
@@ -122,6 +125,7 @@ export class DocumentUploadComponent implements OnInit {
         description: 'Recent passport-size photograph',
         required: true,
         maxFiles: 1,
+        maxFileSize: 2, // 2MB for photos
         acceptedTypes: ['image/jpeg', 'image/png'],
         documentTypes: ['PHOTOGRAPH'],
         icon: '📷'
@@ -137,7 +141,8 @@ export class DocumentUploadComponent implements OnInit {
           description: 'Last 3 months salary slips',
           required: true,
           maxFiles: 3,
-          acceptedTypes: ['image/jpeg', 'image/png', 'application/pdf'],
+          maxFileSize: 5, // 5MB
+          acceptedTypes: ['application/pdf', 'image/jpeg', 'image/png'],
           documentTypes: ['SALARY_SLIP'],
           icon: '💰'
         },
@@ -147,6 +152,7 @@ export class DocumentUploadComponent implements OnInit {
           description: 'Appointment/Employment Letter',
           required: true,
           maxFiles: 1,
+          maxFileSize: 5, // 5MB
           acceptedTypes: ['application/pdf', 'image/jpeg', 'image/png'],
           documentTypes: ['APPOINTMENT_LETTER', 'EMPLOYMENT_CERTIFICATE'],
           icon: '📄'
@@ -157,6 +163,7 @@ export class DocumentUploadComponent implements OnInit {
           description: 'Last 6 months bank statement',
           required: true,
           maxFiles: 1,
+          maxFileSize: 10, // 10MB for bank statements
           acceptedTypes: ['application/pdf'],
           documentTypes: ['BANK_STATEMENT'],
           icon: '🏦'
@@ -171,6 +178,7 @@ export class DocumentUploadComponent implements OnInit {
           description: 'Business registration certificate or professional license',
           required: true,
           maxFiles: 1,
+          maxFileSize: 5, // 5MB
           acceptedTypes: ['application/pdf', 'image/jpeg', 'image/png'],
           documentTypes: ['BUSINESS_REGISTRATION'],
           icon: '📝'
@@ -181,6 +189,7 @@ export class DocumentUploadComponent implements OnInit {
           description: 'GST registration certificate (if applicable)',
           required: false,
           maxFiles: 1,
+          maxFileSize: 5, // 5MB
           acceptedTypes: ['application/pdf', 'image/jpeg', 'image/png'],
           documentTypes: ['GST_CERTIFICATE'],
           icon: '📋'
@@ -191,6 +200,7 @@ export class DocumentUploadComponent implements OnInit {
           description: 'ITR for last 2 years',
           required: true,
           maxFiles: 2,
+          maxFileSize: 5, // 5MB
           acceptedTypes: ['application/pdf'],
           documentTypes: ['BUSINESS_ITR', 'ITR_FORM'],
           icon: '📊'
@@ -201,6 +211,7 @@ export class DocumentUploadComponent implements OnInit {
           description: 'Last 12 months business bank statement',
           required: true,
           maxFiles: 1,
+          maxFileSize: 10, // 10MB for bank statements
           acceptedTypes: ['application/pdf'],
           documentTypes: ['BUSINESS_BANK_STATEMENT'],
           icon: '🏦'
@@ -215,6 +226,7 @@ export class DocumentUploadComponent implements OnInit {
           description: 'PAN Card of the company',
           required: true,
           maxFiles: 1,
+          maxFileSize: 5, // 5MB
           acceptedTypes: ['application/pdf', 'image/jpeg', 'image/png'],
           documentTypes: ['PAN_CARD'],
           icon: '🏢'
@@ -225,6 +237,7 @@ export class DocumentUploadComponent implements OnInit {
           description: 'Company registration certificate (ROC)',
           required: true,
           maxFiles: 1,
+          maxFileSize: 5, // 5MB
           acceptedTypes: ['application/pdf'],
           documentTypes: ['BUSINESS_REGISTRATION'],
           icon: '📝'
@@ -235,6 +248,7 @@ export class DocumentUploadComponent implements OnInit {
           description: 'GST registration certificate',
           required: true,
           maxFiles: 1,
+          maxFileSize: 5, // 5MB
           acceptedTypes: ['application/pdf', 'image/jpeg', 'image/png'],
           documentTypes: ['GST_CERTIFICATE'],
           icon: '📋'
@@ -245,6 +259,7 @@ export class DocumentUploadComponent implements OnInit {
           description: 'Audited financials (last 2-3 years) or Profit & Loss, Balance Sheet',
           required: true,
           maxFiles: 3,
+          maxFileSize: 10, // 10MB for financial documents
           acceptedTypes: ['application/pdf'],
           documentTypes: ['FINANCIAL_STATEMENT', 'PROFIT_LOSS_STATEMENT', 'BALANCE_SHEET'],
           icon: '📈'
@@ -255,6 +270,7 @@ export class DocumentUploadComponent implements OnInit {
           description: 'Company ITR for last 2-3 years',
           required: true,
           maxFiles: 3,
+          maxFileSize: 10, // 10MB for ITR documents
           acceptedTypes: ['application/pdf'],
           documentTypes: ['BUSINESS_ITR', 'ITR_FORM'],
           icon: '📊'
@@ -265,6 +281,7 @@ export class DocumentUploadComponent implements OnInit {
           description: 'Last 12 months business bank statement',
           required: true,
           maxFiles: 1,
+          maxFileSize: 10, // 10MB for bank statements
           acceptedTypes: ['application/pdf'],
           documentTypes: ['BUSINESS_BANK_STATEMENT'],
           icon: '🏦'
@@ -279,9 +296,36 @@ export class DocumentUploadComponent implements OnInit {
    * Load already uploaded documents
    */
   private loadUploadedDocuments(): void {
-    // TODO: Call backend API to get uploaded documents
-    // For now, start with empty array
-    this.uploadedDocuments.set([]);
+    const appId = this.applicationId();
+    if (!appId) return;
+
+    const token = this.authService.getStoredToken();
+    const headers = new HttpHeaders({
+      'Authorization': `Bearer ${token}`
+    });
+
+    this.http.get<any[]>(
+      `${environment.apiUrl}/loan-application/${appId}/documents`,
+      { headers }
+    ).subscribe({
+      next: (documents) => {
+        const uploadedDocs: UploadedDocument[] = documents.map(doc => ({
+          id: doc.id, // Use real database ID
+          name: doc.fileName,
+          size: doc.fileSize,
+          type: doc.fileType || 'application/pdf',
+          documentType: doc.documentType,
+          uploadedAt: new Date(doc.uploadedAt),
+          uploading: false,
+          progress: 100
+        }));
+        this.uploadedDocuments.set(uploadedDocs);
+      },
+      error: (error) => {
+        console.error('Failed to load uploaded documents:', error);
+        this.uploadedDocuments.set([]);
+      }
+    });
   }
 
   /**
@@ -363,12 +407,12 @@ export class DocumentUploadComponent implements OnInit {
       return false;
     }
 
-    // Check file size (max 5MB)
-    const maxSize = 5 * 1024 * 1024; // 5MB
+    // Check file size using category maxFileSize
+    const maxSize = category.maxFileSize * 1024 * 1024; // Convert MB to bytes
     if (file.size > maxSize) {
       this.notificationService.error(
         'File Too Large',
-        `${file.name} exceeds 5MB limit`
+        `${file.name} exceeds ${category.maxFileSize}MB limit`
       );
       return false;
     }
@@ -490,14 +534,28 @@ export class DocumentUploadComponent implements OnInit {
   }
 
   /**
-   * Format file size
+   * Get user-friendly display of accepted file types
+   */
+  getAcceptedTypesDisplay(acceptedTypes: string[]): string {
+    const typeMap: { [key: string]: string } = {
+      'application/pdf': 'PDF',
+      'image/jpeg': 'JPEG',
+      'image/png': 'PNG',
+      'image/jpg': 'JPG'
+    };
+    
+    return acceptedTypes.map(type => typeMap[type] || type).join(', ');
+  }
+
+  /**
+   * Format file size for display
    */
   formatFileSize(bytes: number): string {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
 
   /**
@@ -515,7 +573,7 @@ export class DocumentUploadComponent implements OnInit {
     this.router.navigate(['/applicant/application-summary'], {
       queryParams: {
         applicationId: this.applicationId(),
-        employmentType: this.employmentType() // Pass employment type for edit functionality
+        employmentType: this.employmentType()
       }
     });
   }
@@ -526,5 +584,17 @@ export class DocumentUploadComponent implements OnInit {
   saveAndExit(): void {
     this.notificationService.info('Saved', 'Your progress has been saved');
     this.router.navigate(['/applicant/dashboard']);
+  }
+
+  /**
+   * Navigate back to previous step
+   */
+  goBack(): void {
+    this.router.navigate(['/applicant/employment-details'], {
+      queryParams: {
+        applicationId: this.applicationId(),
+        employmentType: this.employmentType()
+      }
+    });
   }
 }

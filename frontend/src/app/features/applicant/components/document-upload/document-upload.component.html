@@ -60,9 +60,11 @@
                     }
                   </h3>
                   <p class="text-sm text-gray-600 mt-1">{{ category.description }}</p>
-                  <p class="text-xs text-gray-500 mt-1">
-                    Max {{ category.maxFiles }} file(s) | Accepted: PDF, JPG, PNG | Max 5MB each
-                  </p>
+                  <div class="flex items-center gap-4 text-xs text-gray-500 mt-1">
+                    <span>📁 Max {{ category.maxFiles }} file(s)</span>
+                    <span>📏 Max {{ category.maxFileSize }}MB each</span>
+                    <span>📄 {{ getAcceptedTypesDisplay(category.acceptedTypes) }}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -102,9 +104,11 @@
               <p class="text-lg font-medium text-gray-700 mb-2">
                 Drag & drop files here, or click to browse
               </p>
-              <p class="text-sm text-gray-500">
-                {{ category.maxFiles > 1 ? 'You can upload multiple files' : 'Upload one file' }}
-              </p>
+              <div class="text-sm text-gray-500 space-y-1">
+                <p>{{ category.maxFiles > 1 ? 'You can upload multiple files' : 'Upload one file' }}</p>
+                <p><strong>Max size:</strong> {{ category.maxFileSize }}MB per file</p>
+                <p><strong>Accepted:</strong> {{ getAcceptedTypesDisplay(category.acceptedTypes) }}</p>
+              </div>
             </div>
           }
 
@@ -129,15 +133,14 @@
 
                     <!-- File Info -->
                     <div class="ml-4 flex-1">
-                      <p class="font-medium text-gray-900">{{ doc.name }}</p>
-                      <div class="flex items-center space-x-2 mt-1">
-                        <span class="text-sm text-gray-500">{{ formatFileSize(doc.size) }}</span>
-                        @if (doc.uploading) {
-                          <span class="text-sm text-blue-600">• Uploading...</span>
-                        } @else if (doc.error) {
-                          <span class="text-sm text-red-600">• Error</span>
-                        } @else {
-                          <span class="text-sm text-green-600">• Uploaded</span>
+                      <p class="text-sm font-medium text-gray-900">{{ doc.name }}</p>
+                      <div class="flex items-center space-x-2 text-xs text-gray-500">
+                        <span>{{ doc.documentType }}</span>
+                        <span>•</span>
+                        <span>{{ formatFileSize(doc.size) }}</span>
+                        @if (doc.uploadedAt) {
+                          <span>•</span>
+                          <span>{{ doc.uploadedAt | date:'short' }}</span>
                         }
                       </div>
 
@@ -177,10 +180,16 @@
     <!-- Action Buttons -->
     <div class="mt-8 bg-white rounded-lg shadow-md p-6">
       <div class="flex justify-between items-center">
-        <button type="button" (click)="saveAndExit()"
-          class="px-6 py-3 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors">
-          💾 Save & Exit
-        </button>
+        <div class="flex gap-3">
+          <button type="button" (click)="goBack()"
+            class="px-6 py-3 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors">
+            ← Back
+          </button>
+          <button type="button" (click)="saveAndExit()"
+            class="px-6 py-3 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors">
+            💾 Save & Exit
+          </button>
+        </div>
 
         <button type="button" (click)="submitAndContinue()"
           [disabled]="!isComplete()"
@@ -221,6 +230,15 @@
           </div>
         </div>
       </div>
+
+      <!-- Navigation Breadcrumb -->
+      <nav class="flex items-center space-x-2 text-sm text-gray-600 mt-4">
+        <a routerLink="/applicant/dashboard" class="hover:text-primary-600">Dashboard</a>
+        <span>›</span>
+        <button type="button" (click)="goBack()" class="hover:text-primary-600 text-left">Employment Details</button>
+        <span>›</span>
+        <span class="text-gray-900 font-medium">Document Upload</span>
+      </nav>
     </div>
 
   </div>

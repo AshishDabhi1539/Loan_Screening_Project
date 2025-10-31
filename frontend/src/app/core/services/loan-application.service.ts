@@ -78,6 +78,20 @@ export class LoanApplicationService {
   }
 
   /**
+   * Download application PDF
+   */
+  downloadApplicationPdf(applicationId: string): Observable<Blob> {
+    return this.apiService.downloadFile(`/loan-application/${applicationId}/export/pdf`);
+  }
+
+  /**
+   * Download receipt (if supported by backend)
+   */
+  downloadReceipt(applicationId: string): Observable<Blob> {
+    return this.apiService.downloadFile(`/loan-application/${applicationId}/receipt`);
+  }
+
+  /**
    * Update personal details for application (now uses global profile endpoint)
    */
   updatePersonalDetails(applicationId: string, personalData: any): Observable<any> {

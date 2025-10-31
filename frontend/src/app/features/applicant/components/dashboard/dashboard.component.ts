@@ -263,13 +263,8 @@ export class DashboardComponent implements OnInit {
     
     // Check if application is already submitted
     if (application.status !== 'DRAFT') {
-      // Application already submitted - show summary
-      this.router.navigate(['/applicant/application-summary'], {
-        queryParams: {
-          applicationId: appId,
-          employmentType: application.employmentType || 'SALARIED'
-        }
-      });
+      // For submitted and later states, show details view
+      this.router.navigate(['/applicant/application-details', appId]);
       return;
     }
 
@@ -300,12 +295,7 @@ export class DashboardComponent implements OnInit {
     }
 
     // All steps complete, show summary for final submission
-    this.router.navigate(['/applicant/application-summary'], {
-      queryParams: {
-        applicationId: appId,
-        employmentType: application.employmentType || 'SALARIED'
-      }
-    });
+    this.router.navigate(['/applicant/application-details', appId]);
   }
 
   /**
