@@ -45,6 +45,95 @@ export interface EmploymentFinancialRequest {
   ifscCode: string;
   accountType: string;
   branchName: string;
+  
+  // Employment Type Specific Details
+  professionalDetails?: ProfessionalEmploymentDetails;
+  freelancerDetails?: FreelancerEmploymentDetails;
+  retiredDetails?: RetiredEmploymentDetails;
+  studentDetails?: StudentEmploymentDetails;
+}
+
+// Professional Employment Details Interface
+export interface ProfessionalEmploymentDetails {
+  professionType: string;
+  registrationNumber: string;
+  registrationAuthority: string;
+  professionalQualification: string;
+  university?: string;
+  yearOfQualification?: number;
+  practiceArea?: string;
+  clinicOrFirmName?: string;
+  clinicOrFirmAddress?: string;
+  additionalCertifications?: string;
+}
+
+// Freelancer Employment Details Interface
+export interface FreelancerEmploymentDetails {
+  freelanceType: string;
+  freelanceSince: string;
+  primaryClients?: string;
+  averageMonthlyIncome: number;
+  portfolioUrl?: string;
+  freelancePlatform?: string;
+  skillSet?: string;
+  projectTypes?: string;
+  activeClientsCount?: number;
+  paymentMethods?: string;
+}
+
+// Retired Employment Details Interface
+export interface RetiredEmploymentDetails {
+  pensionType: string;
+  pensionProvider: string;
+  ppoNumber?: string;
+  monthlyPensionAmount: number;
+  retirementDate: string;
+  previousEmployer?: string;
+  previousDesignation?: string;
+  yearsOfService?: number;
+  pensionAccountNumber?: string;
+  pensionBankName?: string;
+  additionalRetirementBenefits?: string;
+  gratuityAmount?: number;
+}
+
+// Student Employment Details Interface
+export interface StudentEmploymentDetails {
+  // Education Details
+  institutionName: string;
+  institutionAddress: string;
+  institutionCity: string;
+  institutionState: string;
+  courseName: string;
+  specialization?: string;
+  yearOfStudy: number;
+  totalCourseDuration: number;
+  expectedGraduationYear: number;
+  studentIdNumber: string;
+  currentCGPA?: number;
+  
+  // Guardian Details
+  guardianName: string;
+  guardianRelation: string;
+  guardianOccupation: string;
+  guardianEmployer?: string;
+  guardianDesignation?: string;
+  guardianMonthlyIncome: number;
+  guardianAnnualIncome: number;
+  guardianContact: string;
+  guardianEmail?: string;
+  guardianAddress: string;
+  guardianCity: string;
+  guardianState: string;
+  guardianPincode: string;
+  guardianPanNumber?: string;
+  guardianAadharNumber?: string;
+  
+  // Financial Support
+  scholarshipAmount?: number;
+  scholarshipProvider?: string;
+  familySavingsForEducation?: number;
+  additionalFinancialSupport?: string;
 }
 
 import { FoirCalculatorComponent } from '../../../../shared/components/foir-calculator/foir-calculator.component';
@@ -783,6 +872,9 @@ export class EmploymentDetailsComponent implements OnInit {
       request.managerPhone = formData.managerPhone;
     }
 
+    // Add specialized employment details based on employment type
+    this.addSpecializedEmploymentDetails(request, formData);
+
     const appId = this.applicationId();
     if (!appId) {
       this.notificationService.error('Error', 'Application ID not found');
@@ -892,6 +984,108 @@ export class EmploymentDetailsComponent implements OnInit {
         return 'Enter any income from family support, savings, or investments';
       default:
         return 'Minimum: ₹10,000';
+    }
+  }
+
+  /**
+   * Add specialized employment details based on employment type
+   */
+  private addSpecializedEmploymentDetails(request: any, formData: any): void {
+    switch (formData.employmentType) {
+      case 'PROFESSIONAL':
+        // Collect real professional details from form
+        request.professionalDetails = {
+          professionType: formData.professionType,
+          registrationNumber: formData.registrationNumber,
+          registrationAuthority: formData.registrationAuthority,
+          professionalQualification: formData.professionalQualification,
+          university: formData.university,
+          yearOfQualification: formData.yearOfQualification ? parseInt(formData.yearOfQualification) : undefined,
+          practiceArea: formData.practiceArea,
+          clinicOrFirmName: formData.clinicOrFirmName,
+          clinicOrFirmAddress: formData.clinicOrFirmAddress,
+          additionalCertifications: formData.additionalCertifications
+        };
+        break;
+        
+      case 'FREELANCER':
+        // Collect real freelancer details from form
+        request.freelancerDetails = {
+          freelanceType: formData.freelanceType,
+          freelanceSince: formData.freelanceSince,
+          primaryClients: formData.primaryClients,
+          averageMonthlyIncome: formData.averageMonthlyIncome || formData.monthlyIncome,
+          portfolioUrl: formData.portfolioUrl,
+          freelancePlatform: formData.freelancePlatform,
+          skillSet: formData.skillSet,
+          projectTypes: formData.projectTypes,
+          activeClientsCount: formData.activeClientsCount ? parseInt(formData.activeClientsCount) : undefined,
+          paymentMethods: formData.paymentMethods
+        };
+        break;
+        
+      case 'RETIRED':
+        // Collect real retired details from form
+        request.retiredDetails = {
+          pensionType: formData.pensionType,
+          pensionProvider: formData.pensionProvider,
+          ppoNumber: formData.ppoNumber,
+          monthlyPensionAmount: formData.monthlyPensionAmount || formData.monthlyIncome,
+          retirementDate: formData.retirementDate,
+          previousEmployer: formData.previousEmployer,
+          previousDesignation: formData.previousDesignation,
+          yearsOfService: formData.yearsOfService ? parseInt(formData.yearsOfService) : undefined,
+          pensionAccountNumber: formData.pensionAccountNumber,
+          pensionBankName: formData.pensionBankName,
+          additionalRetirementBenefits: formData.additionalRetirementBenefits,
+          gratuityAmount: formData.gratuityAmount ? parseFloat(formData.gratuityAmount) : undefined
+        };
+        break;
+        
+      case 'STUDENT':
+        // Collect real student details from form
+        request.studentDetails = {
+          // Education Details
+          institutionName: formData.institutionName,
+          institutionAddress: formData.institutionAddress,
+          institutionCity: formData.institutionCity,
+          institutionState: formData.institutionState,
+          courseName: formData.courseName,
+          specialization: formData.specialization,
+          yearOfStudy: formData.yearOfStudy ? parseInt(formData.yearOfStudy) : 1,
+          totalCourseDuration: formData.totalCourseDuration ? parseInt(formData.totalCourseDuration) : 4,
+          expectedGraduationYear: formData.expectedGraduationYear ? parseInt(formData.expectedGraduationYear) : new Date().getFullYear() + 2,
+          studentIdNumber: formData.studentIdNumber,
+          currentCGPA: formData.currentCGPA ? parseFloat(formData.currentCGPA) : undefined,
+          
+          // Guardian Details
+          guardianName: formData.guardianName,
+          guardianRelation: formData.guardianRelation,
+          guardianOccupation: formData.guardianOccupation,
+          guardianEmployer: formData.guardianEmployer,
+          guardianDesignation: formData.guardianDesignation,
+          guardianMonthlyIncome: formData.guardianMonthlyIncome ? parseFloat(formData.guardianMonthlyIncome) : 0,
+          guardianAnnualIncome: formData.guardianAnnualIncome ? parseFloat(formData.guardianAnnualIncome) : 0,
+          guardianContact: formData.guardianContact,
+          guardianEmail: formData.guardianEmail,
+          guardianAddress: formData.guardianAddress,
+          guardianCity: formData.guardianCity,
+          guardianState: formData.guardianState,
+          guardianPincode: formData.guardianPincode,
+          guardianPanNumber: formData.guardianPanNumber,
+          guardianAadharNumber: formData.guardianAadharNumber,
+          
+          // Financial Support
+          scholarshipAmount: formData.scholarshipAmount ? parseFloat(formData.scholarshipAmount) : undefined,
+          scholarshipProvider: formData.scholarshipProvider,
+          familySavingsForEducation: formData.familySavingsForEducation ? parseFloat(formData.familySavingsForEducation) : undefined,
+          additionalFinancialSupport: formData.additionalFinancialSupport
+        };
+        break;
+        
+      default:
+        // SALARIED, SELF_EMPLOYED, BUSINESS_OWNER, UNEMPLOYED don't need specialized details
+        break;
     }
   }
 }

@@ -1,0 +1,172 @@
+<div class="min-h-screen bg-gradient-to-br from-primary-50 to-accent-50 py-8 px-4">
+  <div class="max-w-6xl mx-auto">
+    
+    <!-- Header -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900">📋 Application Details</h1>
+          <p class="text-gray-600 mt-2">Complete overview of your loan application</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <button type="button" (click)="onDownloadPdf()" 
+            class="px-6 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors flex items-center">
+            📥 Download PDF
+          </button>
+        </div>
+      </div>
+
+      <!-- Navigation Breadcrumb -->
+      <nav class="flex items-center space-x-2 text-sm text-gray-600">
+        <a routerLink="/applicant/dashboard" class="hover:text-primary-600">Dashboard</a>
+        <span>›</span>
+        <a routerLink="/applicant/applications" class="hover:text-primary-600">My Applications</a>
+        <span>›</span>
+        <span class="text-gray-900 font-medium">Application Details</span>
+      </nav>
+    </div>
+
+    @if (isLoading()) {
+      <div class="bg-white rounded-lg shadow-md p-8 text-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+        <p class="text-gray-600">Loading application details...</p>
+      </div>
+    } @else if (!app()) {
+      <div class="bg-white rounded-lg shadow-md p-8 text-center">
+        <div class="text-6xl mb-4">❌</div>
+        <h2 class="text-xl font-semibold text-gray-900 mb-2">Application Not Found</h2>
+        <p class="text-gray-600 mb-4">The requested application could not be found.</p>
+        <a routerLink="/applicant/applications" 
+          class="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors">
+          ← Back to Applications
+        </a>
+      </div>
+    } @else {
+      <!-- Application Overview -->
+      <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div class="flex items-start justify-between mb-6">
+          <div>
+            <div class="flex items-center gap-3 mb-2">
+              <h2 class="text-2xl font-bold text-gray-900">{{ getLoanTypeDisplay(app()!.loanType) }}</h2>
+              <span class="px-3 py-1 rounded-full text-sm font-medium {{ getStatusBadgeColor(app()!.status) }}">
+                {{ getStatusDisplay(app()!.status) }}
+              </span>
+            </div>
+            <p class="text-gray-600">Complete overview of your loan application</p>
+          </div>
+          <div class="text-right">
+            <div class="text-3xl font-bold text-primary-600">{{ formatCurrency(app()!.requestedAmount) }}</div>
+            <div class="text-sm text-gray-600">Requested Amount</div>
+          </div>
+        </div>
+
+        <!-- Key Details Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div class="bg-gray-50 rounded-lg p-4">
+            <div class="text-sm text-gray-600 mb-1">Loan Type</div>
+            <div class="font-semibold text-gray-900">{{ getLoanTypeDisplay(app()!.loanType) }}</div>
+          </div>
+          <div class="bg-gray-50 rounded-lg p-4">
+            <div class="text-sm text-gray-600 mb-1">Tenure</div>
+            <div class="font-semibold text-gray-900">{{ app()!.tenureMonths }} months</div>
+          </div>
+          <div class="bg-gray-50 rounded-lg p-4">
+            <div class="text-sm text-gray-600 mb-1">Monthly EMI</div>
+            <div class="font-semibold text-gray-900">{{ calculateEMI(app()!.requestedAmount, app()!.tenureMonths) }}</div>
+          </div>
+          <div class="bg-gray-50 rounded-lg p-4">
+            <div class="text-sm text-gray-600 mb-1">Interest Rate</div>
+            <div class="font-semibold text-gray-900">{{ getInterestRate(app()!.loanType) }}% p.a.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Applicant Information -->
+      <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <h3 class="text-xl font-semibold text-gray-900 mb-4">👤 Applicant Information</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div>
+            <div class="text-sm text-gray-600 mb-1">Full Name</div>
+            <div class="font-medium text-gray-900">{{ app()!.applicantName }}</div>
+          </div>
+          <div>
+            <div class="text-sm text-gray-600 mb-1">Email Address</div>
+            <div class="font-medium text-gray-900">{{ app()!.applicantEmail }}</div>
+          </div>
+          <div>
+            <div class="text-sm text-gray-600 mb-1">Phone Number</div>
+            <div class="font-medium text-gray-900">{{ app()!.applicantPhone }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Loan Details -->
+      <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <h3 class="text-xl font-semibold text-gray-900 mb-4">💰 Loan Details</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <div class="text-sm text-gray-600 mb-1">Purpose</div>
+            <div class="font-medium text-gray-900">{{ app()!.purpose }}</div>
+          </div>
+          <div>
+            <div class="text-sm text-gray-600 mb-1">Risk Level</div>
+            <div class="font-medium">
+              <span class="px-2 py-1 rounded-full text-xs {{ getRiskLevelColor(app()!.riskLevel) }}">
+                {{ app()!.riskLevel || 'Under Assessment' }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Timeline -->
+      <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <h3 class="text-xl font-semibold text-gray-900 mb-4">📅 Application Timeline</h3>
+        <div class="space-y-4">
+          <div class="flex items-center">
+            <div class="flex-shrink-0 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+              <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+              </svg>
+            </div>
+            <div class="ml-4">
+              <div class="font-medium text-gray-900">Application Submitted</div>
+              <div class="text-sm text-gray-600">{{ app()!.submittedAt | date:'medium' }}</div>
+            </div>
+          </div>
+          <div class="flex items-center">
+            <div class="flex-shrink-0 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+              <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+              </svg>
+            </div>
+            <div class="ml-4">
+              <div class="font-medium text-gray-900">Under Review</div>
+              <div class="text-sm text-gray-600">Current Status: {{ getStatusDisplay(app()!.status) }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex flex-wrap gap-4">
+          <button type="button" (click)="viewDocuments()" 
+            class="flex items-center px-6 py-3 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors">
+            📁 View Documents
+          </button>
+          <button type="button" (click)="editApplication()" 
+            class="flex items-center px-6 py-3 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors">
+            ✏️ Edit Application
+          </button>
+          <a routerLink="/applicant/applications" 
+            class="flex items-center px-6 py-3 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors">
+            ← Back to Applications
+          </a>
+        </div>
+      </div>
+    }
+  </div>
+</div>
+
+

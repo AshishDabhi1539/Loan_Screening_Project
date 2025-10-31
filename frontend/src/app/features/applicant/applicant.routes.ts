@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { DocumentViewerComponent } from './components/document-viewer/document-viewer.component';
 
 export const applicantRoutes: Routes = [
   {
@@ -34,10 +35,18 @@ export const applicantRoutes: Routes = [
     path: 'application-summary',
     loadComponent: () => import('./components/application-summary/application-summary.component').then(m => m.ApplicationSummaryComponent)
   },
-//   {
-//     path: 'applications',
-//     loadComponent: () => import('./components/my-applications/my-applications.component').then(m => m.MyApplicationsComponent)
-//   },
+  {
+    path: 'application-details/:id',
+    loadComponent: () => import('./components/application-details/application-details.component').then(m => m.ApplicationDetailsComponent)
+  },
+  {
+    path: 'applications',
+    loadComponent: () => import('./components/my-applications/my-applications.component').then(m => m.MyApplicationsComponent)
+  },
+  {
+    path: 'document-viewer/:applicationId',
+    component: DocumentViewerComponent
+  },
 //   {
 //     path: 'profile',
 //     loadComponent: () => import('./components/profile/profile.component').then(m => m.ProfileComponent)

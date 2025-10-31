@@ -1,0 +1,44 @@
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <h1 class="text-xl font-semibold text-gray-900">My Applications</h1>
+    <div class="flex items-center gap-2">
+      <button class="btn btn-outline" [class.bg-gray-900]="filterStatus() === 'ALL'" (click)="setFilter('ALL')">All</button>
+      <button class="btn btn-outline" (click)="setFilter('DRAFT')">Draft</button>
+      <button class="btn btn-outline" (click)="setFilter('SUBMITTED')">Submitted</button>
+      <button class="btn btn-outline" (click)="setFilter('UNDER_REVIEW')">Under Review</button>
+      <button class="btn btn-outline" (click)="setFilter('APPROVED')">Approved</button>
+      <button class="btn btn-outline" (click)="setFilter('REJECTED')">Rejected</button>
+    </div>
+  </div>
+
+  @if (isLoading()) {
+    <div class="p-6 bg-white border rounded-lg">Loading applications...</div>
+  } @else if (filteredApplications().length === 0) {
+    <div class="p-12 text-center bg-white border rounded-lg">
+      <h3 class="text-lg font-medium text-gray-900">No applications found</h3>
+      <p class="mt-2 text-gray-500">Create a new loan application from the dashboard.</p>
+    </div>
+  } @else {
+    <div class="bg-white border rounded-lg divide-y">
+      @for (app of filteredApplications(); track app.id) {
+        <div class="p-4 flex items-center justify-between">
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-3">
+              <div class="text-sm font-medium text-gray-900">{{ app.loanType }}</div>
+              <span class="text-xs px-2 py-1 rounded-full {{ getStatusBadgeColor(app.status) }}">{{ getStatusDisplay(app.status) }}</span>
+            </div>
+            <div class="mt-1 text-sm text-gray-600">
+              Amount: <span class="font-medium">{{ formatCurrency(app.requestedAmount) }}</span>
+              • Updated: {{ formatDate(app.lastUpdated) }}
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <a class="btn btn-primary" (click)="viewApplication(app.id)">View</a>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>
+
+

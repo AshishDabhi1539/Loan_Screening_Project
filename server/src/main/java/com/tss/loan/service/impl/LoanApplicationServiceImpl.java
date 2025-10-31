@@ -1,5 +1,7 @@
 package com.tss.loan.service.impl;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -35,8 +37,12 @@ import com.tss.loan.entity.user.User;
 import com.tss.loan.exception.LoanApiException;
 import com.tss.loan.repository.ApplicantFinancialProfileRepository;
 import com.tss.loan.repository.ApplicantPersonalDetailsRepository;
+import com.tss.loan.repository.FreelancerEmploymentDetailsRepository;
 import com.tss.loan.repository.LoanApplicationRepository;
 import com.tss.loan.repository.LoanDocumentRepository;
+import com.tss.loan.repository.ProfessionalEmploymentDetailsRepository;
+import com.tss.loan.repository.RetiredEmploymentDetailsRepository;
+import com.tss.loan.repository.StudentEmploymentDetailsRepository;
 import com.tss.loan.service.ApplicationAssignmentService;
 import com.tss.loan.service.ApplicationWorkflowService;
 import com.tss.loan.service.AuditLogService;
@@ -62,6 +68,18 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
     
     @Autowired
     private LoanDocumentRepository documentRepository;
+    
+    @Autowired
+    private ProfessionalEmploymentDetailsRepository professionalEmploymentRepository;
+    
+    @Autowired
+    private FreelancerEmploymentDetailsRepository freelancerEmploymentRepository;
+    
+    @Autowired
+    private RetiredEmploymentDetailsRepository retiredEmploymentRepository;
+    
+    @Autowired
+    private StudentEmploymentDetailsRepository studentEmploymentRepository;
     
     @Autowired
     private AuditLogService auditLogService;
@@ -215,14 +233,14 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
         // Update financial profile - map to correct field names
         financialProfile.setLoanApplication(application);
         financialProfile.setEmploymentType(request.getEmploymentType());
-        financialProfile.setEmployerName(request.getCompanyName());
-        financialProfile.setDesignation(request.getJobTitle());
+        financialProfile.setEmployerName(getEmployerNameForEmploymentType(request.getCompanyName(), request.getEmploymentType()));
+        financialProfile.setDesignation(getDesignationForEmploymentType(request.getJobTitle(), request.getEmploymentType()));
         financialProfile.setEmploymentStartDate(request.getEmploymentStartDate());
         financialProfile.setWorkAddress(request.getCompanyAddress());
         financialProfile.setWorkCity(request.getCompanyCity());
         
         // Income details
-        financialProfile.setPrimaryMonthlyIncome(request.getMonthlyIncome());
+        financialProfile.setPrimaryMonthlyIncome(getPrimaryIncomeForEmploymentType(request.getMonthlyIncome(), request.getEmploymentType()));
         financialProfile.setSecondaryIncome(request.getAdditionalIncome());
         financialProfile.setExistingEmiAmount(request.getExistingLoanEmi());
         financialProfile.setMonthlyExpenses(request.getMonthlyExpenses());
@@ -576,10 +594,10 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
         financialProfile.setLoanApplication(application);
         
         // Set employment details
-        financialProfile.setEmployerName(request.getCompanyName());
-        financialProfile.setDesignation(request.getJobTitle());
+        financialProfile.setEmployerName(getEmployerNameForEmploymentType(request.getCompanyName(), request.getEmploymentType()));
+        financialProfile.setDesignation(getDesignationForEmploymentType(request.getJobTitle(), request.getEmploymentType()));
         financialProfile.setEmploymentType(request.getEmploymentType());
-        financialProfile.setEmploymentStartDate(request.getEmploymentStartDate());
+        financialProfile.setEmploymentStartDate(getEmploymentStartDateForEmploymentType(request.getEmploymentStartDate(), request.getEmploymentType()));
         financialProfile.setWorkAddress(request.getCompanyAddress());
         financialProfile.setWorkCity(request.getCompanyCity());
         financialProfile.setWorkPhone(request.getWorkPhone());
@@ -604,7 +622,7 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
         
         // Set income details
         financialProfile.setIncomeType(request.getIncomeType());
-        financialProfile.setPrimaryMonthlyIncome(request.getMonthlyIncome());
+        financialProfile.setPrimaryMonthlyIncome(getPrimaryIncomeForEmploymentType(request.getMonthlyIncome(), request.getEmploymentType()));
         financialProfile.setSecondaryIncome(request.getAdditionalIncome());
         financialProfile.setExistingEmiAmount(request.getExistingLoanEmi());
         financialProfile.setCreditCardOutstanding(request.getCreditCardOutstanding());
@@ -660,8 +678,8 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
             .orElseThrow(() -> new LoanApiException("Financial details not found for application: " + applicationId + ". Use POST to create."));
         
         // Update employment details
-        financialProfile.setEmployerName(request.getCompanyName());
-        financialProfile.setDesignation(request.getJobTitle());
+        financialProfile.setEmployerName(getEmployerNameForEmploymentType(request.getCompanyName(), request.getEmploymentType()));
+        financialProfile.setDesignation(getDesignationForEmploymentType(request.getJobTitle(), request.getEmploymentType()));
         financialProfile.setEmploymentType(request.getEmploymentType());
         financialProfile.setEmploymentStartDate(request.getEmploymentStartDate());
         financialProfile.setWorkAddress(request.getCompanyAddress());
@@ -688,7 +706,7 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
         
         // Update income details
         financialProfile.setIncomeType(request.getIncomeType());
-        financialProfile.setPrimaryMonthlyIncome(request.getMonthlyIncome());
+        financialProfile.setPrimaryMonthlyIncome(getPrimaryIncomeForEmploymentType(request.getMonthlyIncome(), request.getEmploymentType()));
         financialProfile.setSecondaryIncome(request.getAdditionalIncome());
         financialProfile.setExistingEmiAmount(request.getExistingLoanEmi());
         financialProfile.setCreditCardOutstanding(request.getCreditCardOutstanding());
@@ -900,7 +918,8 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
                 if (request.getProfessionalDetails() != null) {
                     ProfessionalEmploymentDetails profDetails = mapToProfessionalDetails(
                         request.getProfessionalDetails(), financialProfile);
-                    financialProfile.setProfessionalDetails(profDetails);
+                    ProfessionalEmploymentDetails savedProfDetails = professionalEmploymentRepository.save(profDetails);
+                    financialProfile.setProfessionalDetails(savedProfDetails);
                 }
                 break;
                 
@@ -908,7 +927,8 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
                 if (request.getFreelancerDetails() != null) {
                     FreelancerEmploymentDetails freelanceDetails = mapToFreelancerDetails(
                         request.getFreelancerDetails(), financialProfile);
-                    financialProfile.setFreelancerDetails(freelanceDetails);
+                    FreelancerEmploymentDetails savedFreelanceDetails = freelancerEmploymentRepository.save(freelanceDetails);
+                    financialProfile.setFreelancerDetails(savedFreelanceDetails);
                 }
                 break;
                 
@@ -916,7 +936,8 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
                 if (request.getRetiredDetails() != null) {
                     RetiredEmploymentDetails retiredDetails = mapToRetiredDetails(
                         request.getRetiredDetails(), financialProfile);
-                    financialProfile.setRetiredDetails(retiredDetails);
+                    RetiredEmploymentDetails savedRetiredDetails = retiredEmploymentRepository.save(retiredDetails);
+                    financialProfile.setRetiredDetails(savedRetiredDetails);
                 }
                 break;
                 
@@ -924,7 +945,8 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
                 if (request.getStudentDetails() != null) {
                     StudentEmploymentDetails studentDetails = mapToStudentDetails(
                         request.getStudentDetails(), financialProfile);
-                    financialProfile.setStudentDetails(studentDetails);
+                    StudentEmploymentDetails savedStudentDetails = studentEmploymentRepository.save(studentDetails);
+                    financialProfile.setStudentDetails(savedStudentDetails);
                 }
                 break;
                 
@@ -1041,5 +1063,122 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
         details.setAdditionalFinancialSupport(request.getAdditionalFinancialSupport());
         
         return details;
+    }
+    
+    /**
+     * Helper method to get appropriate primary income based on employment type
+     * Handles null income for unemployed and ensures proper defaults
+     */
+    private BigDecimal getPrimaryIncomeForEmploymentType(BigDecimal monthlyIncome, EmploymentType employmentType) {
+        // If income is provided, use it
+        if (monthlyIncome != null && monthlyIncome.compareTo(BigDecimal.ZERO) > 0) {
+            return monthlyIncome;
+        }
+        
+        // Handle special cases for employment types
+        switch (employmentType) {
+            case UNEMPLOYED:
+                return BigDecimal.ZERO; // Unemployed has zero primary income
+            case RETIRED:
+                return BigDecimal.ZERO; // Retired might have pension as secondary income
+            case STUDENT:
+                return BigDecimal.ZERO; // Students typically don't have primary employment income
+            default:
+                return monthlyIncome; // Allow null for other types if no income provided
+        }
+    }
+    
+    /**
+     * Helper method to get appropriate employer name based on employment type
+     * Provides default values for employment types that don't have traditional employers
+     */
+    private String getEmployerNameForEmploymentType(String companyName, EmploymentType employmentType) {
+        // If companyName is provided, use it
+        if (companyName != null && !companyName.trim().isEmpty()) {
+            return companyName.trim();
+        }
+        
+        // Provide default employer names for employment types that typically don't have employers
+        switch (employmentType) {
+            case RETIRED:
+                return "Retired";
+            case UNEMPLOYED:
+                return "Unemployed";
+            case STUDENT:
+                return "Student";
+            case FREELANCER:
+                return "Freelancer";
+            case SELF_EMPLOYED:
+                return "Self Employed";
+            case BUSINESS_OWNER:
+                return "Business Owner";
+            case PROFESSIONAL:
+                return "Professional Practice";
+            case SALARIED:
+                return null; // Allow null for salaried if no company name provided
+            default:
+                return null; // Allow null for unknown types
+        }
+    }
+    
+    /**
+     * Helper method to get appropriate designation based on employment type
+     * Provides default values for employment types that don't have traditional designations
+     */
+    private String getDesignationForEmploymentType(String jobTitle, EmploymentType employmentType) {
+        // If jobTitle is provided, use it
+        if (jobTitle != null && !jobTitle.trim().isEmpty()) {
+            return jobTitle.trim();
+        }
+        
+        // Provide default designations for employment types that typically don't have job titles
+        switch (employmentType) {
+            case RETIRED:
+                return "Retired";
+            case UNEMPLOYED:
+                return "Unemployed";
+            case STUDENT:
+                return "Student";
+            case FREELANCER:
+                return "Freelancer";
+            case SELF_EMPLOYED:
+                return "Self Employed";
+            case BUSINESS_OWNER:
+                return "Business Owner";
+            case PROFESSIONAL:
+                return "Professional";
+            case SALARIED:
+                return "Employee"; // Generic designation for salaried without specific title
+            default:
+                return null; // Allow null for unknown types
+        }
+    }
+    
+    /**
+     * Helper method to get appropriate employment start date based on employment type
+     * Returns null for employment types that don't have traditional employment start dates
+     */
+    private LocalDate getEmploymentStartDateForEmploymentType(LocalDate employmentStartDate, EmploymentType employmentType) {
+        // If employment start date is provided, use it
+        if (employmentStartDate != null) {
+            return employmentStartDate;
+        }
+        
+        // For employment types that don't have traditional employment start dates, return null
+        switch (employmentType) {
+            case RETIRED:
+            case UNEMPLOYED:
+            case STUDENT:
+                return null; // These types don't have employment start dates
+            case FREELANCER:
+            case SELF_EMPLOYED:
+            case BUSINESS_OWNER:
+            case PROFESSIONAL:
+                return null; // Allow null if not provided for these types
+            case SALARIED:
+                return null; // Allow null if not provided for salaried employees
+            default:
+                return null; // Allow null for unknown types
+        }
     }
 }

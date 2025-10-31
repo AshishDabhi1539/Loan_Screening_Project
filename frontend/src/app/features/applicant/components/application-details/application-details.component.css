@@ -1,0 +1,13 @@
+.btn {
+  @apply inline-flex items-center px-3 py-2 rounded-md text-sm font-medium border border-gray-300 text-gray-700 hover:bg-gray-50;
+}
+
+.btn-outline {
+  @apply bg-white;
+}
+
+.btn-primary {
+  @apply bg-primary-600 text-white border-transparent hover:bg-primary-700;
+}
+
+

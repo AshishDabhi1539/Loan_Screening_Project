@@ -60,17 +60,17 @@ public class ApplicantFinancialProfile {
     private LoanApplication loanApplication;
     
     // ========== EMPLOYMENT DETAILS ==========
-    @Column(nullable = false, length = 200)
+    @Column(nullable = true, length = 200)
     private String employerName;
     
-    @Column(nullable = false, length = 100)
+    @Column(nullable = true, length = 100)
     private String designation;
     
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private EmploymentType employmentType;
     
-    @Column(nullable = false)
+    @Column(nullable = true)
     private LocalDate employmentStartDate;
     
     @Column(length = 200)
@@ -106,7 +106,7 @@ public class ApplicantFinancialProfile {
     @Column(length = 20)
     private IncomeType incomeType;
     
-    @Column(nullable = false, precision = 12, scale = 2)
+    @Column(nullable = true, precision = 12, scale = 2)
     private BigDecimal primaryMonthlyIncome; // From employment
     
     @Column(precision = 12, scale = 2)
