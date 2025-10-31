@@ -79,6 +79,36 @@ export class OfficerDetailsComponent implements OnInit {
   }
 
   /**
+   * Toggle officer status (soft delete with validation)
+   */
+  toggleOfficerStatus(): void {
+    if (!this.officerId()) return;
+
+    const currentStatus = this.officer()?.status;
+    const action = currentStatus === 'ACTIVE' ? 'deactivate' : 'activate';
+    const confirmMessage = currentStatus === 'ACTIVE' 
+      ? 'Are you sure you want to deactivate this officer? This will prevent them from being assigned new applications.'
+      : 'Are you sure you want to activate this officer?';
+
+    if (!confirm(confirmMessage)) {
+      return;
+    }
+
+    this.adminService.toggleOfficerStatus(this.officerId()).subscribe({
+      next: (message) => {
+        this.notificationService.success('Success', message);
+        // Reload officer details to get updated status
+        this.loadOfficerDetails(this.officerId());
+      },
+      error: (error) => {
+        console.error('Error toggling officer status:', error);
+        const errorMessage = error.error || 'Failed to update officer status';
+        this.notificationService.error('Error', errorMessage);
+      }
+    });
+  }
+
+  /**
    * Get status badge color
    */
   getStatusBadgeColor(status: string): string {

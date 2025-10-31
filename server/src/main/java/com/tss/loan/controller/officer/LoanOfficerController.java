@@ -86,7 +86,7 @@ public class LoanOfficerController {
         
         User officer = getCurrentUser(authentication);
         LoanApplicationResponse application = loanOfficerService.getApplicationForReview(applicationId, officer);
-        
+        	
         return ResponseEntity.ok(application);
     }
     

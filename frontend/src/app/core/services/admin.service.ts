@@ -133,8 +133,7 @@ export class AdminService {
    * Backend returns plain text string, not JSON
    */
   toggleOfficerStatus(officerId: string): Observable<string> {
-    // Use postText since backend returns plain string, not JSON
-    return this.apiService.postText(`/admin/officers/${officerId}/toggle-status`, {}).pipe(
+    return this.apiService.post<string>(`/admin/officers/${officerId}/toggle-status`, {}).pipe(
       map(response => {
         console.log('✅ Toggle status response:', response);
         return response;
