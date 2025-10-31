@@ -21,7 +21,7 @@
               </button>
               <div>
                 <h1 class="text-2xl font-bold">Application Review</h1>
-                <p class="text-sm text-gray-600">ID: {{ details.application?.id?.substring(0, 12) }}...</p>
+                <p class="text-sm text-gray-600">ID: {{ details.application.id.substring(0, 12) }}...</p>
               </div>
             </div>
 
@@ -48,20 +48,20 @@
           <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div class="bg-white border border-gray-200 rounded-lg p-4">
               <div class="text-sm text-gray-600">Status</div>
-              <span [ngClass]="getStatusBadgeClass(details.application?.status)" class="inline-block mt-2 px-3 py-1 text-sm font-semibold rounded-full">
-                {{ getStatusLabel(details.application?.status) }}
+              <span [ngClass]="getStatusBadgeClass(details.application.status)" class="inline-block mt-2 px-3 py-1 text-sm font-semibold rounded-full">
+                {{ getStatusLabel(details.application.status) }}
               </span>
             </div>
             <div class="bg-white border border-gray-200 rounded-lg p-4">
               <div class="text-sm text-gray-600">Priority</div>
-              <span [ngClass]="getPriorityBadgeClass(details.application?.priority)" class="inline-block mt-2 px-3 py-1 text-sm font-semibold rounded-full">
-                {{ details.application?.priority }}
+              <span [ngClass]="getPriorityBadgeClass(details.application.priority)" class="inline-block mt-2 px-3 py-1 text-sm font-semibold rounded-full">
+                {{ details.application.priority }}
               </span>
             </div>
             <div class="bg-white border border-gray-200 rounded-lg p-4">
               <div class="text-sm text-gray-600">Risk Level</div>
-              <span [ngClass]="getRiskLevelBadgeClass(details.application?.riskLevel)" class="inline-block mt-2 px-3 py-1 text-sm font-semibold rounded-full">
-                {{ details.application?.riskLevel }}
+              <span [ngClass]="getRiskLevelBadgeClass(details.application.riskLevel)" class="inline-block mt-2 px-3 py-1 text-sm font-semibold rounded-full">
+                {{ details.application.riskLevel }}
               </span>
             </div>
             <div class="bg-white border border-gray-200 rounded-lg p-4">
@@ -99,21 +99,70 @@
           <div class="p-6">
             <!-- Personal Tab -->
             @if (activeTab() === 'personal' && hasPersonalDetails()) {
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <h3 class="font-semibold mb-4">Basic Information</h3>
-                  <div class="space-y-3">
-                    <div><label class="text-sm text-gray-600">Name</label><p class="font-medium">{{ details.personalDetails?.firstName }} {{ details.personalDetails?.lastName }}</p></div>
-                    <div><label class="text-sm text-gray-600">DOB</label><p>{{ formatDate(details.personalDetails?.dateOfBirth) }}</p></div>
-                    <div><label class="text-sm text-gray-600">Gender</label><p>{{ details.personalDetails?.gender }}</p></div>
-                    <div><label class="text-sm text-gray-600">PAN</label><p class="font-mono">{{ details.personalDetails?.panNumber }}</p></div>
-                    <div><label class="text-sm text-gray-600">Aadhaar</label><p class="font-mono">{{ details.personalDetails?.aadhaarNumber }}</p></div>
+              <div class="space-y-6">
+                <!-- Basic Information -->
+                <div class="bg-gray-50 rounded-lg p-6">
+                  <h3 class="text-lg font-semibold mb-4 text-gray-900">👤 Personal Information</h3>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label class="text-sm font-medium text-gray-600">Full Name</label>
+                      <p class="font-medium text-gray-900">{{ details.personalDetails.firstName }} {{ details.personalDetails.middleName }} {{ details.personalDetails.lastName }}</p>
+                    </div>
+                    <div>
+                      <label class="text-sm font-medium text-gray-600">Date of Birth</label>
+                      <p class="font-medium text-gray-900">{{ formatDate(details.personalDetails.dateOfBirth) }}</p>
+                    </div>
+                    <div>
+                      <label class="text-sm font-medium text-gray-600">Gender</label>
+                      <p class="font-medium text-gray-900">{{ details.personalDetails.gender || 'Not specified' }}</p>
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <h3 class="font-semibold mb-4">Address</h3>
-                  <div><label class="text-sm text-gray-600">Current Address</label>
-                    <p>{{ details.personalDetails?.currentAddressLine1 }}, {{ details.personalDetails?.currentCity }}, {{ details.personalDetails?.currentState }} - {{ details.personalDetails?.currentPincode }}</p>
+
+                <!-- Identity Documents -->
+                <div class="bg-blue-50 rounded-lg p-6">
+                  <h3 class="text-lg font-semibold mb-4 text-gray-900">🆔 Identity Documents</h3>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label class="text-sm font-medium text-gray-600">PAN Number</label>
+                      <p class="font-mono text-lg font-bold text-blue-700">{{ details.personalDetails.panNumber }}</p>
+                    </div>
+                    <div>
+                      <label class="text-sm font-medium text-gray-600">Aadhaar Number</label>
+                      <p class="font-mono text-lg font-bold text-blue-700">{{ details.personalDetails.aadhaarNumber }}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Address Information -->
+                <div class="bg-green-50 rounded-lg p-6">
+                  <h3 class="text-lg font-semibold mb-4 text-gray-900">🏠 Address Information</h3>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label class="text-sm font-medium text-gray-600">Current Address</label>
+                      <div class="mt-2 p-3 bg-white rounded border">
+                        <p class="font-medium">{{ details.personalDetails.currentAddressLine1 }}</p>
+                        <p class="text-gray-600">{{ details.personalDetails.currentCity }}, {{ details.personalDetails.currentState }}</p>
+                        <p class="text-gray-600">PIN: {{ details.personalDetails.currentPincode }}</p>
+                      </div>
+                    </div>
+                    <div>
+                      <label class="text-sm font-medium text-gray-600">Contact Information</label>
+                      <div class="mt-2 space-y-2">
+                        <div class="flex items-center space-x-2">
+                          <span class="text-sm text-gray-500">📞 Primary:</span>
+                          <span class="font-medium">{{ details.application.applicantPhone }}</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                          <span class="text-sm text-gray-500">📞 Alternate:</span>
+                          <span class="font-medium">{{ details.personalDetails.alternatePhoneNumber || 'Not provided' }}</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                          <span class="text-sm text-gray-500">📧 Email:</span>
+                          <span class="font-medium">{{ details.application.applicantEmail }}</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -121,21 +170,80 @@
 
             <!-- Financial Tab -->
             @if (activeTab() === 'financial' && hasFinancialProfile()) {
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <h3 class="font-semibold mb-4">Employment</h3>
-                  <div class="space-y-3">
-                    <div><label class="text-sm text-gray-600">Type</label><p>{{ details.financialDetails?.employmentType }}</p></div>
-                    <div><label class="text-sm text-gray-600">Company</label><p>{{ details.financialDetails?.companyName }}</p></div>
-                    <div><label class="text-sm text-gray-600">Monthly Income</label><p class="font-semibold text-lg">{{ formatCurrency(details.financialDetails?.monthlyIncome) }}</p></div>
+              <div class="space-y-6">
+                <!-- Employment Information -->
+                <div class="bg-blue-50 rounded-lg p-6">
+                  <h3 class="text-lg font-semibold mb-4 text-gray-900">💼 Employment Details</h3>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label class="text-sm font-medium text-gray-600">Employment Type</label>
+                      <p class="font-medium text-blue-700">{{ details.financialDetails.employmentType }}</p>
+                    </div>
+                    <div>
+                      <label class="text-sm font-medium text-gray-600">Company Name</label>
+                      <p class="font-medium text-gray-900">{{ details.financialDetails.companyName }}</p>
+                    </div>
+                    <div>
+                      <label class="text-sm font-medium text-gray-600">Job Title</label>
+                      <p class="font-medium text-gray-900">{{ details.financialDetails.jobTitle || 'Not specified' }}</p>
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <h3 class="font-semibold mb-4">Bank Details</h3>
-                  <div class="space-y-3">
-                    <div><label class="text-sm text-gray-600">Bank</label><p>{{ details.financialDetails?.bankName }}</p></div>
-                    <div><label class="text-sm text-gray-600">Account</label><p class="font-mono">{{ details.financialDetails?.accountNumber }}</p></div>
-                    <div><label class="text-sm text-gray-600">IFSC</label><p class="font-mono">{{ details.financialDetails?.ifscCode }}</p></div>
+
+                <!-- Income Information -->
+                <div class="bg-green-50 rounded-lg p-6">
+                  <h3 class="text-lg font-semibold mb-4 text-gray-900">💰 Income Details</h3>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label class="text-sm font-medium text-gray-600">Monthly Income</label>
+                      <p class="text-2xl font-bold text-green-700">{{ formatCurrency(details.financialDetails.monthlyIncome) }}</p>
+                    </div>
+                    <div>
+                      <label class="text-sm font-medium text-gray-600">Annual Income</label>
+                      <p class="text-xl font-semibold text-green-600">{{ formatCurrency((details.financialDetails.monthlyIncome || 0) * 12) }}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Bank Details -->
+                <div class="bg-purple-50 rounded-lg p-6">
+                  <h3 class="text-lg font-semibold mb-4 text-gray-900">🏦 Banking Information</h3>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label class="text-sm font-medium text-gray-600">Bank Name</label>
+                      <p class="font-medium text-purple-700 text-lg">{{ details.financialDetails.bankName }}</p>
+                    </div>
+                    <div>
+                      <label class="text-sm font-medium text-gray-600">Account Type</label>
+                      <p class="font-medium text-gray-900">{{ details.financialDetails.accountType }}</p>
+                    </div>
+                    <div>
+                      <label class="text-sm font-medium text-gray-600">Account Number</label>
+                      <p class="font-mono text-lg font-bold text-purple-700">{{ details.financialDetails.accountNumber }}</p>
+                    </div>
+                    <div>
+                      <label class="text-sm font-medium text-gray-600">IFSC Code</label>
+                      <p class="font-mono text-lg font-bold text-purple-700">{{ details.financialDetails.ifscCode }}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Loan Assessment -->
+                <div class="bg-yellow-50 rounded-lg p-6">
+                  <h3 class="text-lg font-semibold mb-4 text-gray-900">📊 Loan Assessment</h3>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label class="text-sm font-medium text-gray-600">Requested Amount</label>
+                      <p class="text-xl font-bold text-yellow-700">{{ formatCurrency(details.application.requestedAmount) }}</p>
+                    </div>
+                    <div>
+                      <label class="text-sm font-medium text-gray-600">Loan Tenure</label>
+                      <p class="font-medium text-gray-900">{{ details.application.tenureMonths }} months</p>
+                    </div>
+                    <div>
+                      <label class="text-sm font-medium text-gray-600">Purpose</label>
+                      <p class="font-medium text-gray-900">{{ details.application.purpose }}</p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -143,29 +251,88 @@
 
             <!-- Documents Tab -->
             @if (activeTab() === 'documents') {
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                @for (doc of details.documents; track doc.id) {
-                  <div class="border rounded-lg p-4">
-                    <div class="flex items-start space-x-3">
-                      <span class="text-2xl">{{ getDocumentIcon(doc.documentType) }}</span>
-                      <div class="flex-1">
-                        <h4 class="font-medium">{{ doc.documentType.replace('_', ' ') }}</h4>
-                        <p class="text-sm text-gray-600">{{ doc.fileName }}</p>
-                        @if (doc.verificationStatus === 'VERIFIED') {
-                          <span class="inline-block mt-2 px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">✓ Verified</span>
-                        } @else {
-                          <span class="inline-block mt-2 px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">⏳ Pending</span>
+              <div class="space-y-6">
+                <!-- Documents Summary -->
+                <div class="bg-gray-50 rounded-lg p-6">
+                  <h3 class="text-lg font-semibold mb-4 text-gray-900">📄 Documents Overview</h3>
+                  <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div class="text-center">
+                      <p class="text-2xl font-bold text-blue-600">{{ documentsCount() }}</p>
+                      <p class="text-sm text-gray-600">Total Documents</p>
+                    </div>
+                    <div class="text-center">
+                      <p class="text-2xl font-bold text-green-600">{{ verifiedDocumentsCount() }}</p>
+                      <p class="text-sm text-gray-600">Verified</p>
+                    </div>
+                    <div class="text-center">
+                      <p class="text-2xl font-bold text-yellow-600">{{ pendingDocumentsCount() }}</p>
+                      <p class="text-sm text-gray-600">Pending</p>
+                    </div>
+                    <div class="text-center">
+                      <p class="text-2xl font-bold text-purple-600">{{ Math.round((verifiedDocumentsCount() / documentsCount()) * 100) }}%</p>
+                      <p class="text-sm text-gray-600">Completion</p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Documents List -->
+                <div class="grid grid-cols-1 gap-4">
+                  @for (doc of details.documents; track doc.id) {
+                    <div class="bg-white border rounded-lg p-6 hover:shadow-md transition-shadow">
+                      <div class="flex items-start justify-between">
+                        <div class="flex items-start space-x-4">
+                          <div class="flex-shrink-0">
+                            <span class="text-3xl">{{ getDocumentIcon(doc.documentType) }}</span>
+                          </div>
+                          <div class="flex-1">
+                            <h4 class="text-lg font-semibold text-gray-900">{{ doc.documentType.replace('_', ' ') }}</h4>
+                            <p class="text-sm text-gray-600 mt-1">{{ doc.fileName }}</p>
+                            <div class="mt-2 flex items-center space-x-4 text-sm text-gray-500">
+                              <span>📅 {{ formatDate(doc.uploadedAt) }}</span>
+                              <span>📁 {{ (doc.fileSize / 1024 / 1024).toFixed(2) }} MB</span>
+                              <span>🔗 PDF/Image</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="flex-shrink-0">
+                          @if (doc.verificationStatus === 'VERIFIED') {
+                            <span class="inline-flex items-center px-3 py-1 bg-green-100 text-green-800 text-sm font-medium rounded-full">
+                              ✓ Verified
+                            </span>
+                          } @else if (doc.verificationStatus === 'REJECTED') {
+                            <span class="inline-flex items-center px-3 py-1 bg-red-100 text-red-800 text-sm font-medium rounded-full">
+                              ✗ Rejected
+                            </span>
+                          } @else {
+                            <span class="inline-flex items-center px-3 py-1 bg-yellow-100 text-yellow-800 text-sm font-medium rounded-full">
+                              ⏳ Pending
+                            </span>
+                          }
+                        </div>
+                      </div>
+                      
+                      @if (doc.verificationNotes) {
+                        <div class="mt-4 p-3 bg-gray-50 rounded">
+                          <p class="text-sm text-gray-700"><strong>Notes:</strong> {{ doc.verificationNotes }}</p>
+                        </div>
+                      }
+
+                      <div class="mt-4 flex space-x-3">
+                        <button (click)="viewDocument(doc)" class="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 text-sm font-medium">
+                          👁️ View Document
+                        </button>
+                        @if (canVerifyDocuments() && doc.verificationStatus !== 'VERIFIED') {
+                          <button (click)="verifyDocument(doc.id)" [disabled]="isProcessing()" class="px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 text-sm font-medium disabled:opacity-50">
+                            ✓ Verify
+                          </button>
+                          <button (click)="rejectDocument(doc.id)" [disabled]="isProcessing()" class="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 text-sm font-medium disabled:opacity-50">
+                            ✗ Reject
+                          </button>
                         }
                       </div>
                     </div>
-                    <div class="mt-3 flex space-x-2">
-                      <button (click)="viewDocument(doc)" class="flex-1 px-3 py-1 bg-blue-50 text-blue-700 rounded text-sm">View</button>
-                      @if (canVerifyDocuments() && doc.verificationStatus !== 'VERIFIED') {
-                        <button (click)="verifyDocument(doc.id)" [disabled]="isProcessing()" class="flex-1 px-3 py-1 bg-green-50 text-green-700 rounded text-sm disabled:opacity-50">Verify</button>
-                      }
-                    </div>
-                  </div>
-                }
+                  }
+                </div>
               </div>
             }
 

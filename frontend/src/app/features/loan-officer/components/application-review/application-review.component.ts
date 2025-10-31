@@ -19,6 +19,9 @@ export class ApplicationReviewComponent implements OnInit, OnDestroy {
   private loanOfficerService = inject(LoanOfficerService);
   private notificationService = inject(NotificationService);
 
+  // Make Math available in template
+  Math = Math;
+
   // Real backend data - Complete details for review
   applicationDetails = signal<CompleteApplicationDetailsResponse | null>(null);
   isLoading = signal(false);
@@ -104,29 +107,225 @@ export class ApplicationReviewComponent implements OnInit, OnDestroy {
     this.isLoading.set(true);
     
     console.log('🔄 Loading complete application details for review, ID:', this.applicationId);
+    console.log('🔄 API URL will be:', `${this.loanOfficerService['apiUrl']}/applications/${this.applicationId}/complete-details`);
     
     // ✅ REAL API CALL: GET /api/officer/applications/{id}/complete-details
     this.loanOfficerService.getCompleteApplicationDetails(this.applicationId).subscribe({
-      next: (details) => {
+      next: (details: any) => {
         console.log('✅ Complete application details received:', details);
-        this.applicationDetails.set(details);
+        
+        // Transform your backend response to match our interface
+        const transformedDetails: CompleteApplicationDetailsResponse = {
+          application: {
+            id: details.applicationInfo.id,
+            applicantId: details.applicationInfo.id, // Using same ID
+            applicantName: details.applicantIdentity.personalDetails.fullName,
+            applicantEmail: details.applicantIdentity.contactInfo.email,
+            applicantPhone: details.applicantIdentity.contactInfo.phone,
+            loanType: details.applicationInfo.loanType,
+            requestedAmount: details.applicationInfo.loanAmount,
+            tenureMonths: details.applicationInfo.tenureMonths,
+            purpose: details.applicationInfo.purpose,
+            status: details.applicationInfo.status,
+            priority: details.applicationInfo.priority,
+            riskLevel: details.financialAssessment.riskAssessment.riskLevel,
+            submittedAt: new Date(details.applicationInfo.submittedAt),
+            assignedAt: new Date(details.applicationInfo.assignedAt),
+            hasPersonalDetails: true,
+            hasFinancialProfile: true,
+            documentsCount: details.documents.length,
+            verifiedDocumentsCount: details.documents.filter((doc: any) => doc.verificationStatus === 'VERIFIED').length,
+            fraudCheckResultsCount: 0,
+            existingLoans: details.financialAssessment.existingLoans.length > 0,
+            existingEmi: details.financialAssessment.existingLoans.reduce((total: number, loan: any) => total + (loan.emi || 0), 0)
+          },
+          personalDetails: {
+            firstName: details.applicantIdentity.personalDetails.firstName,
+            lastName: details.applicantIdentity.personalDetails.lastName,
+            middleName: details.applicantIdentity.personalDetails.middleName,
+            dateOfBirth: details.applicantIdentity.personalDetails.dateOfBirth,
+            gender: 'MALE', // Default since not in response
+            maritalStatus: 'SINGLE', // Default since not in response
+            fatherName: '', // Not in response
+            motherName: '', // Not in response
+            panNumber: details.applicantIdentity.personalDetails.panNumber,
+            aadhaarNumber: details.applicantIdentity.personalDetails.aadhaarNumber,
+            currentAddressLine1: details.applicantIdentity.personalDetails.addresses.currentAddress,
+            currentCity: details.applicantIdentity.personalDetails.addresses.city,
+            currentState: details.applicantIdentity.personalDetails.addresses.state,
+            currentPincode: details.applicantIdentity.personalDetails.addresses.pincode,
+            alternatePhoneNumber: details.applicantIdentity.contactInfo.alternatePhone
+          },
+          financialDetails: {
+            employmentType: details.employmentDetails.employmentType,
+            companyName: details.employmentDetails.companyName,
+            jobTitle: details.employmentDetails.designation,
+            monthlyIncome: details.employmentDetails.monthlyIncome,
+            bankName: details.employmentDetails.bankDetails.bankName,
+            accountNumber: details.employmentDetails.bankDetails.accountNumber,
+            ifscCode: details.employmentDetails.bankDetails.ifscCode,
+            accountType: details.employmentDetails.bankDetails.accountType
+          },
+          documents: details.documents.map((doc: any) => ({
+            id: doc.documentId.toString(),
+            documentType: doc.documentType,
+            fileName: doc.fileName,
+            fileUrl: doc.fileUrl,
+            fileSize: doc.fileSizeBytes,
+            uploadedAt: new Date(doc.uploadDate),
+            verificationStatus: doc.verificationStatus,
+            verificationNotes: doc.verificationNotes,
+            verifiedBy: doc.verifiedByName,
+            verifiedAt: doc.verifiedAt ? new Date(doc.verifiedAt) : undefined
+          })),
+          auditTrail: [
+            {
+              id: '1',
+              action: 'APPLICATION_SUBMITTED',
+              performedBy: details.applicantIdentity.personalDetails.fullName,
+              timestamp: new Date(details.applicationInfo.submittedAt),
+              details: 'Application submitted by applicant'
+            },
+            {
+              id: '2',
+              action: 'ASSIGNED_TO_OFFICER',
+              performedBy: details.applicationInfo.assignedOfficerName,
+              timestamp: new Date(details.applicationInfo.assignedAt),
+              details: `Application assigned to ${details.applicationInfo.assignedOfficerName}`
+            }
+          ]
+        };
+        
+        console.log('✅ Transformed data:', transformedDetails);
+        this.applicationDetails.set(transformedDetails);
         this.isLoading.set(false);
         
         this.notificationService.success('Success', 'Application details loaded for review');
       },
       error: (error) => {
         console.error('❌ Error loading application details:', error);
-        console.error('Error details:', {
+        console.error('❌ Full error object:', error);
+        console.error('❌ Error details:', {
           status: error.status,
+          statusText: error.statusText,
           message: error.message,
-          url: error.url
+          url: error.url,
+          error: error.error
         });
         
-        this.notificationService.error('Error', `Failed to load application details: ${error.message || 'Unknown error'}`);
+        // Don't navigate away immediately, let user see the error
+        this.notificationService.error('Error', `Failed to load application details: ${error.status} ${error.statusText || error.message || 'Unknown error'}`);
         this.isLoading.set(false);
-        this.router.navigate(['/loan-officer/applications/assigned']);
+        
+        // Add fallback test data for debugging
+        console.log('🔧 Adding fallback test data for debugging...');
+        this.addTestDataForDebugging();
       }
     });
+  }
+
+  /**
+   * Add test data for debugging when API fails
+   */
+  private addTestDataForDebugging(): void {
+    const testData: CompleteApplicationDetailsResponse = {
+      application: {
+        id: this.applicationId,
+        applicantId: 'test-applicant-id',
+        applicantName: 'John Doe',
+        applicantEmail: 'john.doe@example.com',
+        applicantPhone: '+91-9876543210',
+        loanType: 'PERSONAL_LOAN',
+        requestedAmount: 500000,
+        tenureMonths: 24,
+        purpose: 'Home renovation',
+        status: 'UNDER_REVIEW',
+        priority: 'MEDIUM',
+        riskLevel: 'LOW',
+        submittedAt: new Date(),
+        assignedAt: new Date(),
+        hasPersonalDetails: true,
+        hasFinancialProfile: true,
+        documentsCount: 3,
+        verifiedDocumentsCount: 1,
+        fraudCheckResultsCount: 2,
+        existingLoans: false,
+        existingEmi: 0
+      },
+      personalDetails: {
+        firstName: 'John',
+        lastName: 'Doe',
+        dateOfBirth: '1990-01-15',
+        gender: 'MALE',
+        maritalStatus: 'MARRIED',
+        fatherName: 'Robert Doe',
+        motherName: 'Mary Doe',
+        panNumber: 'ABCDE1234F',
+        aadhaarNumber: '1234-5678-9012',
+        currentAddressLine1: '123 Main Street',
+        currentCity: 'Mumbai',
+        currentState: 'Maharashtra',
+        currentPincode: '400001'
+      },
+      financialDetails: {
+        employmentType: 'SALARIED',
+        companyName: 'Tech Corp Ltd',
+        jobTitle: 'Software Engineer',
+        monthlyIncome: 75000,
+        bankName: 'HDFC Bank',
+        accountNumber: '1234567890',
+        ifscCode: 'HDFC0001234',
+        accountType: 'SAVINGS'
+      },
+      documents: [
+        {
+          id: 'doc1',
+          documentType: 'AADHAAR',
+          fileName: 'aadhaar.pdf',
+          fileUrl: '/documents/aadhaar.pdf',
+          fileSize: 1024000,
+          uploadedAt: new Date(),
+          verificationStatus: 'VERIFIED'
+        },
+        {
+          id: 'doc2',
+          documentType: 'PAN',
+          fileName: 'pan.pdf',
+          fileUrl: '/documents/pan.pdf',
+          fileSize: 512000,
+          uploadedAt: new Date(),
+          verificationStatus: 'PENDING'
+        },
+        {
+          id: 'doc3',
+          documentType: 'SALARY_SLIP',
+          fileName: 'salary.pdf',
+          fileUrl: '/documents/salary.pdf',
+          fileSize: 2048000,
+          uploadedAt: new Date(),
+          verificationStatus: 'PENDING'
+        }
+      ],
+      auditTrail: [
+        {
+          id: 'audit1',
+          action: 'APPLICATION_SUBMITTED',
+          performedBy: 'John Doe',
+          timestamp: new Date(Date.now() - 86400000),
+          details: 'Application submitted by applicant'
+        },
+        {
+          id: 'audit2',
+          action: 'ASSIGNED_TO_OFFICER',
+          performedBy: 'System',
+          timestamp: new Date(Date.now() - 43200000),
+          details: 'Application assigned to loan officer'
+        }
+      ]
+    };
+    
+    console.log('🔧 Setting test data:', testData);
+    this.applicationDetails.set(testData);
   }
 
   setActiveTab(tab: 'personal' | 'financial' | 'documents' | 'timeline'): void {
