@@ -1,0 +1,238 @@
+<!-- Application Review - Real Backend Data -->
+<div class="min-h-screen bg-gray-50">
+  @if (isLoading()) {
+    <div class="flex items-center justify-center min-h-screen">
+      <div class="text-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+        <p class="mt-4 text-gray-600">Loading application details from backend...</p>
+      </div>
+    </div>
+  } @else {
+    @if (applicationDetails(); as details) {
+      <!-- Header -->
+      <div class="bg-white border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-6 py-6">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center space-x-4">
+              <button (click)="goBack()" class="p-2 hover:bg-gray-100 rounded-lg">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <div>
+                <h1 class="text-2xl font-bold">Application Review</h1>
+                <p class="text-sm text-gray-600">ID: {{ details.application?.id?.substring(0, 12) }}...</p>
+              </div>
+            </div>
+
+            <div class="flex space-x-3">
+              @if (canStartReview()) {
+                <button (click)="startReview()" [disabled]="isProcessing()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">
+                  Start Review
+                </button>
+              }
+              @if (canApprove()) {
+                <button (click)="approveApplication()" [disabled]="isProcessing()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50">
+                  ✓ Approve
+                </button>
+              }
+              @if (canReject()) {
+                <button (click)="rejectApplication()" [disabled]="isProcessing()" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50">
+                  ✗ Reject
+                </button>
+              }
+            </div>
+          </div>
+
+          <!-- Summary Cards -->
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div class="bg-white border border-gray-200 rounded-lg p-4">
+              <div class="text-sm text-gray-600">Status</div>
+              <span [ngClass]="getStatusBadgeClass(details.application?.status)" class="inline-block mt-2 px-3 py-1 text-sm font-semibold rounded-full">
+                {{ getStatusLabel(details.application?.status) }}
+              </span>
+            </div>
+            <div class="bg-white border border-gray-200 rounded-lg p-4">
+              <div class="text-sm text-gray-600">Priority</div>
+              <span [ngClass]="getPriorityBadgeClass(details.application?.priority)" class="inline-block mt-2 px-3 py-1 text-sm font-semibold rounded-full">
+                {{ details.application?.priority }}
+              </span>
+            </div>
+            <div class="bg-white border border-gray-200 rounded-lg p-4">
+              <div class="text-sm text-gray-600">Risk Level</div>
+              <span [ngClass]="getRiskLevelBadgeClass(details.application?.riskLevel)" class="inline-block mt-2 px-3 py-1 text-sm font-semibold rounded-full">
+                {{ details.application?.riskLevel }}
+              </span>
+            </div>
+            <div class="bg-white border border-gray-200 rounded-lg p-4">
+              <div class="text-sm text-gray-600">Documents</div>
+              <div class="text-lg font-semibold mt-2">
+                {{ verifiedDocumentsCount() }} / {{ documentsCount() }} <span class="text-sm text-gray-500">verified</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabs & Content -->
+      <div class="max-w-7xl mx-auto px-6 py-6">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+          <!-- Tab Navigation -->
+          <div class="border-b border-gray-200">
+            <nav class="flex space-x-8 px-6">
+              <button (click)="setActiveTab('personal')" [class.border-primary-600]="activeTab() === 'personal'" [class.text-primary-600]="activeTab() === 'personal'" [class.border-transparent]="activeTab() !== 'personal'" [class.text-gray-500]="activeTab() !== 'personal'" class="py-4 px-1 border-b-2 font-medium text-sm">
+                👤 Personal
+              </button>
+              <button (click)="setActiveTab('financial')" [class.border-primary-600]="activeTab() === 'financial'" [class.text-primary-600]="activeTab() === 'financial'" [class.border-transparent]="activeTab() !== 'financial'" [class.text-gray-500]="activeTab() !== 'financial'" class="py-4 px-1 border-b-2 font-medium text-sm">
+                💰 Financial
+              </button>
+              <button (click)="setActiveTab('documents')" [class.border-primary-600]="activeTab() === 'documents'" [class.text-primary-600]="activeTab() === 'documents'" [class.border-transparent]="activeTab() !== 'documents'" [class.text-gray-500]="activeTab() !== 'documents'" class="py-4 px-1 border-b-2 font-medium text-sm">
+                📄 Documents ({{ documentsCount() }})
+              </button>
+              <button (click)="setActiveTab('timeline')" [class.border-primary-600]="activeTab() === 'timeline'" [class.text-primary-600]="activeTab() === 'timeline'" [class.border-transparent]="activeTab() !== 'timeline'" [class.text-gray-500]="activeTab() !== 'timeline'" class="py-4 px-1 border-b-2 font-medium text-sm">
+                📋 Timeline
+              </button>
+            </nav>
+          </div>
+
+          <!-- Tab Content -->
+          <div class="p-6">
+            <!-- Personal Tab -->
+            @if (activeTab() === 'personal' && hasPersonalDetails()) {
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h3 class="font-semibold mb-4">Basic Information</h3>
+                  <div class="space-y-3">
+                    <div><label class="text-sm text-gray-600">Name</label><p class="font-medium">{{ details.personalDetails?.firstName }} {{ details.personalDetails?.lastName }}</p></div>
+                    <div><label class="text-sm text-gray-600">DOB</label><p>{{ formatDate(details.personalDetails?.dateOfBirth) }}</p></div>
+                    <div><label class="text-sm text-gray-600">Gender</label><p>{{ details.personalDetails?.gender }}</p></div>
+                    <div><label class="text-sm text-gray-600">PAN</label><p class="font-mono">{{ details.personalDetails?.panNumber }}</p></div>
+                    <div><label class="text-sm text-gray-600">Aadhaar</label><p class="font-mono">{{ details.personalDetails?.aadhaarNumber }}</p></div>
+                  </div>
+                </div>
+                <div>
+                  <h3 class="font-semibold mb-4">Address</h3>
+                  <div><label class="text-sm text-gray-600">Current Address</label>
+                    <p>{{ details.personalDetails?.currentAddressLine1 }}, {{ details.personalDetails?.currentCity }}, {{ details.personalDetails?.currentState }} - {{ details.personalDetails?.currentPincode }}</p>
+                  </div>
+                </div>
+              </div>
+            }
+
+            <!-- Financial Tab -->
+            @if (activeTab() === 'financial' && hasFinancialProfile()) {
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h3 class="font-semibold mb-4">Employment</h3>
+                  <div class="space-y-3">
+                    <div><label class="text-sm text-gray-600">Type</label><p>{{ details.financialDetails?.employmentType }}</p></div>
+                    <div><label class="text-sm text-gray-600">Company</label><p>{{ details.financialDetails?.companyName }}</p></div>
+                    <div><label class="text-sm text-gray-600">Monthly Income</label><p class="font-semibold text-lg">{{ formatCurrency(details.financialDetails?.monthlyIncome) }}</p></div>
+                  </div>
+                </div>
+                <div>
+                  <h3 class="font-semibold mb-4">Bank Details</h3>
+                  <div class="space-y-3">
+                    <div><label class="text-sm text-gray-600">Bank</label><p>{{ details.financialDetails?.bankName }}</p></div>
+                    <div><label class="text-sm text-gray-600">Account</label><p class="font-mono">{{ details.financialDetails?.accountNumber }}</p></div>
+                    <div><label class="text-sm text-gray-600">IFSC</label><p class="font-mono">{{ details.financialDetails?.ifscCode }}</p></div>
+                  </div>
+                </div>
+              </div>
+            }
+
+            <!-- Documents Tab -->
+            @if (activeTab() === 'documents') {
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                @for (doc of details.documents; track doc.id) {
+                  <div class="border rounded-lg p-4">
+                    <div class="flex items-start space-x-3">
+                      <span class="text-2xl">{{ getDocumentIcon(doc.documentType) }}</span>
+                      <div class="flex-1">
+                        <h4 class="font-medium">{{ doc.documentType.replace('_', ' ') }}</h4>
+                        <p class="text-sm text-gray-600">{{ doc.fileName }}</p>
+                        @if (doc.verificationStatus === 'VERIFIED') {
+                          <span class="inline-block mt-2 px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">✓ Verified</span>
+                        } @else {
+                          <span class="inline-block mt-2 px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">⏳ Pending</span>
+                        }
+                      </div>
+                    </div>
+                    <div class="mt-3 flex space-x-2">
+                      <button (click)="viewDocument(doc)" class="flex-1 px-3 py-1 bg-blue-50 text-blue-700 rounded text-sm">View</button>
+                      @if (canVerifyDocuments() && doc.verificationStatus !== 'VERIFIED') {
+                        <button (click)="verifyDocument(doc.id)" [disabled]="isProcessing()" class="flex-1 px-3 py-1 bg-green-50 text-green-700 rounded text-sm disabled:opacity-50">Verify</button>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+
+            <!-- Timeline Tab -->
+            @if (activeTab() === 'timeline') {
+              <div class="space-y-4">
+                @for (entry of details.auditTrail; track entry.id) {
+                  <div class="border rounded-lg p-4">
+                    <h4 class="font-medium">{{ entry.action }}</h4>
+                    <p class="text-sm text-gray-600 mt-1">{{ entry.details }}</p>
+                    <p class="text-xs text-gray-500 mt-2">By: {{ entry.performedBy }} • {{ formatDate(entry.timestamp) }}</p>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    } @else {
+      <!-- No Data State -->
+      <div class="flex items-center justify-center min-h-screen">
+        <div class="text-center">
+          <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <h3 class="mt-2 text-sm font-medium text-gray-900">Application not found</h3>
+          <p class="mt-1 text-sm text-gray-500">The requested application could not be loaded.</p>
+          <button (click)="goBack()" class="mt-4 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">
+            Back to Applications
+          </button>
+        </div>
+      </div>
+    }
+  }
+</div>
+
+<!-- Document Preview Modal -->
+@if (showDocumentPreview() && selectedDocument()) {
+  <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg max-w-4xl max-h-[90vh] overflow-auto">
+      <div class="flex items-center justify-between p-4 border-b">
+        <h3 class="text-lg font-semibold">{{ selectedDocument()?.documentType?.replace('_', ' ') }}</h3>
+        <button (click)="closeDocumentPreview()" class="text-gray-400 hover:text-gray-600">
+          <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <div class="p-4">
+        <p class="text-sm text-gray-600 mb-4">{{ selectedDocument()?.fileName }}</p>
+        <div class="bg-gray-100 p-8 rounded text-center">
+          <p class="text-gray-500">Document preview will be implemented</p>
+        </div>
+      </div>
+      <div class="flex justify-end space-x-3 p-4 border-t">
+        <button (click)="downloadDocument(selectedDocument())" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+          Download
+        </button>
+        @if (canVerifyDocuments() && selectedDocument()?.verificationStatus !== 'VERIFIED') {
+          <button (click)="verifyDocument(selectedDocument()?.id)" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+            Verify
+          </button>
+          <button (click)="rejectDocument(selectedDocument()?.id)" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+            Reject
+          </button>
+        }
+      </div>
+    </div>
+  </div>
+}

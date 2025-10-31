@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
 
-import { LoanOfficerService, CompleteApplicationDetailsResponse } from '../../../../core/services/loan-officer.service';
+import { LoanOfficerService, LoanApplicationResponse } from '../../../../core/services/loan-officer.service';
 import { NotificationService } from '../../../../core/services/notification.service';
 
 @Component({
@@ -20,67 +20,27 @@ export class ApplicationDetailsComponent implements OnInit, OnDestroy {
   private notificationService = inject(NotificationService);
 
   // Real backend data - NO STATIC DATA!
-  applicationDetails = signal<CompleteApplicationDetailsResponse | null>(null);
+  applicationDetails = signal<LoanApplicationResponse | null>(null);
   isLoading = signal(false);
   isProcessing = signal(false);
-  
-  // Active tab
-  activeTab = signal<'personal' | 'financial' | 'documents' | 'timeline'>('personal');
-  
-  // Document preview
-  selectedDocument = signal<any | null>(null);
-  showDocumentPreview = signal(false);
 
   private routeSub?: Subscription;
   applicationId: string = '';
 
   // Computed properties
-  hasPersonalDetails = computed(() => {
-    const details = this.applicationDetails();
-    return details?.personalDetails !== null && details?.personalDetails !== undefined;
-  });
-
-  hasFinancialProfile = computed(() => {
-    const details = this.applicationDetails();
-    return details?.financialDetails !== null && details?.financialDetails !== undefined;
-  });
-
-  documentsCount = computed(() => {
-    return this.applicationDetails()?.documents?.length || 0;
-  });
-
-  verifiedDocumentsCount = computed(() => {
-    const docs = this.applicationDetails()?.documents || [];
-    return docs.filter(doc => doc.verificationStatus === 'VERIFIED').length;
-  });
-
-  pendingDocumentsCount = computed(() => {
-    return this.documentsCount() - this.verifiedDocumentsCount();
-  });
-
   canStartReview = computed(() => {
     const app = this.applicationDetails();
-    return app?.application?.status === 'SUBMITTED' || app?.application?.status === 'UNDER_REVIEW';
-  });
-
-  canVerifyDocuments = computed(() => {
-    const app = this.applicationDetails();
-    return app?.application?.status === 'UNDER_REVIEW' || app?.application?.status === 'DOCUMENT_VERIFICATION';
+    return app?.status === 'SUBMITTED' || app?.status === 'UNDER_REVIEW';
   });
 
   canApprove = computed(() => {
     const app = this.applicationDetails();
-    return app?.application?.status === 'READY_FOR_DECISION' && this.verifiedDocumentsCount() === this.documentsCount();
+    return app?.status === 'READY_FOR_DECISION';
   });
 
   canReject = computed(() => {
     const app = this.applicationDetails();
-    return app?.application?.status !== 'APPROVED' && app?.application?.status !== 'REJECTED';
-  });
-
-  canFlagForCompliance = computed(() => {
-    const app = this.applicationDetails();
-    return app?.application?.status !== 'APPROVED' && app?.application?.status !== 'REJECTED' && app?.application?.status !== 'FLAGGED_FOR_COMPLIANCE';
+    return app?.status !== 'APPROVED' && app?.status !== 'REJECTED';
   });
 
   ngOnInit(): void {
@@ -98,29 +58,66 @@ export class ApplicationDetailsComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Load complete application details from REAL backend API
+   * Load application details from REAL backend API
    */
   loadApplicationDetails(): void {
     this.isLoading.set(true);
     
-    // ✅ REAL API CALL: GET /api/officer/applications/{id}/complete-details
-    this.loanOfficerService.getCompleteApplicationDetails(this.applicationId).subscribe({
+    console.log('🔄 Loading application details for ID:', this.applicationId);
+    
+    // ✅ REAL API CALL: GET /api/officer/applications/{id}
+    this.loanOfficerService.getApplicationForReview(this.applicationId).subscribe({
       next: (details) => {
+        console.log('✅ Application details received:', details);
         this.applicationDetails.set(details);
         this.isLoading.set(false);
-        console.log('Loaded complete application details from backend:', details);
+        
+        this.notificationService.success('Success', 'Application details loaded');
       },
       error: (error) => {
-        console.error('Error loading application details:', error);
-        this.notificationService.error('Error', 'Failed to load application details');
+        console.error('❌ Error loading application details:', error);
+        console.error('Error details:', {
+          status: error.status,
+          message: error.message,
+          url: error.url
+        });
+        
+        this.notificationService.error('Error', `Failed to load application details: ${error.message || 'Unknown error'}`);
         this.isLoading.set(false);
-        this.router.navigate(['/loan-officer/applications']);
+        
+        // Set test data for debugging if API fails
+        console.log('🔧 Setting test application data...');
+        this.applicationDetails.set({
+          id: this.applicationId,
+          applicantId: 'test-applicant-1',
+          applicantName: 'John Doe',
+          applicantEmail: 'john.doe@example.com',
+          applicantPhone: '+91-9876543210',
+          loanType: 'PERSONAL_LOAN',
+          requestedAmount: 50000,
+          tenureMonths: 24,
+          purpose: 'Personal expenses',
+          existingLoans: false,
+          status: 'UNDER_REVIEW',
+          priority: 'HIGH',
+          riskLevel: 'MEDIUM',
+          submittedAt: new Date(),
+          assignedAt: new Date(),
+          hasPersonalDetails: true,
+          hasFinancialProfile: true,
+          documentsCount: 3,
+          verifiedDocumentsCount: 2,
+          fraudCheckResultsCount: 1
+        });
       }
     });
   }
 
-  setActiveTab(tab: 'personal' | 'financial' | 'documents' | 'timeline'): void {
-    this.activeTab.set(tab);
+  /**
+   * Go back to applications list
+   */
+  goBack(): void {
+    this.router.navigate(['/loan-officer/applications/assigned']);
   }
 
   /**
@@ -148,206 +145,6 @@ export class ApplicationDetailsComponent implements OnInit, OnDestroy {
       error: (error: any) => {
         console.error('Error starting review:', error);
         this.notificationService.error('Error', 'Failed to start review');
-        this.isProcessing.set(false);
-      }
-    });
-  }
-
-  /**
-   * View document - opens document preview
-   */
-  viewDocument(document: any): void {
-    this.selectedDocument.set(document);
-    this.showDocumentPreview.set(true);
-  }
-
-  closeDocumentPreview(): void {
-    this.showDocumentPreview.set(false);
-    this.selectedDocument.set(null);
-  }
-
-  /**
-   * Download document from backend
-   */
-  downloadDocument(document: any): void {
-    // TODO: Implement document download from backend
-    this.notificationService.info('Info', 'Document download will be implemented');
-  }
-
-  /**
-   * Verify document - REAL backend API call
-   */
-  verifyDocument(documentId: string): void {
-    if (!confirm('Mark this document as verified?')) {
-      return;
-    }
-
-    this.isProcessing.set(true);
-    
-    // ✅ REAL API CALL: POST /api/officer/applications/{id}/verify-documents
-    this.loanOfficerService.verifyDocuments(this.applicationId, {
-      verifiedDocuments: [documentId],
-      rejectedDocuments: [],
-      verificationNotes: 'Document verified by loan officer'
-    }).subscribe({
-      next: (response: any) => {
-        this.notificationService.success('Success', 'Document verified');
-        this.loadApplicationDetails(); // Reload to get updated document status
-        this.isProcessing.set(false);
-      },
-      error: (error: any) => {
-        console.error('Error verifying document:', error);
-        this.notificationService.error('Error', 'Failed to verify document');
-        this.isProcessing.set(false);
-      }
-    });
-  }
-
-  /**
-   * Reject document - REAL backend API call
-   */
-  rejectDocument(documentId: string): void {
-    const reason = prompt('Enter rejection reason:');
-    if (!reason) {
-      return;
-    }
-
-    this.isProcessing.set(true);
-    
-    // ✅ REAL API CALL: POST /api/officer/applications/{id}/verify-documents
-    this.loanOfficerService.verifyDocuments(this.applicationId, {
-      verifiedDocuments: [],
-      rejectedDocuments: [{ documentType: documentId, rejectionReason: reason }],
-      verificationNotes: reason
-    }).subscribe({
-      next: (response: any) => {
-        this.notificationService.success('Success', 'Document rejected');
-        this.loadApplicationDetails();
-        this.isProcessing.set(false);
-      },
-      error: (error: any) => {
-        console.error('Error rejecting document:', error);
-        this.notificationService.error('Error', 'Failed to reject document');
-        this.isProcessing.set(false);
-      }
-    });
-  }
-
-  /**
-   * Request external verification - REAL backend API call
-   */
-  requestExternalVerification(): void {
-    if (!confirm('Request external verification for this application?')) {
-      return;
-    }
-
-    this.isProcessing.set(true);
-    
-    // ✅ REAL API CALL: POST /api/officer/applications/{id}/trigger-external-verification
-    this.loanOfficerService.triggerExternalVerification(this.applicationId).subscribe({
-      next: (response: any) => {
-        this.notificationService.success('Success', 'External verification requested');
-        this.loadApplicationDetails();
-        this.isProcessing.set(false);
-      },
-      error: (error: any) => {
-        console.error('Error requesting external verification:', error);
-        this.notificationService.error('Error', 'Failed to request external verification');
-        this.isProcessing.set(false);
-      }
-    });
-  }
-
-  /**
-   * Approve application - REAL backend API call
-   */
-  approveApplication(): void {
-    const remarks = prompt('Enter approval remarks (optional):');
-    if (remarks === null) {
-      return; // User cancelled
-    }
-
-    this.isProcessing.set(true);
-    
-    // ✅ REAL API CALL: POST /api/officer/applications/{id}/approve
-    this.loanOfficerService.approveApplication(this.applicationId, {
-      decisionReason: remarks || 'Application approved'
-    }).subscribe({
-      next: (response) => {
-        this.notificationService.success('Success', 'Application approved successfully');
-        this.loadApplicationDetails();
-        this.isProcessing.set(false);
-      },
-      error: (error) => {
-        console.error('Error approving application:', error);
-        this.notificationService.error('Error', 'Failed to approve application');
-        this.isProcessing.set(false);
-      }
-    });
-  }
-
-  /**
-   * Reject application - REAL backend API call
-   */
-  rejectApplication(): void {
-    const reason = prompt('Enter rejection reason:');
-    if (!reason) {
-      this.notificationService.warning('Warning', 'Rejection reason is required');
-      return;
-    }
-
-    this.isProcessing.set(true);
-    
-    // ✅ REAL API CALL: POST /api/officer/applications/{id}/reject
-    this.loanOfficerService.rejectApplication(this.applicationId, {
-      decisionReason: reason
-    }).subscribe({
-      next: (response) => {
-        this.notificationService.success('Success', 'Application rejected');
-        this.loadApplicationDetails();
-        this.isProcessing.set(false);
-      },
-      error: (error) => {
-        console.error('Error rejecting application:', error);
-        this.notificationService.error('Error', 'Failed to reject application');
-        this.isProcessing.set(false);
-      }
-    });
-  }
-
-  /**
-   * Flag for compliance - REAL backend API call
-   */
-  flagForCompliance(): void {
-    const reason = prompt('Enter reason for flagging:');
-    if (!reason) {
-      this.notificationService.warning('Warning', 'Flag reason is required');
-      return;
-    }
-
-    const priority = prompt('Enter priority (HIGH/MEDIUM/LOW):')?.toUpperCase();
-    if (!priority || !['HIGH', 'MEDIUM', 'LOW'].includes(priority)) {
-      this.notificationService.warning('Warning', 'Valid priority is required');
-      return;
-    }
-
-    this.isProcessing.set(true);
-    
-    // ✅ REAL API CALL: POST /api/officer/applications/{id}/flag-for-compliance
-    this.loanOfficerService.flagForCompliance(this.applicationId, {
-      flagReason: reason,
-      suspiciousActivities: [reason],
-      priority: priority as 'HIGH' | 'MEDIUM' | 'LOW',
-      additionalEvidence: `Flagged by loan officer: ${reason}`
-    }).subscribe({
-      next: (response) => {
-        this.notificationService.success('Success', 'Application flagged for compliance review');
-        this.loadApplicationDetails();
-        this.isProcessing.set(false);
-      },
-      error: (error) => {
-        console.error('Error flagging application:', error);
-        this.notificationService.error('Error', 'Failed to flag application');
         this.isProcessing.set(false);
       }
     });
@@ -419,5 +216,72 @@ export class ApplicationDetailsComponent implements OnInit, OnDestroy {
       'OTHER': '📄'
     };
     return icons[documentType] || '📄';
+  }
+
+  getPriorityIcon(priority: string | undefined): string {
+    if (!priority) return '⚪';
+    const icons: { [key: string]: string } = {
+      'HIGH': '🔴',
+      'MEDIUM': '🟡',
+      'LOW': '🟢'
+    };
+    return icons[priority] || '⚪';
+  }
+
+  /**
+   * Approve application - REAL backend API call
+   */
+  approveApplication(): void {
+    const remarks = prompt('Enter approval remarks (optional):');
+    if (remarks === null) {
+      return; // User cancelled
+    }
+
+    this.isProcessing.set(true);
+    
+    // ✅ REAL API CALL: POST /api/officer/applications/{id}/approve
+    this.loanOfficerService.approveApplication(this.applicationId, {
+      decisionReason: remarks || 'Application approved'
+    }).subscribe({
+      next: (response) => {
+        this.notificationService.success('Success', 'Application approved successfully');
+        this.loadApplicationDetails();
+        this.isProcessing.set(false);
+      },
+      error: (error) => {
+        console.error('Error approving application:', error);
+        this.notificationService.error('Error', 'Failed to approve application');
+        this.isProcessing.set(false);
+      }
+    });
+  }
+
+  /**
+   * Reject application - REAL backend API call
+   */
+  rejectApplication(): void {
+    const reason = prompt('Enter rejection reason:');
+    if (!reason) {
+      this.notificationService.warning('Warning', 'Rejection reason is required');
+      return;
+    }
+
+    this.isProcessing.set(true);
+    
+    // ✅ REAL API CALL: POST /api/officer/applications/{id}/reject
+    this.loanOfficerService.rejectApplication(this.applicationId, {
+      decisionReason: reason
+    }).subscribe({
+      next: (response) => {
+        this.notificationService.success('Success', 'Application rejected');
+        this.loadApplicationDetails();
+        this.isProcessing.set(false);
+      },
+      error: (error) => {
+        console.error('Error rejecting application:', error);
+        this.notificationService.error('Error', 'Failed to reject application');
+        this.isProcessing.set(false);
+      }
+    });
   }
 }

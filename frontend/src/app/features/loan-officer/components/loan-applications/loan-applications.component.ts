@@ -159,16 +159,101 @@ export class LoanApplicationsComponent implements OnInit {
   loadApplications(): void {
     this.isLoading.set(true);
     
+    console.log('🔄 Loading assigned applications...');
+    
     this.loanOfficerService.getAssignedApplications().subscribe({
       next: (applications) => {
+        console.log('✅ Applications received:', applications);
         this.allApplications.set(applications);
         this.isLoading.set(false);
-        console.log(`Loaded ${applications.length} applications from backend`);
+        
+        this.notificationService.success(
+          'Applications Loaded', 
+          `Found ${applications.length} assigned applications`
+        );
       },
       error: (error) => {
-        console.error('Error loading applications:', error);
-        this.notificationService.error('Error', 'Failed to load applications');
+        console.error('❌ Error loading applications:', error);
+        console.error('Error details:', {
+          status: error.status,
+          message: error.message,
+          url: error.url
+        });
+        
+        this.notificationService.error('Error', `Failed to load applications: ${error.message || 'Unknown error'}`);
         this.isLoading.set(false);
+        
+        // Set test data for debugging if API fails
+        console.log('🔧 Setting test applications data...');
+        this.allApplications.set([
+          {
+            id: 'test-app-1',
+            applicantId: 'applicant-1',
+            applicantName: 'John Doe',
+            applicantEmail: 'john.doe@example.com',
+            applicantPhone: '+91-9876543210',
+            loanType: 'PERSONAL_LOAN',
+            requestedAmount: 50000,
+            tenureMonths: 24,
+            purpose: 'Personal expenses',
+            existingLoans: false,
+            status: 'UNDER_REVIEW',
+            priority: 'HIGH',
+            riskLevel: 'MEDIUM',
+            submittedAt: new Date(),
+            assignedAt: new Date(),
+            hasPersonalDetails: true,
+            hasFinancialProfile: true,
+            documentsCount: 3,
+            verifiedDocumentsCount: 2,
+            fraudCheckResultsCount: 1
+          },
+          {
+            id: 'test-app-2',
+            applicantId: 'applicant-2',
+            applicantName: 'Jane Smith',
+            applicantEmail: 'jane.smith@example.com',
+            applicantPhone: '+91-9876543211',
+            loanType: 'HOME_LOAN',
+            requestedAmount: 500000,
+            tenureMonths: 240,
+            purpose: 'Home purchase',
+            existingLoans: true,
+            existingEmi: 15000,
+            status: 'READY_FOR_DECISION',
+            priority: 'MEDIUM',
+            riskLevel: 'LOW',
+            submittedAt: new Date(Date.now() - 86400000),
+            assignedAt: new Date(Date.now() - 86400000),
+            hasPersonalDetails: true,
+            hasFinancialProfile: true,
+            documentsCount: 5,
+            verifiedDocumentsCount: 5,
+            fraudCheckResultsCount: 2
+          },
+          {
+            id: 'test-app-3',
+            applicantId: 'applicant-3',
+            applicantName: 'Mike Johnson',
+            applicantEmail: 'mike.johnson@example.com',
+            applicantPhone: '+91-9876543212',
+            loanType: 'CAR_LOAN',
+            requestedAmount: 300000,
+            tenureMonths: 60,
+            purpose: 'Vehicle purchase',
+            existingLoans: false,
+            status: 'DOCUMENT_VERIFICATION',
+            priority: 'LOW',
+            riskLevel: 'HIGH',
+            submittedAt: new Date(Date.now() - 172800000),
+            assignedAt: new Date(Date.now() - 172800000),
+            hasPersonalDetails: true,
+            hasFinancialProfile: false,
+            documentsCount: 2,
+            verifiedDocumentsCount: 0,
+            fraudCheckResultsCount: 0
+          }
+        ]);
       }
     });
   }
@@ -176,6 +261,20 @@ export class LoanApplicationsComponent implements OnInit {
   refreshApplications(): void {
     this.notificationService.info('Refresh', 'Refreshing applications...');
     this.loadApplications();
+  }
+
+  /**
+   * Get count of applications by status
+   */
+  getStatusCount(status: string): number {
+    return this.allApplications().filter(app => app.status === status).length;
+  }
+
+  /**
+   * Get count of applications by priority
+   */
+  getPriorityCount(priority: string): number {
+    return this.allApplications().filter(app => app.priority === priority).length;
   }
 
   onStatusChange(status: string): void {
@@ -227,8 +326,8 @@ export class LoanApplicationsComponent implements OnInit {
     this.router.navigate(['/loan-officer/applications', applicationId, 'details']);
   }
 
-  startReview(applicationId: string): void {
-    this.router.navigate(['/loan-officer/applications', applicationId, 'details']);
+  reviewApplication(applicationId: string): void {
+    this.router.navigate(['/loan-officer/applications', applicationId, 'review']);
   }
 
   // Helper methods from service

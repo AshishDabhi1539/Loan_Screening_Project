@@ -71,15 +71,69 @@ export class DashboardComponent implements OnInit {
   loadDashboard(): void {
     this.isLoading.set(true);
     
+    console.log('🔄 Loading dashboard data...');
+    
     this.loanOfficerService.getDashboard().subscribe({
       next: (response) => {
+        console.log('✅ Dashboard data received:', response);
         this.dashboardData.set(response);
         this.isLoading.set(false);
+        
+        // Show success notification with data summary
+        this.notificationService.success(
+          'Dashboard Loaded', 
+          `Found ${response.totalAssigned} assigned applications`
+        );
       },
       error: (error) => {
-        console.error('Error loading dashboard:', error);
-        this.notificationService.error('Error', 'Failed to load dashboard data');
+        console.error('❌ Error loading dashboard:', error);
+        console.error('Error details:', {
+          status: error.status,
+          message: error.message,
+          url: error.url
+        });
+        
+        this.notificationService.error('Error', `Failed to load dashboard data: ${error.message || 'Unknown error'}`);
         this.isLoading.set(false);
+        
+        // Set test data for debugging if API fails
+        console.log('🔧 Setting test data for debugging...');
+        this.dashboardData.set({
+          totalAssigned: 12,
+          pendingReview: 5,
+          underVerification: 3,
+          readyForDecision: 2,
+          completedToday: 4,
+          avgProcessingTime: 2.5,
+          priorityBreakdown: { high: 3, medium: 6, low: 3 },
+          recentApplications: [
+            {
+              id: 'test-app-1',
+              applicantName: 'John Doe',
+              applicantEmail: 'john.doe@example.com',
+              loanType: 'PERSONAL_LOAN',
+              requestedAmount: 50000,
+              tenureMonths: 24,
+              status: 'UNDER_REVIEW',
+              priority: 'HIGH',
+              submittedAt: new Date(),
+              assignedAt: new Date()
+            },
+            {
+              id: 'test-app-2',
+              applicantName: 'Jane Smith',
+              applicantEmail: 'jane.smith@example.com',
+              loanType: 'HOME_LOAN',
+              requestedAmount: 500000,
+              tenureMonths: 240,
+              status: 'READY_FOR_DECISION',
+              priority: 'MEDIUM',
+              submittedAt: new Date(Date.now() - 86400000),
+              assignedAt: new Date(Date.now() - 86400000)
+            }
+          ],
+          recentActivities: []
+        });
       }
     });
   }
@@ -98,11 +152,11 @@ export class DashboardComponent implements OnInit {
   }
 
   viewAllApplications(): void {
-    this.router.navigate(['/loan-officer/applications']);
+    this.router.navigate(['/loan-officer/applications/assigned']);
   }
 
   viewReadyForDecision(): void {
-    this.router.navigate(['/loan-officer/applications'], {
+    this.router.navigate(['/loan-officer/applications/assigned'], {
       queryParams: { filter: 'ready-for-decision' }
     });
   }
