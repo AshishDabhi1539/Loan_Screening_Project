@@ -197,6 +197,26 @@ export class ApplicationsListComponent implements OnInit {
     this.router.navigate(['/loan-officer/application', applicationId, 'details']);
   }
 
+  /**
+   * Resume specific step for an application
+   */
+  resumeStep(applicationId: string, step: string): void {
+    switch (step) {
+      case 'document-verification':
+        // Navigate directly to document verification page
+        this.router.navigate(['/loan-officer/application', applicationId, 'document-verification']);
+        break;
+      case 'external-verification':
+        // Navigate to external verification page
+        this.router.navigate(['/loan-officer/application', applicationId, 'external-verification']);
+        break;
+      case 'final-decision':
+        // Navigate to decision page
+        this.router.navigate(['/loan-officer/application', applicationId, 'decision']);
+        break;
+    }
+  }
+
 
   /**
    * Format currency
