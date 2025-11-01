@@ -416,4 +416,190 @@ export class DashboardComponent implements OnInit {
   needsAction(application: LoanApplicationSummary): boolean {
     return ['DRAFT', 'PENDING_DOCUMENTS', 'APPROVED'].includes(application.status);
   }
+
+  /**
+   * Get count of pending tasks
+   */
+  getPendingTasksCount(): number {
+    return this.getPendingTasks().length;
+  }
+
+  /**
+   * Get all pending tasks from backend
+   */
+  getPendingTasks(): any[] {
+    const tasks: any[] = [];
+    
+    // Profile completion task
+    if (!this.canApplyForLoan()) {
+      tasks.push({
+        id: 'profile-completion',
+        title: 'Complete Profile Setup',
+        description: 'Fill in your personal and financial details',
+        priority: 'HIGH',
+        type: 'PROFILE',
+        actionUrl: '/applicant/personal-details',
+        actionText: 'Complete Now'
+      });
+    }
+    
+    // Document upload tasks from pending applications
+    this.pendingApplications().forEach((application, index) => {
+      tasks.push({
+        id: `document-${application.id}`,
+        title: 'Submit Documents',
+        description: `Upload documents for ${this.getLoanTypeDisplay(application.loanType)}`,
+        priority: 'MEDIUM',
+        type: 'DOCUMENT',
+        actionMethod: 'viewApplication',
+        actionText: 'View Application',
+        applicationId: application.id
+      });
+    });
+    
+    // Add other dynamic tasks from backend here
+    // This can be replaced with actual API call to get tasks
+    // Example: this.dashboardService.getPendingTasks()
+    
+    return tasks;
+  }
+
+  /**
+   * Execute task action
+   */
+  executeTaskAction(task: any): void {
+    if (task.actionMethod === 'viewApplication') {
+      this.viewApplication(task.applicationId);
+    }
+    // Add other action methods as needed
+  }
+
+  /**
+   * Get task background class based on priority
+   */
+  getTaskBackgroundClass(priority: string): string {
+    switch (priority?.toLowerCase()) {
+      case 'urgent':
+      case 'high':
+        return 'bg-red-50 border-red-200';
+      case 'medium':
+        return 'bg-blue-50 border-blue-200';
+      case 'low':
+        return 'bg-gray-50 border-gray-200';
+      default:
+        return 'bg-orange-50 border-orange-200';
+    }
+  }
+
+  /**
+   * Get task icon color based on priority
+   */
+  getTaskIconColor(priority: string): string {
+    switch (priority?.toLowerCase()) {
+      case 'urgent':
+      case 'high':
+        return 'text-red-400';
+      case 'medium':
+        return 'text-blue-400';
+      case 'low':
+        return 'text-gray-400';
+      default:
+        return 'text-orange-400';
+    }
+  }
+
+  /**
+   * Get task border color based on priority
+   */
+  getTaskBorderColor(priority: string): string {
+    switch (priority?.toLowerCase()) {
+      case 'urgent':
+      case 'high':
+        return 'border-red-400';
+      case 'medium':
+        return 'border-blue-400';
+      case 'low':
+        return 'border-gray-400';
+      default:
+        return 'border-orange-400';
+    }
+  }
+
+  /**
+   * Get task action color based on priority
+   */
+  getTaskActionColor(priority: string): string {
+    switch (priority?.toLowerCase()) {
+      case 'urgent':
+      case 'high':
+        return 'text-red-700 hover:text-red-800';
+      case 'medium':
+        return 'text-blue-700 hover:text-blue-800';
+      case 'low':
+        return 'text-gray-700 hover:text-gray-800';
+      default:
+        return 'text-orange-700 hover:text-orange-800';
+    }
+  }
+
+  /**
+   * Get task badge class based on priority
+   */
+  getTaskBadgeClass(priority: string): string {
+    switch (priority?.toLowerCase()) {
+      case 'urgent':
+        return 'bg-red-100 text-red-800';
+      case 'high':
+        return 'bg-orange-100 text-orange-800';
+      case 'medium':
+        return 'bg-blue-100 text-blue-800';
+      case 'low':
+        return 'bg-gray-100 text-gray-800';
+      default:
+        return 'bg-yellow-100 text-yellow-800';
+    }
+  }
+
+  /**
+   * Get task priority display text
+   */
+  getTaskPriorityDisplay(priority: string): string {
+    switch (priority?.toLowerCase()) {
+      case 'urgent':
+        return 'Urgent';
+      case 'high':
+        return 'High';
+      case 'medium':
+        return 'Medium';
+      case 'low':
+        return 'Low';
+      default:
+        return 'Normal';
+    }
+  }
+
+  /**
+   * Get time of day greeting
+   */
+  getTimeOfDay(): string {
+    const hour = new Date().getHours();
+    if (hour < 12) {
+      return 'Morning';
+    } else if (hour < 17) {
+      return 'Afternoon';
+    } else {
+      return 'Evening';
+    }
+  }
+
+  /**
+   * Check if profile is incomplete (for fresh customers only)
+   */
+  isProfileIncomplete(): boolean {
+    const completionPercentage = this.profileCompletionPercentage();
+    
+    // Only show alert if profile completion is less than 80% (indicating incomplete profile)
+    // This ensures only fresh/new customers see the alert, not existing customers with complete profiles
+    return completionPercentage < 80;
+  }
 }
