@@ -36,6 +36,8 @@ export class DashboardComponent implements OnInit {
   });
 
   recentApplications = signal<LoanApplicationSummary[]>([]);
+  activeLoans = signal<LoanApplicationSummary[]>([]);
+  profileLoaded = signal(false);
   
   // Computed values
   userDisplayName = computed(() => {
@@ -96,6 +98,7 @@ export class DashboardComponent implements OnInit {
    * Load user profile data
    */
   private loadUserProfile(): void {
+    this.profileLoaded.set(false);
     // Get profile status from backend
     this.userProfileService.getCurrentUserProfile().subscribe({
       next: (profile) => {
@@ -114,6 +117,7 @@ export class DashboardComponent implements OnInit {
         } else {
           this.userProfile.set(profile);
         }
+        this.profileLoaded.set(true);
       },
       error: (error) => {
         console.error('Failed to load user profile:', error);
@@ -133,6 +137,7 @@ export class DashboardComponent implements OnInit {
           };
           this.userProfile.set(fallbackProfile);
         }
+        this.profileLoaded.set(true);
       }
     });
   }
@@ -148,6 +153,13 @@ export class DashboardComponent implements OnInit {
       next: (data) => {
         this.dashboardStats.set(data.stats);
         this.recentApplications.set(data.recentApplications);
+        
+        // Filter active loans (APPROVED or DISBURSED status)
+        const activeLoansList = data.recentApplications.filter(app => 
+          app.status === 'APPROVED' || app.status === 'DISBURSED'
+        );
+        this.activeLoans.set(activeLoansList);
+        
         this.isLoading.set(false);
       },
       error: (error) => {
@@ -165,6 +177,7 @@ export class DashboardComponent implements OnInit {
           approvedAmount: 0
         });
         this.recentApplications.set([]);
+        this.activeLoans.set([]);
       }
     });
   }
@@ -594,12 +607,61 @@ export class DashboardComponent implements OnInit {
 
   /**
    * Check if profile is incomplete (for fresh customers only)
+   * Only show when profile is loaded AND incomplete
    */
   isProfileIncomplete(): boolean {
+    // Don't show during loading
+    if (!this.profileLoaded()) {
+      return false;
+    }
+    
     const completionPercentage = this.profileCompletionPercentage();
     
     // Only show alert if profile completion is less than 80% (indicating incomplete profile)
     // This ensures only fresh/new customers see the alert, not existing customers with complete profiles
     return completionPercentage < 80;
+  }
+
+  /**
+   * Get active loans count
+   */
+  getActiveLoansCount(): number {
+    return this.activeLoans().length;
+  }
+
+  /**
+   * Calculate paid amount for a loan (placeholder - would need EMI payment data from backend)
+   * For now, returns 0 as we don't have payment history
+   */
+  getPaidAmount(loan: LoanApplicationSummary): number {
+    // TODO: This would need EMI payment history from backend
+    // For now, return 0 since we don't have this data
+    return 0;
+  }
+
+  /**
+   * Calculate pending amount for a loan
+   */
+  getPendingAmount(loan: LoanApplicationSummary): number {
+    const paid = this.getPaidAmount(loan);
+    // Use approvedAmount if available, otherwise use requestedAmount
+    const totalAmount = loan.approvedAmount || loan.requestedAmount || 0;
+    return Math.max(0, totalAmount - paid);
+  }
+
+  /**
+   * Get approved amount for a loan
+   */
+  getApprovedAmount(loan: LoanApplicationSummary): number {
+    // Use approvedAmount if available, otherwise use requestedAmount
+    return loan.approvedAmount || loan.requestedAmount || 0;
+  }
+
+  /**
+   * Get interest rate for a loan
+   */
+  getInterestRate(loan: LoanApplicationSummary): number {
+    // Return approvedInterestRate if available
+    return loan.approvedInterestRate || 0;
   }
 }

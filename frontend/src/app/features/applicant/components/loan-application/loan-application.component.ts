@@ -299,4 +299,17 @@ export class LoanApplicationComponent implements OnInit {
   getProgressPercentage(): number {
     return Math.round((this.currentStep() / this.totalSteps) * 100);
   }
+
+  /**
+   * Get step status for progress bar
+   */
+  getStepStatus(step: number): 'completed' | 'active' | 'pending' {
+    if (step < this.currentStep()) {
+      return 'completed';
+    } else if (step === this.currentStep()) {
+      return 'active';
+    } else {
+      return 'pending';
+    }
+  }
 }

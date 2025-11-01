@@ -207,7 +207,7 @@
                   @for (application of recentApplications(); track application.id) {
                     <tr class="hover:bg-gray-50">
                       <td class="px-2 py-2 whitespace-nowrap text-xs font-medium text-gray-900">
-                        Ashish Dabhi
+                        {{ application.applicantName || userDisplayName() }}
                       </td>
                       <td class="px-2 py-2 whitespace-nowrap text-xs font-medium text-gray-900">
                         {{ getLoanTypeDisplay(application.loanType) }}
@@ -237,7 +237,7 @@
         <div class="px-4 py-5 sm:p-6">
           <div class="flex items-center justify-between mb-4">
             <h3 class="text-lg leading-6 font-medium text-gray-900">Active Loans</h3>
-            <span class="text-sm text-gray-500">{{ dashboardStats().activeApplications }} active</span>
+            <span class="text-sm text-gray-500">{{ getActiveLoansCount() }} active</span>
           </div>
           
           <div class="overflow-hidden">
@@ -288,48 +288,35 @@
                       </td>
                     </tr>
                   }
+                } @else if (activeLoans().length === 0) {
+                  <tr>
+                    <td colspan="6" class="px-3 py-8 text-center text-sm text-gray-500">
+                      No active loans found
+                    </td>
+                  </tr>
                 } @else {
-                  <!-- Sample active loan data - replace with actual data -->
-                  <tr class="hover:bg-gray-50">
-                    <td class="px-2 py-2 whitespace-nowrap text-xs font-medium text-gray-900">
-                      Ashish Dabhi
-                    </td>
-                    <td class="px-2 py-2 whitespace-nowrap text-xs font-medium text-gray-900">
-                      Home Loan
-                    </td>
-                    <td class="px-2 py-2 whitespace-nowrap text-xs text-green-600">
-                      ₹1,50,000
-                    </td>
-                    <td class="px-2 py-2 whitespace-nowrap text-xs text-orange-600">
-                      ₹3,50,000
-                    </td>
-                    <td class="px-2 py-2 whitespace-nowrap text-xs font-medium text-gray-900">
-                      ₹5,00,000
-                    </td>
-                    <td class="px-2 py-2 whitespace-nowrap text-xs text-gray-900">
-                      8.5%
-                    </td>
-                  </tr>
-                  <tr class="hover:bg-gray-50">
-                    <td class="px-2 py-2 whitespace-nowrap text-xs font-medium text-gray-900">
-                      Ashish Dabhi
-                    </td>
-                    <td class="px-2 py-2 whitespace-nowrap text-xs font-medium text-gray-900">
-                      Personal Loan
-                    </td>
-                    <td class="px-2 py-2 whitespace-nowrap text-xs text-green-600">
-                      ₹80,000
-                    </td>
-                    <td class="px-2 py-2 whitespace-nowrap text-xs text-orange-600">
-                      ₹1,20,000
-                    </td>
-                    <td class="px-2 py-2 whitespace-nowrap text-xs font-medium text-gray-900">
-                      ₹2,00,000
-                    </td>
-                    <td class="px-2 py-2 whitespace-nowrap text-xs text-gray-900">
-                      9.2%
-                    </td>
-                  </tr>
+                  @for (loan of activeLoans(); track loan.id) {
+                    <tr class="hover:bg-gray-50">
+                      <td class="px-2 py-2 whitespace-nowrap text-xs font-medium text-gray-900">
+                        {{ loan.applicantName || userDisplayName() }}
+                      </td>
+                      <td class="px-2 py-2 whitespace-nowrap text-xs font-medium text-gray-900">
+                        {{ getLoanTypeDisplay(loan.loanType) }}
+                      </td>
+                      <td class="px-2 py-2 whitespace-nowrap text-xs text-green-600">
+                        {{ formatCurrency(getPaidAmount(loan)) }}
+                      </td>
+                      <td class="px-2 py-2 whitespace-nowrap text-xs text-orange-600">
+                        {{ formatCurrency(getPendingAmount(loan)) }}
+                      </td>
+                      <td class="px-2 py-2 whitespace-nowrap text-xs font-medium text-gray-900">
+                        {{ formatCurrency(getApprovedAmount(loan)) }}
+                      </td>
+                      <td class="px-2 py-2 whitespace-nowrap text-xs text-gray-900">
+                        {{ getInterestRate(loan) > 0 ? (getInterestRate(loan) + '%') : 'N/A' }}
+                      </td>
+                    </tr>
+                  }
                 }
               </tbody>
             </table>

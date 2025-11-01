@@ -375,10 +375,24 @@ BEGIN
             END IF;
             
         ELSE
-            -- No meaningful data found
+            -- No meaningful data found - Assign low credit score based on high risk
             SET p_data_found = FALSE;
-            SET p_risk_factors = 'No external data available for assessment';
-            SET p_credit_score_reason = 'Insufficient data for credit score calculation';
+            
+            -- Calculate a low credit score (350-400 range) for first-time borrowers
+            -- Starting from base 300 and adding minimal points for clean record
+            SET v_base_score = 300;
+            -- Since no data = unverified creditworthiness, assign low credit score
+            -- But slightly above minimum (350) as no negative history exists
+            SET p_credit_score = 350; -- Low credit score for first-time borrower
+            
+            -- Set risk parameters matching Java code expectations
+            SET p_risk_type = 'HIGH';
+            SET p_risk_score_numeric = 75;
+            SET p_red_alert_flag = TRUE; -- Clean record but no history = high risk
+            
+            -- Set explanatory factors
+            SET p_risk_factors = 'No credit history found. First-time borrower with unverified creditworthiness.';
+            SET p_credit_score_reason = 'Insufficient external data for credit assessment. Low score assigned due to lack of credit history.';
         END IF;
     END IF;
     

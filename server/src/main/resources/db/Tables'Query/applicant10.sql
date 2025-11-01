@@ -18,7 +18,7 @@ INSERT INTO applicant_personal_details (
 ) VALUES (
   UUID_TO_BIN('b2c3d4e5-f6g7-8901-h2i3-j4k5l6m7n8o8'), UUID_TO_BIN('a1b2c3d4-e5f6-7890-g1h2-i3j4k5l6m7o7'),
   'Imran', 'Siddiqui', '1992-08-05', 'Male', 'SINGLE', 'Indian',
-  '112233445566', 'AAAFA1111A', '9876543220', 'imran.siddiqui@example.com',
+  '112233445566', 'i', '9876543220', 'imran.siddiqui@example.com',
   'Flat 101, Fake Towers, Delhi', 'Delhi', 'Delhi', '110001',
   'Village Unknown, Bihar', 'Patna', 'Bihar', '800001',
   0, 0, 'Fake Father', 'Fake Mother',

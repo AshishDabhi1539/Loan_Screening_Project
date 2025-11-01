@@ -499,27 +499,43 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
                     log.warn("No external data found for Aadhaar: {} and PAN: {}", aadhaar, pan);
                     
                     // 🔴 REAL-WORLD BANKING SCENARIO: NO CREDIT HISTORY = HIGH RISK
-                    creditScore = null;
-                    riskType = "HIGH";
-                    riskTypeNumeric = 75;
-                    redAlertFlag = true; // Clean record but no history
-                    riskFactors = "No credit history found. First-time borrower with unverified creditworthiness.";
-                    creditScoreReason = "Insufficient external data for credit assessment";
+                    // Use credit score from stored procedure if calculated (should be 350 for no data)
+                    // Only override if stored procedure didn't set it
+                    if (creditScore == null) {
+                        creditScore = 350; // Low credit score for first-time borrower
+                    }
                     
-                    log.warn("HIGH RISK assigned - clean record but no credit history for Aadhaar: {} and PAN: {}", aadhaar, pan);
+                    // Use values from stored procedure if set, otherwise use defaults
+                    if ("UNKNOWN".equals(riskType)) {
+                        riskType = "HIGH";
+                    }
+                    if (riskTypeNumeric == 0) {
+                        riskTypeNumeric = 75;
+                    }
+                    if (riskFactors == null || riskFactors.isEmpty() || riskFactors.equals("No risk factors identified")) {
+                        riskFactors = "No credit history found. First-time borrower with unverified creditworthiness.";
+                    }
+                    if (creditScoreReason == null || creditScoreReason.isEmpty() || creditScoreReason.equals("Based on available data")) {
+                        creditScoreReason = "Insufficient external data for credit assessment. Low score assigned due to lack of credit history.";
+                    }
+                    
+                    log.warn("HIGH RISK assigned - clean record but no credit history for Aadhaar: {} and PAN: {}. Credit Score: {}", 
+                            aadhaar, pan, creditScore);
                 }
             } else {
                 log.warn("Stored procedure returned no results for Aadhaar: {} and PAN: {}", aadhaar, pan);
                 
                 // 🔴 REAL-WORLD BANKING SCENARIO: NO DATA = HIGH RISK
-                creditScore = null;
+                // Assign low credit score for first-time borrower when stored procedure returns no results
+                creditScore = 350; // Low credit score for first-time borrower
                 riskType = "HIGH";
                 riskTypeNumeric = 75;
                 redAlertFlag = false; // Not fraud, just high risk due to no history
                 riskFactors = "No credit history found. First-time borrower with unverified creditworthiness.";
-                creditScoreReason = "Insufficient external data for credit assessment";
+                creditScoreReason = "Insufficient external data for credit assessment. Low score assigned due to lack of credit history.";
                 
-                log.warn("HIGH RISK assigned due to no external credit history for Aadhaar: {} and PAN: {}", aadhaar, pan);
+                log.warn("HIGH RISK assigned due to no external credit history for Aadhaar: {} and PAN: {}. Credit Score: {}", 
+                        aadhaar, pan, creditScore);
             }
             
             // Store credit score results in application

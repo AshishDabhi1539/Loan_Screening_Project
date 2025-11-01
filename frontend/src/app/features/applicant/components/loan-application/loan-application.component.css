@@ -1,0 +1,118 @@
+/* Loan Application Page Styles */
+
+/* Consistent with Dashboard Design */
+.loan-type-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.loan-type-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.loan-type-card.selected {
+  border-color: #2563eb;
+  background-color: #eff6ff;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Icon Container Animation */
+.icon-container {
+  transition: all 0.3s ease;
+}
+
+.loan-type-card:hover .icon-container {
+  transform: scale(1.05);
+}
+
+.loan-type-card.selected .icon-container {
+  border-color: #2563eb;
+  background-color: #ffffff;
+}
+
+/* Progress Bar Animation */
+.progress-bar {
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Form Input Focus States */
+input:focus,
+select:focus,
+textarea:focus {
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+/* Button Hover Effects */
+button:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+button:not(:disabled):active {
+  transform: translateY(0);
+}
+
+/* EMI Calculator Card */
+.emi-calculator {
+  background: linear-gradient(135deg, #eff6ff 0%, #e0e7ff 100%);
+  border: 1px solid #bfdbfe;
+  transition: all 0.3s ease;
+}
+
+.emi-calculator:hover {
+  box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.1);
+}
+
+/* Loading Spinner */
+.loading-spinner {
+  border-color: #2563eb;
+  border-top-color: transparent;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .loan-type-card {
+    padding: 1rem;
+  }
+  
+  .icon-container {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+}
+
+/* Print Styles */
+@media print {
+  button,
+  .info-card {
+    display: none;
+  }
+}
+
+/* Focus States for Accessibility */
+button:focus,
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+/* Smooth Transitions */
+.loan-type-card,
+button,
+input,
+select,
+textarea {
+  transition: all 0.2s ease;
+}
+

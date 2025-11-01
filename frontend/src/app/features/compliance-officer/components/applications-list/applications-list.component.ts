@@ -194,7 +194,7 @@ export class ApplicationsListComponent implements OnInit {
    * View application details
    */
   viewApplication(applicationId: string): void {
-    this.router.navigate(['/compliance/applications', applicationId]);
+    this.router.navigate(['/compliance-officer/applications', applicationId]);
   }
 
   /**
@@ -255,5 +255,13 @@ export class ApplicationsListComponent implements OnInit {
    */
   formatStatus(status: string): string {
     return status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  }
+
+  /**
+   * Format loan type for display
+   */
+  formatLoanType(loanType: string | null | undefined): string {
+    if (!loanType) return 'N/A';
+    return loanType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   }
 }
