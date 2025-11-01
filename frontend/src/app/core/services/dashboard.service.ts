@@ -27,6 +27,10 @@ export interface LoanApplicationSummary {
   hasFinancialProfile?: boolean;
   documentsCount?: number;
   employmentType?: string;
+  // Approved loan fields (for active loans)
+  approvedAmount?: number;
+  approvedInterestRate?: number;
+  approvedTenureMonths?: number;
 }
 
 export interface DashboardData {
@@ -138,7 +142,11 @@ export class DashboardService {
       hasPersonalDetails: app.hasPersonalDetails,
       hasFinancialProfile: app.hasFinancialProfile,
       documentsCount: app.documentsCount || 0,
-      employmentType: app.employmentType
+      employmentType: app.employmentType,
+      // Include approved loan fields for active loans
+      approvedAmount: app.approvedAmount ? Number(app.approvedAmount) : undefined,
+      approvedInterestRate: app.approvedInterestRate ? Number(app.approvedInterestRate) : undefined,
+      approvedTenureMonths: app.approvedTenureMonths
     }));
   }
 
