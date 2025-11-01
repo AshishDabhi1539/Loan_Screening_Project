@@ -1,27 +1,29 @@
-/* Dashboard Component Styles */
+/* Loan Officer Dashboard Styles */
 
-/* Ensure primary colors work */
-.text-primary-600 {
-  color: #4f46e5;
+/* Stats Cards */
+.stats-card {
+  transition: all 0.3s ease;
+  border: 1px solid rgba(229, 231, 235, 0.8);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
 }
 
-.bg-primary-600 {
-  background-color: #4f46e5;
+.stats-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  border-color: rgb(59, 130, 246);
 }
 
-.hover\:bg-primary-700:hover {
-  background-color: #4338ca;
+.stats-icon {
+  transition: all 0.3s ease;
 }
 
-.hover\:text-primary-900:hover {
-  color: #312e81;
+.stats-card:hover .stats-icon {
+  transform: scale(1.1);
 }
 
-/* Animation for loading spinner */
+/* Loading Animation */
 @keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
   to {
     transform: rotate(360deg);
   }
@@ -31,55 +33,13 @@
   animation: spin 1s linear infinite;
 }
 
-/* Custom scrollbar for table */
-.overflow-x-auto::-webkit-scrollbar {
-  height: 8px;
-}
-
-.overflow-x-auto::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 4px;
-}
-
-.overflow-x-auto::-webkit-scrollbar-thumb {
-  background: #888;
-  border-radius: 4px;
-}
-
-.overflow-x-auto::-webkit-scrollbar-thumb:hover {
-  background: #555;
-}
-
-/* Card hover effects */
-.hover\:shadow-md:hover {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-}
-
-/* Smooth transitions */
-.transition-colors {
-  transition-property: color, background-color, border-color;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 150ms;
-}
-
-.transition-shadow {
-  transition-property: box-shadow;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 150ms;
-}
-
-/* Badge styles */
-.rounded-full {
+/* Badge Styles */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
   border-radius: 9999px;
-}
-
-/* Responsive table */
-@media (max-width: 768px) {
-  .overflow-x-auto {
-    overflow-x: scroll;
-  }
-  
-  table {
-    min-width: 800px;
-  }
+  line-height: 1.25rem;
 }

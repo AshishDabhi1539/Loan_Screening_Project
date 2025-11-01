@@ -19,6 +19,7 @@ import com.tss.loan.dto.request.ComplianceFlagRequest;
 import com.tss.loan.dto.request.DocumentResubmissionRequest;
 import com.tss.loan.dto.request.DocumentVerificationRequest;
 import com.tss.loan.dto.request.LoanDecisionRequest;
+import com.tss.loan.dto.response.AuditLogResponse;
 import com.tss.loan.dto.response.CompleteApplicationDetailsResponse;
 import com.tss.loan.dto.response.DocumentResubmissionResponse;
 import com.tss.loan.dto.response.ExternalVerificationResponse;
@@ -110,7 +111,7 @@ public class LoanOfficerController {
      * Start document verification process
      */
     @PostMapping("/applications/{applicationId}/start-verification")
-    public ResponseEntity<String> startDocumentVerification(
+    public ResponseEntity<java.util.Map<String, String>> startDocumentVerification(
             @PathVariable UUID applicationId,
             Authentication authentication) {
         
@@ -119,14 +120,17 @@ public class LoanOfficerController {
         User officer = getCurrentUser(authentication);
         loanOfficerService.startDocumentVerification(applicationId, officer);
         
-        return ResponseEntity.ok("Document verification started successfully");
+        return ResponseEntity.ok(java.util.Map.of(
+            "message", "Document verification started successfully",
+            "status", "success"
+        ));
     }
     
     /**
      * Complete document verification
      */
     @PostMapping("/applications/{applicationId}/verify-documents")
-    public ResponseEntity<String> verifyDocuments(
+    public ResponseEntity<java.util.Map<String, String>> verifyDocuments(
             @PathVariable UUID applicationId,
             @Valid @RequestBody DocumentVerificationRequest request,
             Authentication authentication) {
@@ -136,14 +140,17 @@ public class LoanOfficerController {
         User officer = getCurrentUser(authentication);
         loanOfficerService.completeDocumentVerification(applicationId, request, officer);
         
-        return ResponseEntity.ok("Document verification completed successfully");
+        return ResponseEntity.ok(java.util.Map.of(
+            "message", "Document verification completed successfully",
+            "status", "success"
+        ));
     }
     
     /**
      * Trigger external verification (fraud detection)
      */
     @PostMapping("/applications/{applicationId}/trigger-external-verification")
-    public ResponseEntity<String> triggerExternalVerification(
+    public ResponseEntity<java.util.Map<String, String>> triggerExternalVerification(
             @PathVariable UUID applicationId,
             Authentication authentication) {
         
@@ -152,7 +159,10 @@ public class LoanOfficerController {
         User officer = getCurrentUser(authentication);
         loanOfficerService.triggerExternalVerification(applicationId, officer);
         
-        return ResponseEntity.ok("External verification triggered successfully");
+        return ResponseEntity.ok(java.util.Map.of(
+            "message", "External verification triggered successfully",
+            "status", "success"
+        ));
     }
     
     /**
@@ -250,6 +260,22 @@ public class LoanOfficerController {
         LoanDecisionResponse response = decisionManagementService.flagForCompliance(applicationId, request, officer);
         
         return ResponseEntity.ok(response);
+    }
+    
+    /**
+     * Get audit trail for an application
+     */
+    @GetMapping("/applications/{applicationId}/audit-trail")
+    public ResponseEntity<List<AuditLogResponse>> getAuditTrail(
+            @PathVariable UUID applicationId,
+            Authentication authentication) {
+        
+        log.info("Officer {} requesting audit trail for application: {}", authentication.getName(), applicationId);
+        
+        User officer = getCurrentUser(authentication);
+        List<AuditLogResponse> auditTrail = loanOfficerService.getApplicationAuditTrail(applicationId, officer);
+        
+        return ResponseEntity.ok(auditTrail);
     }
     
     private User getCurrentUser(Authentication authentication) {

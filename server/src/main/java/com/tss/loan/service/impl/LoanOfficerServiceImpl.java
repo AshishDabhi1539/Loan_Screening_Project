@@ -6,23 +6,22 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import com.tss.loan.dto.response.ExternalVerificationResponse;
-import com.tss.loan.entity.applicant.ApplicantPersonalDetails;
-import com.tss.loan.entity.external.CreditScoreHistory;
-import com.tss.loan.repository.LoanApplicationRepository;
-import com.tss.loan.repository.external.CreditScoreHistoryRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.tss.loan.dto.request.DocumentResubmissionRequest;
 import com.tss.loan.dto.request.DocumentVerificationRequest;
+import com.tss.loan.dto.response.AuditLogResponse;
 import com.tss.loan.dto.response.CompleteApplicationDetailsResponse;
 import com.tss.loan.dto.response.DocumentResubmissionResponse;
+import com.tss.loan.dto.response.ExternalVerificationResponse;
 import com.tss.loan.dto.response.LoanApplicationResponse;
 import com.tss.loan.dto.response.OfficerDashboardResponse;
+import com.tss.loan.entity.applicant.ApplicantPersonalDetails;
 import com.tss.loan.entity.enums.ApplicationStatus;
 import com.tss.loan.entity.enums.NotificationType;
+import com.tss.loan.entity.external.CreditScoreHistory;
 import com.tss.loan.entity.loan.LoanApplication;
 import com.tss.loan.entity.loan.LoanDocument;
 import com.tss.loan.entity.user.User;
@@ -30,7 +29,9 @@ import com.tss.loan.exception.LoanApiException;
 import com.tss.loan.mapper.LoanApplicationMapper;
 import com.tss.loan.repository.ApplicantFinancialProfileRepository;
 import com.tss.loan.repository.ApplicantPersonalDetailsRepository;
+import com.tss.loan.repository.LoanApplicationRepository;
 import com.tss.loan.repository.LoanDocumentRepository;
+import com.tss.loan.repository.external.CreditScoreHistoryRepository;
 import com.tss.loan.service.ApplicationWorkflowService;
 import com.tss.loan.service.AuditLogService;
 import com.tss.loan.service.LoanOfficerService;
@@ -71,6 +72,9 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
     
     @Autowired
     private AuditLogService auditLogService;
+    
+    @Autowired
+    private com.tss.loan.repository.AuditLogRepository auditLogRepository;
     
     @Autowired
     private ApplicationWorkflowService applicationWorkflowService;
@@ -980,9 +984,32 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
         
         // Calculate completion percentages
         boolean identityComplete = personalDetails != null && personalDetails.getPanNumber() != null && personalDetails.getAadhaarNumber() != null;
-        boolean documentsComplete = documents.stream().allMatch(doc -> doc.getVerificationStatus() == com.tss.loan.entity.enums.VerificationStatus.VERIFIED);
-        boolean employmentComplete = financialProfile != null && financialProfile.getEmployerName() != null;
-        boolean financialComplete = financialProfile != null && financialProfile.getTotalMonthlyIncome() != null;
+        
+        // Documents complete: at least one document exists AND all are verified (none pending/rejected)
+        boolean documentsComplete = !documents.isEmpty() && 
+            documents.stream().allMatch(doc -> doc.getVerificationStatus() == com.tss.loan.entity.enums.VerificationStatus.VERIFIED);
+        
+        // Employment complete: check based on employment type
+        boolean employmentComplete = false;
+        if (financialProfile != null && financialProfile.getEmploymentType() != null) {
+            String empType = financialProfile.getEmploymentType().toString();
+            // For types without employer: RETIRED, STUDENT, UNEMPLOYED, FREELANCER
+            if (empType.equals("RETIRED") || empType.equals("STUDENT") || 
+                empType.equals("UNEMPLOYED") || empType.equals("FREELANCER")) {
+                employmentComplete = true; // No employer needed
+            } else {
+                // For SALARIED, SELF_EMPLOYED, BUSINESS_OWNER, PROFESSIONAL
+                employmentComplete = financialProfile.getEmployerName() != null && 
+                                   !financialProfile.getEmployerName().trim().isEmpty();
+            }
+        }
+        
+        // Financial complete: check all required financial fields
+        boolean financialComplete = financialProfile != null && 
+            financialProfile.getTotalMonthlyIncome() != null && 
+            financialProfile.getAnnualIncome() != null && 
+            financialProfile.getEmploymentType() != null;
+        
         boolean externalComplete = application.getStatus() == ApplicationStatus.READY_FOR_DECISION;
         
         int completionPercentage = 0;
@@ -1193,5 +1220,75 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
         
         // 🔄 DEFAULT - Unknown/Error scenarios
         return "MANUAL_REVIEW_REQUIRED";
+    }
+    
+    @Override
+    public List<AuditLogResponse> getApplicationAuditTrail(UUID applicationId, User officer) {
+        log.info("Getting audit trail for application: {} by officer: {}", applicationId, officer.getEmail());
+        
+        // Validate application exists and officer has access (throws exception if invalid)
+        getApplicationAndValidateOfficer(applicationId, officer);
+        
+        List<AuditLogResponse> auditTrail = new java.util.ArrayList<>();
+        
+        // Get audit logs for this application
+        List<com.tss.loan.entity.system.AuditLog> auditLogs = auditLogRepository.findByEntityTypeAndEntityIdOrderByTimestampDesc(
+            "LoanApplication", 
+            applicationId.getMostSignificantBits()
+        );
+        
+        // Convert audit logs to response DTOs
+        for (com.tss.loan.entity.system.AuditLog log : auditLogs) {
+            AuditLogResponse response = AuditLogResponse.builder()
+                .id(log.getId())
+                .action(log.getAction())
+                .performedBy(log.getUser() != null ? userDisplayService.getDisplayName(log.getUser()) : "System")
+                .performedByEmail(log.getUser() != null ? log.getUser().getEmail() : "system@loanscreen.com")
+                .timestamp(log.getTimestamp())
+                .entityType(log.getEntityType())
+                .entityId(log.getEntityId().toString())
+                .details(log.getAdditionalInfo())
+                .ipAddress(log.getIpAddress())
+                .userAgent(log.getUserAgent())
+                .changeType("AUDIT_LOG")
+                .oldValues(log.getOldValues())
+                .newValues(log.getNewValues())
+                .additionalInfo(log.getAdditionalInfo())
+                .build();
+            auditTrail.add(response);
+        }
+        
+        // Get workflow history for this application
+        List<com.tss.loan.entity.workflow.ApplicationWorkflow> workflowHistory = 
+            applicationWorkflowService.getWorkflowHistory(applicationId);
+        
+        // Convert workflow history to response DTOs
+        for (com.tss.loan.entity.workflow.ApplicationWorkflow workflow : workflowHistory) {
+            AuditLogResponse response = AuditLogResponse.builder()
+                .id(workflow.getId())
+                .action("STATUS_CHANGE")
+                .performedBy(workflow.getProcessedBy() != null ? userDisplayService.getDisplayName(workflow.getProcessedBy()) : "System")
+                .performedByEmail(workflow.getProcessedBy() != null ? workflow.getProcessedBy().getEmail() : "system@loanscreen.com")
+                .timestamp(workflow.getProcessedAt())
+                .entityType("LoanApplication")
+                .entityId(applicationId.toString())
+                .details(String.format("Status changed from %s to %s", workflow.getFromStatus(), workflow.getToStatus()))
+                .ipAddress(workflow.getIpAddress())
+                .userAgent(workflow.getUserAgent())
+                .changeType("WORKFLOW_CHANGE")
+                .fromStatus(workflow.getFromStatus().toString())
+                .toStatus(workflow.getToStatus().toString())
+                .comments(workflow.getComments())
+                .systemRemarks(workflow.getSystemRemarks())
+                .isSystemGenerated(workflow.getIsSystemGenerated())
+                .build();
+            auditTrail.add(response);
+        }
+        
+        // Sort by timestamp descending (most recent first)
+        auditTrail.sort((a, b) -> b.getTimestamp().compareTo(a.getTimestamp()));
+        
+        log.info("Retrieved {} audit trail entries for application: {}", auditTrail.size(), applicationId);
+        return auditTrail;
     }
 }

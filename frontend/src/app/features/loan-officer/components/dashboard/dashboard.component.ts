@@ -2,9 +2,9 @@ import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 
-import { LoanOfficerService, OfficerDashboardResponse, LoanApplicationSummary } from '../../../../core/services/loan-officer.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { NotificationService } from '../../../../core/services/notification.service';
+import { LoanOfficerService, OfficerDashboardResponse, LoanApplicationSummary } from '../../../../core/services/loan-officer.service';
 
 @Component({
   selector: 'app-loan-officer-dashboard',
@@ -15,235 +15,155 @@ import { NotificationService } from '../../../../core/services/notification.serv
 })
 export class DashboardComponent implements OnInit {
   private router = inject(Router);
-  private loanOfficerService = inject(LoanOfficerService);
   private authService = inject(AuthService);
   private notificationService = inject(NotificationService);
+  private loanOfficerService = inject(LoanOfficerService);
 
   // Signals for reactive state
   currentUser = this.authService.currentUser;
   isLoading = signal(false);
   dashboardData = signal<OfficerDashboardResponse | null>(null);
-  
+
   // Computed values
   userDisplayName = computed(() => {
     const user = this.currentUser();
     return user?.displayName || user?.email?.split('@')[0] || 'Officer';
   });
 
-  statistics = computed(() => {
-    const data = this.dashboardData();
-    if (!data) return null;
-    
-    return {
-      totalAssigned: data.totalAssigned,
-      pendingReview: data.pendingReview,
-      underVerification: data.underVerification,
-      readyForDecision: data.readyForDecision,
-      completedToday: data.completedToday,
-      avgProcessingTime: data.avgProcessingTime
-    };
+  stats = computed(() => this.dashboardData());
+  recentApplications = computed(() => this.dashboardData()?.recentApplications || []);
+  recentActivities = computed(() => this.dashboardData()?.recentActivities || []);
+
+  priorityBreakdown = computed(() => this.dashboardData()?.priorityBreakdown || {
+    high: 0,
+    medium: 0,
+    low: 0
   });
 
-  priorityBreakdown = computed(() => {
-    const data = this.dashboardData();
-    return data?.priorityBreakdown || { high: 0, medium: 0, low: 0 };
-  });
-
-  recentApplications = computed(() => {
-    const data = this.dashboardData();
-    return data?.recentApplications || [];
-  });
-
-  recentActivities = computed(() => {
-    const data = this.dashboardData();
-    return data?.recentActivities || [];
-  });
-
-  hasHighPriorityApplications = computed(() => {
-    const breakdown = this.priorityBreakdown();
-    return breakdown.high > 0;
-  });
+  hasPendingReview = computed(() => (this.dashboardData()?.pendingReview || 0) > 0);
+  hasReadyForDecision = computed(() => (this.dashboardData()?.readyForDecision || 0) > 0);
 
   ngOnInit(): void {
     this.loadDashboard();
   }
 
-  loadDashboard(): void {
+  /**
+   * Load dashboard data from backend
+   */
+  private loadDashboard(): void {
     this.isLoading.set(true);
-    
-    console.log('🔄 Loading dashboard data...');
-    
     this.loanOfficerService.getDashboard().subscribe({
-      next: (response) => {
-        console.log('✅ Dashboard data received:', response);
-        this.dashboardData.set(response);
+      next: (data) => {
+        this.dashboardData.set(data);
         this.isLoading.set(false);
-        
-        // Show success notification with data summary
-        this.notificationService.success(
-          'Dashboard Loaded', 
-          `Found ${response.totalAssigned} assigned applications`
-        );
       },
       error: (error) => {
-        console.error('❌ Error loading dashboard:', error);
-        console.error('Error details:', {
-          status: error.status,
-          message: error.message,
-          url: error.url
-        });
-        
-        this.notificationService.error('Error', `Failed to load dashboard data: ${error.message || 'Unknown error'}`);
+        console.error('Error loading dashboard:', error);
+        this.notificationService.error(
+          'Error Loading Dashboard',
+          'Failed to load dashboard data. Please try again.'
+        );
         this.isLoading.set(false);
-        
-        // Set test data for debugging if API fails
-        console.log('🔧 Setting test data for debugging...');
-        this.dashboardData.set({
-          totalAssigned: 12,
-          pendingReview: 5,
-          underVerification: 3,
-          readyForDecision: 2,
-          completedToday: 4,
-          avgProcessingTime: 2.5,
-          priorityBreakdown: { high: 3, medium: 6, low: 3 },
-          recentApplications: [
-            {
-              id: 'test-app-1',
-              applicantName: 'John Doe',
-              applicantEmail: 'john.doe@example.com',
-              loanType: 'PERSONAL_LOAN',
-              requestedAmount: 50000,
-              tenureMonths: 24,
-              status: 'UNDER_REVIEW',
-              priority: 'HIGH',
-              submittedAt: new Date(),
-              assignedAt: new Date()
-            },
-            {
-              id: 'test-app-2',
-              applicantName: 'Jane Smith',
-              applicantEmail: 'jane.smith@example.com',
-              loanType: 'HOME_LOAN',
-              requestedAmount: 500000,
-              tenureMonths: 240,
-              status: 'READY_FOR_DECISION',
-              priority: 'MEDIUM',
-              submittedAt: new Date(Date.now() - 86400000),
-              assignedAt: new Date(Date.now() - 86400000)
-            }
-          ],
-          recentActivities: []
-        });
       }
     });
   }
 
+  /**
+   * Refresh dashboard data
+   */
   refreshDashboard(): void {
-    this.notificationService.info('Refresh', 'Refreshing dashboard...');
     this.loadDashboard();
+    this.notificationService.success(
+      'Dashboard Refreshed',
+      'Latest data has been loaded successfully.'
+    );
   }
 
-  viewApplication(applicationId: string): void {
-    this.router.navigate(['/loan-officer/applications', applicationId, 'details']);
-  }
-
-  startReview(applicationId: string): void {
-    this.router.navigate(['/loan-officer/applications', applicationId, 'details']);
-  }
-
-  viewAllApplications(): void {
-    this.router.navigate(['/loan-officer/applications/assigned']);
-  }
-
-  viewReadyForDecision(): void {
-    this.router.navigate(['/loan-officer/applications/assigned'], {
-      queryParams: { filter: 'ready-for-decision' }
-    });
-  }
-
+  /**
+   * Get greeting based on time of day
+   */
   getGreeting(): string {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good Morning';
-    if (hour < 18) return 'Good Afternoon';
+    if (hour < 17) return 'Good Afternoon';
     return 'Good Evening';
   }
 
+  /**
+   * Navigate to applications list
+   */
+  navigateToApplications(filter?: string): void {
+    if (filter) {
+      this.router.navigate(['/loan-officer/applications', filter]);
+    } else {
+      this.router.navigate(['/loan-officer/applications/assigned']);
+    }
+  }
+
+  /**
+   * Navigate to application details
+   */
+  viewApplication(applicationId: string): void {
+    this.router.navigate(['/loan-officer/application', applicationId, 'details']);
+  }
+
+  /**
+   * Start verification for an application
+   */
+  startVerification(applicationId: string): void {
+    this.router.navigate(['/loan-officer/application', applicationId, 'document-verification']);
+  }
+
+  /**
+   * Make decision for an application
+   */
+  makeDecision(applicationId: string): void {
+    this.router.navigate(['/loan-officer/application', applicationId, 'decision']);
+  }
+
+  /**
+   * Format currency
+   */
   formatCurrency(amount: number): string {
     return this.loanOfficerService.formatCurrency(amount);
   }
 
+  /**
+   * Format date
+   */
   formatDate(date: Date | string): string {
     return this.loanOfficerService.formatDate(date);
   }
 
+  /**
+   * Get status badge class
+   */
   getStatusBadgeClass(status: string): string {
     return this.loanOfficerService.getStatusBadgeClass(status);
   }
 
+  /**
+   * Get priority badge class
+   */
   getPriorityBadgeClass(priority: string): string {
     return this.loanOfficerService.getPriorityBadgeClass(priority);
   }
 
-  getStatusLabel(status: string): string {
-    return status.replace(/_/g, ' ');
-  }
-
-  getPriorityIcon(priority: string): string {
-    const icons: { [key: string]: string } = {
-      'HIGH': '🔴',
-      'MEDIUM': '🟡',
-      'LOW': '🟢'
-    };
-    return icons[priority] || '⚪';
-  }
-
+  /**
+   * Format time ago
+   */
   getTimeAgo(date: Date | string): string {
     const now = new Date();
-    const past = new Date(date);
-    const diffInSeconds = Math.floor((now.getTime() - past.getTime()) / 1000);
+    const then = new Date(date);
+    const diffMs = now.getTime() - then.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffInSeconds < 60) return 'Just now';
-    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`;
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
-    return `${Math.floor(diffInSeconds / 86400)} days ago`;
-  }
-
-  getLoanTypeIcon(loanType: string): string {
-    const icons: { [key: string]: string } = {
-      'PERSONAL_LOAN': '👤',
-      'HOME_LOAN': '🏠',
-      'CAR_LOAN': '🚗',
-      'TWO_WHEELER_LOAN': '🏍️',
-      'EDUCATION_LOAN': '🎓',
-      'BUSINESS_LOAN': '💼',
-      'GOLD_LOAN': '💰',
-      'PROPERTY_LOAN': '🏢'
-    };
-    return icons[loanType] || '📄';
-  }
-
-  formatLoanType(loanType: string): string {
-    return loanType.replace(/_/g, ' ');
-  }
-
-  getProgressPercentage(): number {
-    const stats = this.statistics();
-    if (!stats || stats.totalAssigned === 0) return 0;
-    
-    const completed = stats.completedToday;
-    const total = stats.totalAssigned;
-    return Math.round((completed / total) * 100);
-  }
-
-  getWorkloadStatus(): { label: string; color: string } {
-    const stats = this.statistics();
-    if (!stats) return { label: 'No Data', color: 'gray' };
-
-    const pending = stats.pendingReview + stats.underVerification;
-    
-    if (pending === 0) return { label: 'All Caught Up! 🎉', color: 'green' };
-    if (pending <= 5) return { label: 'Light Workload', color: 'green' };
-    if (pending <= 10) return { label: 'Moderate Workload', color: 'yellow' };
-    return { label: 'Heavy Workload', color: 'red' };
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    return this.formatDate(date);
   }
 }

@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import com.tss.loan.dto.request.DocumentResubmissionRequest;
 import com.tss.loan.dto.request.DocumentVerificationRequest;
+import com.tss.loan.dto.response.AuditLogResponse;
 import com.tss.loan.dto.response.CompleteApplicationDetailsResponse;
 import com.tss.loan.dto.response.DocumentResubmissionResponse;
 import com.tss.loan.dto.response.ExternalVerificationResponse;
@@ -99,4 +100,11 @@ public interface LoanOfficerService {
      * @return Resubmission response with details
      */
     DocumentResubmissionResponse requestDocumentResubmission(UUID applicationId, DocumentResubmissionRequest request, User officer);
+    
+    /**
+     * Get combined audit trail for an application (audit logs + workflow history)
+     * @param applicationId The application ID
+     * @param officer The loan officer
+     */
+    List<AuditLogResponse> getApplicationAuditTrail(UUID applicationId, User officer);
 }

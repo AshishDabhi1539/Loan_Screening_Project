@@ -1,0 +1,338 @@
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="bg-white shadow rounded-lg p-6">
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">Loan Decision</h1>
+        <p class="mt-1 text-sm text-gray-500">Make a decision on this loan application</p>
+      </div>
+      <button
+        (click)="cancel()"
+        class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+      >
+        Cancel
+      </button>
+    </div>
+  </div>
+
+  <!-- Decision Type Selection -->
+  @if (!decisionType()) {
+    <div class="bg-white shadow rounded-lg p-6">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4">Select Decision Type</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <button
+          (click)="setDecisionType('approve')"
+          class="p-6 border-2 border-green-200 rounded-lg hover:border-green-500 hover:bg-green-50 transition-all text-left"
+        >
+          <div class="flex items-center space-x-3">
+            <svg class="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+              <div class="font-semibold text-gray-900">Approve</div>
+              <div class="text-sm text-gray-500 mt-1">Approve this loan application</div>
+            </div>
+          </div>
+        </button>
+
+        <button
+          (click)="setDecisionType('reject')"
+          class="p-6 border-2 border-red-200 rounded-lg hover:border-red-500 hover:bg-red-50 transition-all text-left"
+        >
+          <div class="flex items-center space-x-3">
+            <svg class="w-8 h-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+              <div class="font-semibold text-gray-900">Reject</div>
+              <div class="text-sm text-gray-500 mt-1">Reject this loan application</div>
+            </div>
+          </div>
+        </button>
+
+        <button
+          (click)="setDecisionType('flag')"
+          class="p-6 border-2 border-yellow-200 rounded-lg hover:border-yellow-500 hover:bg-yellow-50 transition-all text-left"
+        >
+          <div class="flex items-center space-x-3">
+            <svg class="w-8 h-8 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+            <div>
+              <div class="font-semibold text-gray-900">Flag for Compliance</div>
+              <div class="text-sm text-gray-500 mt-1">Flag for compliance review</div>
+            </div>
+          </div>
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- Approval Form -->
+  @if (decisionType() === 'approve') {
+    <form [formGroup]="approveForm" (ngSubmit)="submitApproval()" class="space-y-6">
+      <div class="bg-white shadow rounded-lg p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Approval Details</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Approved Amount</label>
+            <input
+              type="number"
+              formControlName="approvedAmount"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Enter approved amount"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Approved Tenure (Months)</label>
+            <input
+              type="number"
+              formControlName="approvedTenure"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Enter tenure"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Interest Rate (%)</label>
+            <input
+              type="number"
+              step="0.01"
+              formControlName="approvedInterestRate"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Enter interest rate"
+            />
+          </div>
+        </div>
+
+        <div class="mt-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Decision Reason *</label>
+          <textarea
+            formControlName="decisionReason"
+            rows="4"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            placeholder="Enter reason for approval..."
+          ></textarea>
+        </div>
+
+        <div class="mt-4">
+          <div class="flex items-center justify-between mb-2">
+            <label class="block text-sm font-medium text-gray-700">Conditions</label>
+            <button
+              type="button"
+              (click)="addCondition()"
+              class="text-sm text-blue-600 hover:text-blue-800"
+            >
+              + Add Condition
+            </button>
+          </div>
+          <div formArrayName="conditions" class="space-y-2">
+            @for (condition of getConditionsArray().controls; track $index) {
+              <div class="flex items-center space-x-2">
+                <input
+                  type="text"
+                  [formControl]="$any(condition)"
+                  class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Enter condition"
+                />
+                <button
+                  type="button"
+                  (click)="removeCondition($index)"
+                  class="px-3 py-2 text-red-600 hover:text-red-800"
+                >
+                  Remove
+                </button>
+              </div>
+            }
+          </div>
+        </div>
+
+        <div class="mt-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Internal Notes</label>
+          <textarea
+            formControlName="internalNotes"
+            rows="3"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            placeholder="Internal notes (optional)..."
+          ></textarea>
+        </div>
+
+        <div class="mt-6 flex justify-end space-x-3">
+          <button
+            type="button"
+            (click)="cancel()"
+            class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            [disabled]="isSubmitting() || approveForm.invalid"
+            class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            @if (isSubmitting()) {
+              <span class="flex items-center space-x-2">
+                <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <span>Approving...</span>
+              </span>
+            } @else {
+              Approve Application
+            }
+          </button>
+        </div>
+      </div>
+    </form>
+  }
+
+  <!-- Rejection Form -->
+  @if (decisionType() === 'reject') {
+    <form [formGroup]="rejectForm" (ngSubmit)="submitRejection()" class="space-y-6">
+      <div class="bg-white shadow rounded-lg p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Rejection Details</h2>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Rejection Reason *</label>
+          <textarea
+            formControlName="decisionReason"
+            rows="5"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+            placeholder="Enter detailed reason for rejection..."
+          ></textarea>
+        </div>
+
+        <div class="mt-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Internal Notes</label>
+          <textarea
+            formControlName="internalNotes"
+            rows="3"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+            placeholder="Internal notes (optional)..."
+          ></textarea>
+        </div>
+
+        <div class="mt-6 flex justify-end space-x-3">
+          <button
+            type="button"
+            (click)="cancel()"
+            class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            [disabled]="isSubmitting() || rejectForm.invalid"
+            class="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            @if (isSubmitting()) {
+              <span class="flex items-center space-x-2">
+                <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <span>Rejecting...</span>
+              </span>
+            } @else {
+              Reject Application
+            }
+          </button>
+        </div>
+      </div>
+    </form>
+  }
+
+  <!-- Flag Form -->
+  @if (decisionType() === 'flag') {
+    <form [formGroup]="flagForm" (ngSubmit)="submitFlag()" class="space-y-6">
+      <div class="bg-white shadow rounded-lg p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Compliance Flag Details</h2>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Flag Reason *</label>
+          <textarea
+            formControlName="flagReason"
+            rows="5"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+            placeholder="Enter reason for flagging this application for compliance review..."
+          ></textarea>
+        </div>
+
+        <div class="mt-4">
+          <div class="flex items-center justify-between mb-2">
+            <label class="block text-sm font-medium text-gray-700">Suspicious Activities</label>
+            <button
+              type="button"
+              (click)="addSuspiciousActivity()"
+              class="text-sm text-blue-600 hover:text-blue-800"
+            >
+              + Add Activity
+            </button>
+          </div>
+          <div formArrayName="suspiciousActivities" class="space-y-2">
+            @for (activity of getSuspiciousActivitiesArray().controls; track $index) {
+              <div class="flex items-center space-x-2">
+                <input
+                  type="text"
+                  [formControl]="$any(activity)"
+                  class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                  placeholder="Describe suspicious activity"
+                />
+                @if (getSuspiciousActivitiesArray().length > 1) {
+                  <button
+                    type="button"
+                    (click)="removeSuspiciousActivity($index)"
+                    class="px-3 py-2 text-red-600 hover:text-red-800"
+                  >
+                    Remove
+                  </button>
+                }
+              </div>
+            }
+          </div>
+        </div>
+
+        <div class="mt-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Priority *</label>
+          <select
+            formControlName="priority"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+          >
+            <option value="HIGH">High</option>
+            <option value="MEDIUM">Medium</option>
+            <option value="LOW">Low</option>
+          </select>
+        </div>
+
+        <div class="mt-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Additional Evidence</label>
+          <textarea
+            formControlName="additionalEvidence"
+            rows="3"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+            placeholder="Additional evidence or notes (optional)..."
+          ></textarea>
+        </div>
+
+        <div class="mt-6 flex justify-end space-x-3">
+          <button
+            type="button"
+            (click)="cancel()"
+            class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            [disabled]="isSubmitting() || flagForm.invalid"
+            class="px-6 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            @if (isSubmitting()) {
+              <span class="flex items-center space-x-2">
+                <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <span>Flagging...</span>
+              </span>
+            } @else {
+              Flag for Compliance
+            }
+          </button>
+        </div>
+      </div>
+    </form>
+  }
+</div>

@@ -1,405 +1,199 @@
-<!-- Application Review - Real Backend Data -->
-<div class="min-h-screen bg-gray-50">
+<div class="space-y-6">
   @if (isLoading()) {
-    <div class="flex items-center justify-center min-h-screen">
-      <div class="text-center">
-        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
-        <p class="mt-4 text-gray-600">Loading application details from backend...</p>
+    <div class="flex justify-center items-center py-12">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+    </div>
+  } @else if (applicationDetails()) {
+    <ng-container *ngIf="applicationDetails() as details">
+      <ng-container *ngIf="details.applicationInfo as app">
+
+    <!-- Header -->
+    <div class="bg-white shadow rounded-lg p-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-2xl font-bold text-gray-900">Application Review Workflow</h1>
+          <p class="mt-1 text-sm text-gray-500">
+            @if (details.applicantIdentity && details.applicantIdentity.personalDetails && details.applicantIdentity.personalDetails.fullName) {
+              {{ details.applicantIdentity.personalDetails.fullName }}
+            } @else {
+              Application
+            }
+            • {{ app.loanType }}
+          </p>
+        </div>
+        <button
+          (click)="router.navigate(['/loan-officer/application', app.id, 'details'])"
+          class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+        >
+          View Details
+        </button>
       </div>
     </div>
-  } @else {
-    @if (applicationDetails(); as details) {
-      <!-- Header -->
-      <div class="bg-white border-b border-gray-200">
-        <div class="max-w-7xl mx-auto px-6 py-6">
-          <div class="flex items-center justify-between mb-4">
-            <div class="flex items-center space-x-4">
-              <button (click)="goBack()" class="p-2 hover:bg-gray-100 rounded-lg">
-                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-              <div>
-                <h1 class="text-2xl font-bold">Application Review</h1>
-                <p class="text-sm text-gray-600">ID: {{ details.application.id.substring(0, 12) }}...</p>
-              </div>
-            </div>
 
-            <div class="flex space-x-3">
-              @if (canStartReview()) {
-                <button (click)="startReview()" [disabled]="isProcessing()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">
-                  Start Review
-                </button>
-              }
-              @if (canApprove()) {
-                <button (click)="approveApplication()" [disabled]="isProcessing()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50">
-                  ✓ Approve
-                </button>
-              }
-              @if (canReject()) {
-                <button (click)="rejectApplication()" [disabled]="isProcessing()" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50">
-                  ✗ Reject
-                </button>
-              }
-            </div>
-          </div>
-
-          <!-- Summary Cards -->
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div class="bg-white border border-gray-200 rounded-lg p-4">
-              <div class="text-sm text-gray-600">Status</div>
-              <span [ngClass]="getStatusBadgeClass(details.application.status)" class="inline-block mt-2 px-3 py-1 text-sm font-semibold rounded-full">
-                {{ getStatusLabel(details.application.status) }}
-              </span>
-            </div>
-            <div class="bg-white border border-gray-200 rounded-lg p-4">
-              <div class="text-sm text-gray-600">Priority</div>
-              <span [ngClass]="getPriorityBadgeClass(details.application.priority)" class="inline-block mt-2 px-3 py-1 text-sm font-semibold rounded-full">
-                {{ details.application.priority }}
-              </span>
-            </div>
-            <div class="bg-white border border-gray-200 rounded-lg p-4">
-              <div class="text-sm text-gray-600">Risk Level</div>
-              <span [ngClass]="getRiskLevelBadgeClass(details.application.riskLevel)" class="inline-block mt-2 px-3 py-1 text-sm font-semibold rounded-full">
-                {{ details.application.riskLevel }}
-              </span>
-            </div>
-            <div class="bg-white border border-gray-200 rounded-lg p-4">
-              <div class="text-sm text-gray-600">Documents</div>
-              <div class="text-lg font-semibold mt-2">
-                {{ verifiedDocumentsCount() }} / {{ documentsCount() }} <span class="text-sm text-gray-500">verified</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Tabs & Content -->
-      <div class="max-w-7xl mx-auto px-6 py-6">
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
-          <!-- Tab Navigation -->
-          <div class="border-b border-gray-200">
-            <nav class="flex space-x-8 px-6">
-              <button (click)="setActiveTab('personal')" [class.border-primary-600]="activeTab() === 'personal'" [class.text-primary-600]="activeTab() === 'personal'" [class.border-transparent]="activeTab() !== 'personal'" [class.text-gray-500]="activeTab() !== 'personal'" class="py-4 px-1 border-b-2 font-medium text-sm">
-                👤 Personal
-              </button>
-              <button (click)="setActiveTab('financial')" [class.border-primary-600]="activeTab() === 'financial'" [class.text-primary-600]="activeTab() === 'financial'" [class.border-transparent]="activeTab() !== 'financial'" [class.text-gray-500]="activeTab() !== 'financial'" class="py-4 px-1 border-b-2 font-medium text-sm">
-                💰 Financial
-              </button>
-              <button (click)="setActiveTab('documents')" [class.border-primary-600]="activeTab() === 'documents'" [class.text-primary-600]="activeTab() === 'documents'" [class.border-transparent]="activeTab() !== 'documents'" [class.text-gray-500]="activeTab() !== 'documents'" class="py-4 px-1 border-b-2 font-medium text-sm">
-                📄 Documents ({{ documentsCount() }})
-              </button>
-              <button (click)="setActiveTab('timeline')" [class.border-primary-600]="activeTab() === 'timeline'" [class.text-primary-600]="activeTab() === 'timeline'" [class.border-transparent]="activeTab() !== 'timeline'" [class.text-gray-500]="activeTab() !== 'timeline'" class="py-4 px-1 border-b-2 font-medium text-sm">
-                📋 Timeline
-              </button>
-            </nav>
-          </div>
-
-          <!-- Tab Content -->
-          <div class="p-6">
-            <!-- Personal Tab -->
-            @if (activeTab() === 'personal' && hasPersonalDetails()) {
-              <div class="space-y-6">
-                <!-- Basic Information -->
-                <div class="bg-gray-50 rounded-lg p-6">
-                  <h3 class="text-lg font-semibold mb-4 text-gray-900">👤 Personal Information</h3>
-                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <label class="text-sm font-medium text-gray-600">Full Name</label>
-                      <p class="font-medium text-gray-900">{{ details.personalDetails.firstName }} {{ details.personalDetails.middleName }} {{ details.personalDetails.lastName }}</p>
-                    </div>
-                    <div>
-                      <label class="text-sm font-medium text-gray-600">Date of Birth</label>
-                      <p class="font-medium text-gray-900">{{ formatDate(details.personalDetails.dateOfBirth) }}</p>
-                    </div>
-                    <div>
-                      <label class="text-sm font-medium text-gray-600">Gender</label>
-                      <p class="font-medium text-gray-900">{{ details.personalDetails.gender || 'Not specified' }}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Identity Documents -->
-                <div class="bg-blue-50 rounded-lg p-6">
-                  <h3 class="text-lg font-semibold mb-4 text-gray-900">🆔 Identity Documents</h3>
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label class="text-sm font-medium text-gray-600">PAN Number</label>
-                      <p class="font-mono text-lg font-bold text-blue-700">{{ details.personalDetails.panNumber }}</p>
-                    </div>
-                    <div>
-                      <label class="text-sm font-medium text-gray-600">Aadhaar Number</label>
-                      <p class="font-mono text-lg font-bold text-blue-700">{{ details.personalDetails.aadhaarNumber }}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Address Information -->
-                <div class="bg-green-50 rounded-lg p-6">
-                  <h3 class="text-lg font-semibold mb-4 text-gray-900">🏠 Address Information</h3>
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label class="text-sm font-medium text-gray-600">Current Address</label>
-                      <div class="mt-2 p-3 bg-white rounded border">
-                        <p class="font-medium">{{ details.personalDetails.currentAddressLine1 }}</p>
-                        <p class="text-gray-600">{{ details.personalDetails.currentCity }}, {{ details.personalDetails.currentState }}</p>
-                        <p class="text-gray-600">PIN: {{ details.personalDetails.currentPincode }}</p>
-                      </div>
-                    </div>
-                    <div>
-                      <label class="text-sm font-medium text-gray-600">Contact Information</label>
-                      <div class="mt-2 space-y-2">
-                        <div class="flex items-center space-x-2">
-                          <span class="text-sm text-gray-500">📞 Primary:</span>
-                          <span class="font-medium">{{ details.application.applicantPhone }}</span>
-                        </div>
-                        <div class="flex items-center space-x-2">
-                          <span class="text-sm text-gray-500">📞 Alternate:</span>
-                          <span class="font-medium">{{ details.personalDetails.alternatePhoneNumber || 'Not provided' }}</span>
-                        </div>
-                        <div class="flex items-center space-x-2">
-                          <span class="text-sm text-gray-500">📧 Email:</span>
-                          <span class="font-medium">{{ details.application.applicantEmail }}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            }
-
-            <!-- Financial Tab -->
-            @if (activeTab() === 'financial' && hasFinancialProfile()) {
-              <div class="space-y-6">
-                <!-- Employment Information -->
-                <div class="bg-blue-50 rounded-lg p-6">
-                  <h3 class="text-lg font-semibold mb-4 text-gray-900">💼 Employment Details</h3>
-                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <label class="text-sm font-medium text-gray-600">Employment Type</label>
-                      <p class="font-medium text-blue-700">{{ details.financialDetails.employmentType }}</p>
-                    </div>
-                    <div>
-                      <label class="text-sm font-medium text-gray-600">Company Name</label>
-                      <p class="font-medium text-gray-900">{{ details.financialDetails.companyName }}</p>
-                    </div>
-                    <div>
-                      <label class="text-sm font-medium text-gray-600">Job Title</label>
-                      <p class="font-medium text-gray-900">{{ details.financialDetails.jobTitle || 'Not specified' }}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Income Information -->
-                <div class="bg-green-50 rounded-lg p-6">
-                  <h3 class="text-lg font-semibold mb-4 text-gray-900">💰 Income Details</h3>
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label class="text-sm font-medium text-gray-600">Monthly Income</label>
-                      <p class="text-2xl font-bold text-green-700">{{ formatCurrency(details.financialDetails.monthlyIncome) }}</p>
-                    </div>
-                    <div>
-                      <label class="text-sm font-medium text-gray-600">Annual Income</label>
-                      <p class="text-xl font-semibold text-green-600">{{ formatCurrency((details.financialDetails.monthlyIncome || 0) * 12) }}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Bank Details -->
-                <div class="bg-purple-50 rounded-lg p-6">
-                  <h3 class="text-lg font-semibold mb-4 text-gray-900">🏦 Banking Information</h3>
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label class="text-sm font-medium text-gray-600">Bank Name</label>
-                      <p class="font-medium text-purple-700 text-lg">{{ details.financialDetails.bankName }}</p>
-                    </div>
-                    <div>
-                      <label class="text-sm font-medium text-gray-600">Account Type</label>
-                      <p class="font-medium text-gray-900">{{ details.financialDetails.accountType }}</p>
-                    </div>
-                    <div>
-                      <label class="text-sm font-medium text-gray-600">Account Number</label>
-                      <p class="font-mono text-lg font-bold text-purple-700">{{ details.financialDetails.accountNumber }}</p>
-                    </div>
-                    <div>
-                      <label class="text-sm font-medium text-gray-600">IFSC Code</label>
-                      <p class="font-mono text-lg font-bold text-purple-700">{{ details.financialDetails.ifscCode }}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Loan Assessment -->
-                <div class="bg-yellow-50 rounded-lg p-6">
-                  <h3 class="text-lg font-semibold mb-4 text-gray-900">📊 Loan Assessment</h3>
-                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <label class="text-sm font-medium text-gray-600">Requested Amount</label>
-                      <p class="text-xl font-bold text-yellow-700">{{ formatCurrency(details.application.requestedAmount) }}</p>
-                    </div>
-                    <div>
-                      <label class="text-sm font-medium text-gray-600">Loan Tenure</label>
-                      <p class="font-medium text-gray-900">{{ details.application.tenureMonths }} months</p>
-                    </div>
-                    <div>
-                      <label class="text-sm font-medium text-gray-600">Purpose</label>
-                      <p class="font-medium text-gray-900">{{ details.application.purpose }}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            }
-
-            <!-- Documents Tab -->
-            @if (activeTab() === 'documents') {
-              <div class="space-y-6">
-                <!-- Documents Summary -->
-                <div class="bg-gray-50 rounded-lg p-6">
-                  <h3 class="text-lg font-semibold mb-4 text-gray-900">📄 Documents Overview</h3>
-                  <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div class="text-center">
-                      <p class="text-2xl font-bold text-blue-600">{{ documentsCount() }}</p>
-                      <p class="text-sm text-gray-600">Total Documents</p>
-                    </div>
-                    <div class="text-center">
-                      <p class="text-2xl font-bold text-green-600">{{ verifiedDocumentsCount() }}</p>
-                      <p class="text-sm text-gray-600">Verified</p>
-                    </div>
-                    <div class="text-center">
-                      <p class="text-2xl font-bold text-yellow-600">{{ pendingDocumentsCount() }}</p>
-                      <p class="text-sm text-gray-600">Pending</p>
-                    </div>
-                    <div class="text-center">
-                      <p class="text-2xl font-bold text-purple-600">{{ Math.round((verifiedDocumentsCount() / documentsCount()) * 100) }}%</p>
-                      <p class="text-sm text-gray-600">Completion</p>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Documents List -->
-                <div class="grid grid-cols-1 gap-4">
-                  @for (doc of details.documents; track doc.id) {
-                    <div class="bg-white border rounded-lg p-6 hover:shadow-md transition-shadow">
-                      <div class="flex items-start justify-between">
-                        <div class="flex items-start space-x-4">
-                          <div class="flex-shrink-0">
-                            <span class="text-3xl">{{ getDocumentIcon(doc.documentType) }}</span>
-                          </div>
-                          <div class="flex-1">
-                            <h4 class="text-lg font-semibold text-gray-900">{{ doc.documentType.replace('_', ' ') }}</h4>
-                            <p class="text-sm text-gray-600 mt-1">{{ doc.fileName }}</p>
-                            <div class="mt-2 flex items-center space-x-4 text-sm text-gray-500">
-                              <span>📅 {{ formatDate(doc.uploadedAt) }}</span>
-                              <span>📁 {{ (doc.fileSize / 1024 / 1024).toFixed(2) }} MB</span>
-                              <span>🔗 PDF/Image</span>
-                            </div>
-                          </div>
-                        </div>
-                        <div class="flex-shrink-0">
-                          @if (doc.verificationStatus === 'VERIFIED') {
-                            <span class="inline-flex items-center px-3 py-1 bg-green-100 text-green-800 text-sm font-medium rounded-full">
-                              ✓ Verified
-                            </span>
-                          } @else if (doc.verificationStatus === 'REJECTED') {
-                            <span class="inline-flex items-center px-3 py-1 bg-red-100 text-red-800 text-sm font-medium rounded-full">
-                              ✗ Rejected
-                            </span>
-                          } @else {
-                            <span class="inline-flex items-center px-3 py-1 bg-yellow-100 text-yellow-800 text-sm font-medium rounded-full">
-                              ⏳ Pending
-                            </span>
-                          }
-                        </div>
-                      </div>
-                      
-                      @if (doc.verificationNotes) {
-                        <div class="mt-4 p-3 bg-gray-50 rounded">
-                          <p class="text-sm text-gray-700"><strong>Notes:</strong> {{ doc.verificationNotes }}</p>
-                        </div>
-                      }
-
-                      <div class="mt-4 flex space-x-3">
-                        <button (click)="viewDocument(doc)" class="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 text-sm font-medium">
-                          👁️ View Document
-                        </button>
-                        @if (canVerifyDocuments() && doc.verificationStatus !== 'VERIFIED') {
-                          <button (click)="verifyDocument(doc.id)" [disabled]="isProcessing()" class="px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 text-sm font-medium disabled:opacity-50">
-                            ✓ Verify
-                          </button>
-                          <button (click)="rejectDocument(doc.id)" [disabled]="isProcessing()" class="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 text-sm font-medium disabled:opacity-50">
-                            ✗ Reject
-                          </button>
-                        }
-                      </div>
-                    </div>
-                  }
-                </div>
-              </div>
-            }
-
-            <!-- Timeline Tab -->
-            @if (activeTab() === 'timeline') {
-              <div class="space-y-4">
-                @for (entry of details.auditTrail; track entry.id) {
-                  <div class="border rounded-lg p-4">
-                    <h4 class="font-medium">{{ entry.action }}</h4>
-                    <p class="text-sm text-gray-600 mt-1">{{ entry.details }}</p>
-                    <p class="text-xs text-gray-500 mt-2">By: {{ entry.performedBy }} • {{ formatDate(entry.timestamp) }}</p>
-                  </div>
+    <!-- Progress Steps -->
+    <div class="bg-white shadow rounded-lg p-6">
+      <div class="flex items-center justify-between">
+        @for (step of steps; track step.number) {
+          <div class="flex items-center flex-1">
+            <div class="flex flex-col items-center">
+              <button
+                (click)="goToStep(step.number)"
+                [ngClass]="{
+                  'bg-blue-600 text-white': currentStep() === step.number,
+                  'bg-green-600 text-white': step.completed && currentStep() !== step.number,
+                  'bg-gray-200 text-gray-600': !step.completed && currentStep() !== step.number
+                }"
+                class="w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all"
+              >
+                @if (step.completed && currentStep() !== step.number) {
+                  <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                } @else {
+                  {{ step.number }}
                 }
-              </div>
+              </button>
+              <div class="mt-2 text-xs font-medium text-gray-600 text-center max-w-[80px]">{{ step.title }}</div>
+            </div>
+            @if ($index < steps.length - 1) {
+              <div [ngClass]="{
+                'bg-green-600': step.completed,
+                'bg-gray-200': !step.completed
+              }" class="flex-1 h-1 mx-2 rounded transition-all"></div>
             }
           </div>
-        </div>
-      </div>
-    } @else {
-      <!-- No Data State -->
-      <div class="flex items-center justify-center min-h-screen">
-        <div class="text-center">
-          <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-          <h3 class="mt-2 text-sm font-medium text-gray-900">Application not found</h3>
-          <p class="mt-1 text-sm text-gray-500">The requested application could not be loaded.</p>
-          <button (click)="goBack()" class="mt-4 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">
-            Back to Applications
-          </button>
-        </div>
-      </div>
-    }
-  }
-</div>
-
-<!-- Document Preview Modal -->
-@if (showDocumentPreview() && selectedDocument()) {
-  <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div class="bg-white rounded-lg max-w-4xl max-h-[90vh] overflow-auto">
-      <div class="flex items-center justify-between p-4 border-b">
-        <h3 class="text-lg font-semibold">{{ selectedDocument()?.documentType?.replace('_', ' ') }}</h3>
-        <button (click)="closeDocumentPreview()" class="text-gray-400 hover:text-gray-600">
-          <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-      <div class="p-4">
-        <p class="text-sm text-gray-600 mb-4">{{ selectedDocument()?.fileName }}</p>
-        <div class="bg-gray-100 p-8 rounded text-center">
-          <p class="text-gray-500">Document preview will be implemented</p>
-        </div>
-      </div>
-      <div class="flex justify-end space-x-3 p-4 border-t">
-        <button (click)="downloadDocument(selectedDocument())" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-          Download
-        </button>
-        @if (canVerifyDocuments() && selectedDocument()?.verificationStatus !== 'VERIFIED') {
-          <button (click)="verifyDocument(selectedDocument()?.id)" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
-            Verify
-          </button>
-          <button (click)="rejectDocument(selectedDocument()?.id)" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
-            Reject
-          </button>
         }
       </div>
     </div>
-  </div>
-}
+
+    <!-- Step Content -->
+    <div class="bg-white shadow rounded-lg p-6">
+      <!-- Step 1: Overview -->
+      @if (currentStep() === 1) {
+        <div class="space-y-4">
+          <h2 class="text-lg font-semibold text-gray-900">Application Overview</h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="bg-gray-50 rounded-lg p-4">
+              <div class="text-sm text-gray-500">Loan Type</div>
+              <div class="text-lg font-semibold text-gray-900 mt-1">{{ app.loanType }}</div>
+            </div>
+            <div class="bg-gray-50 rounded-lg p-4">
+              <div class="text-sm text-gray-500">Requested Amount</div>
+              <div class="text-lg font-semibold text-gray-900 mt-1">{{ formatCurrency(app.loanAmount) }}</div>
+            </div>
+            <div class="bg-gray-50 rounded-lg p-4">
+              <div class="text-sm text-gray-500">Tenure</div>
+              <div class="text-lg font-semibold text-gray-900 mt-1">{{ app.tenureMonths }} months</div>
+            </div>
+            <div class="bg-gray-50 rounded-lg p-4">
+              <div class="text-sm text-gray-500">Status</div>
+              <div class="text-lg font-semibold text-gray-900 mt-1">{{ app.status }}</div>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Step 2: Documents -->
+      @if (currentStep() === 2) {
+        <div class="space-y-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-lg font-semibold text-gray-900">Document Verification</h2>
+            <button
+              (click)="startDocumentVerification()"
+              class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+            >
+              Start Verification
+            </button>
+          </div>
+          <ng-container *ngIf="applicationDetails()!.documents as docs">
+          <div class="text-sm text-gray-600">
+            {{ getVerifiedDocumentsCount(docs) }} / {{ docs.length }} documents verified
+          </div>
+          </ng-container>
+        </div>
+      }
+
+      <!-- Step 3: External Verification -->
+      @if (currentStep() === 3) {
+        <div class="space-y-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-lg font-semibold text-gray-900">External Verification</h2>
+            <button
+              (click)="startExternalVerification()"
+              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Start Verification
+            </button>
+          </div>
+           <ng-container *ngIf="applicationDetails()!.verificationSummary as summary">
+           @if (summary.externalVerificationComplete) {
+             <div class="bg-gray-50 rounded-lg p-4">
+               <div class="text-sm text-gray-600">External Verification: Complete</div>
+               <div class="text-sm text-gray-600 mt-2">Current Stage: {{ summary.currentStage }}</div>
+             </div>
+           } @else {
+             <div class="text-sm text-gray-500">External verification not completed yet.</div>
+           }
+           </ng-container>
+        </div>
+      }
+
+      <!-- Step 4: Financial Review -->
+      @if (currentStep() === 4) {
+        <div class="space-y-4">
+          <h2 class="text-lg font-semibold text-gray-900">Financial Review</h2>
+           <ng-container *ngIf="applicationDetails()!.employmentDetails as employment">
+           @if (employment) {
+             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+               <div class="bg-gray-50 rounded-lg p-4">
+                 <div class="text-sm text-gray-500">Monthly Income</div>
+                 <div class="text-lg font-semibold text-gray-900 mt-1">{{ formatCurrency(employment.monthlyIncome) }}</div>
+               </div>
+               <div class="bg-gray-50 rounded-lg p-4">
+                 <div class="text-sm text-gray-500">Employment Type</div>
+                 <div class="text-lg font-semibold text-gray-900 mt-1">{{ employment.employmentType }}</div>
+               </div>
+             </div>
+           } @else {
+             <div class="text-sm text-gray-500">Employment details not available.</div>
+           }
+           </ng-container>
+        </div>
+      }
+
+      <!-- Step 5: Decision -->
+      @if (currentStep() === 5) {
+        <div class="space-y-4">
+          <h2 class="text-lg font-semibold text-gray-900">Final Decision</h2>
+          <p class="text-sm text-gray-600">Review all information and make your decision.</p>
+          <button
+            (click)="makeDecision()"
+            class="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+          >
+            Make Decision
+          </button>
+        </div>
+      }
+
+      <!-- Navigation Buttons -->
+      <div class="mt-6 flex justify-between">
+        <button
+          (click)="previousStep()"
+          [disabled]="currentStep() === 1"
+          class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Previous
+        </button>
+        <button
+          (click)="nextStep()"
+          [disabled]="currentStep() === totalSteps"
+          class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+      </ng-container>
+    </ng-container>
+  }
+</div>

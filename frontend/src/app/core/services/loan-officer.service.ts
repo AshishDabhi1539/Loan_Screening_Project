@@ -67,12 +67,158 @@ export interface LoanApplicationResponse {
 }
 
 export interface CompleteApplicationDetailsResponse {
-  application: LoanApplicationResponse;
-  personalDetails: PersonalDetails;
-  financialDetails: FinancialDetails;
+  applicationInfo: ApplicationInfo;
+  applicantIdentity: ApplicantIdentity;
+  employmentDetails: EmploymentDetails;
   documents: DocumentInfo[];
-  externalVerification?: ExternalVerificationInfo;
-  auditTrail: AuditEntry[];
+  financialAssessment: FinancialAssessment;
+  verificationSummary: VerificationSummary;
+}
+
+export interface ApplicationInfo {
+  id: string;
+  status: string;
+  loanAmount: number;
+  tenureMonths: number;
+  purpose: string;
+  loanType: string;
+  submittedAt: Date;
+  assignedAt?: Date;
+  assignedOfficerName?: string;
+  priority: string;
+  daysInReview?: number;
+}
+
+export interface ApplicantIdentity {
+  personalDetails: PersonalDetailsNested;
+  contactInfo: ContactInfo;
+  verificationStatus: VerificationStatus;
+}
+
+export interface PersonalDetailsNested {
+  firstName: string;
+  lastName: string;
+  middleName?: string;
+  fullName: string;
+  panNumber: string;
+  aadhaarNumber: string;
+  dateOfBirth: string;
+  addresses: AddressInfo;
+}
+
+export interface AddressInfo {
+  permanentAddress: string;
+  currentAddress: string;
+  city: string;
+  state: string;
+  pincode: string;
+}
+
+export interface ContactInfo {
+  phone: string;
+  email: string;
+  alternatePhone?: string;
+}
+
+export interface VerificationStatus {
+  identityVerified: boolean;
+  addressVerified: boolean;
+  phoneVerified: boolean;
+  emailVerified: boolean;
+  identityVerificationNotes?: string;
+}
+
+export interface EmploymentDetails {
+  companyName: string;
+  designation: string;
+  workExperience: string;
+  employmentType: string;
+  monthlyIncome: number;
+  annualIncome: number;
+  companyContact: CompanyContact;
+  bankDetails: BankDetails;
+  verificationStatus: EmploymentVerificationStatus;
+}
+
+export interface CompanyContact {
+  companyPhone?: string;
+  companyEmail?: string;
+  hrPhone?: string;
+  hrEmail?: string;
+  managerName?: string;
+  managerPhone?: string;
+  companyAddress?: string;
+}
+
+export interface BankDetails {
+  bankName: string;
+  accountNumber: string;
+  ifscCode: string;
+  accountType: string;
+  branchName: string;
+}
+
+export interface EmploymentVerificationStatus {
+  employmentVerified: boolean;
+  incomeVerified: boolean;
+  bankAccountVerified: boolean;
+  employmentVerificationNotes?: string;
+  incomeVerificationNotes?: string;
+  lastVerificationDate?: Date;
+}
+
+export interface FinancialAssessment {
+  loanDetails: LoanDetails;
+  existingLoans: ExistingLoan[];
+  calculatedRatios: CalculatedRatios;
+  riskAssessment: RiskAssessment;
+}
+
+export interface LoanDetails {
+  requestedAmount: number;
+  tenureMonths: number;
+  purpose: string;
+  estimatedEmi: number;
+  estimatedInterestRate: number;
+}
+
+export interface ExistingLoan {
+  loanType: string;
+  emiAmount: number;
+  outstandingAmount: number;
+  bankName: string;
+  remainingTenure: number;
+}
+
+export interface CalculatedRatios {
+  emiToIncomeRatio: number;
+  debtToIncomeRatio: number;
+  loanToIncomeRatio: number;
+  affordabilityStatus: string;
+  recommendation: string;
+}
+
+export interface RiskAssessment {
+  riskLevel: string;
+  riskScore: number;
+  fraudScore: number;
+  riskFactors: string[];
+  overallAssessment: string;
+}
+
+export interface VerificationSummary {
+  identityVerificationComplete: boolean;
+  documentVerificationComplete: boolean;
+  employmentVerificationComplete: boolean;
+  financialVerificationComplete: boolean;
+  externalVerificationComplete: boolean;
+  overallCompletionPercentage: number;
+  currentStage: string;
+  nextAction: string;
+  pendingItems: string[];
+  rejectedItems: string[];
+  readyForExternalVerification: boolean;
+  readyForDecision: boolean;
 }
 
 export interface PersonalDetails {
@@ -120,16 +266,20 @@ export interface FinancialDetails {
 }
 
 export interface DocumentInfo {
-  id: string;
+  documentId: number;
   documentType: string;
   fileName: string;
   fileUrl: string;
-  fileSize: number;
-  uploadedAt: Date;
+  uploadDate: Date;
   verificationStatus: string;
   verificationNotes?: string;
-  verifiedBy?: string;
+  rejectionReason?: string;
+  isRequired: boolean;
+  isResubmitted: boolean;
   verifiedAt?: Date;
+  verifiedByName?: string;
+  fileSizeBytes?: number;
+  fileType?: string;
 }
 
 export interface ExternalVerificationInfo {
@@ -155,19 +305,36 @@ export interface AuditEntry {
 }
 
 export interface DocumentVerificationRequest {
-  verifiedDocuments: string[];
-  rejectedDocuments: {
-    documentType: string;
-    rejectionReason: string;
+  documentVerifications: {
+    documentId: string;
+    verified: boolean;
+    verificationNotes?: string;
+    rejectionReason?: string;
   }[];
-  verificationNotes?: string;
+  identityVerified: boolean;
+  identityVerificationNotes?: string;
+  employmentVerified: boolean;
+  employmentVerificationNotes?: string;
+  incomeVerified: boolean;
+  incomeVerificationNotes?: string;
+  bankAccountVerified: boolean;
+  bankAccountVerificationNotes?: string;
+  addressVerified: boolean;
+  overallVerificationPassed: boolean;
+  generalNotes?: string;
 }
 
 export interface DocumentResubmissionRequest {
-  requiredDocuments: string[];
-  resubmissionReason: string;
+  rejectedDocuments: {
+    documentType: string;
+    rejectionReason: string;
+    requiredAction: string;
+    specificInstructions?: string;
+    isRequired: boolean;
+  }[];
+  resubmissionDeadline: string;
   additionalInstructions?: string;
-  dueDate?: string;
+  officerNotes?: string;
 }
 
 export interface DocumentResubmissionResponse {
@@ -320,6 +487,15 @@ export class LoanOfficerService {
   }
 
   /**
+   * Get audit trail for an application
+   */
+  getAuditTrail(applicationId: string): Observable<AuditEntry[]> {
+    return this.http.get<AuditEntry[]>(
+      `${this.apiUrl}/applications/${applicationId}/audit-trail`
+    );
+  }
+
+  /**
    * Approve loan application
    */
   approveApplication(
@@ -419,5 +595,18 @@ export class LoanOfficerService {
       'HIGH': 'bg-red-100 text-red-800'
     };
     return riskColors[riskLevel] || 'bg-gray-100 text-gray-800';
+  }
+
+  /**
+   * Format date and time for display
+   */
+  formatDateTime(date: Date | string): string {
+    return new Date(date).toLocaleString('en-IN', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   }
 }
