@@ -107,7 +107,13 @@ export class DocumentVerificationComponent implements OnInit {
       next: (details) => {
         this.applicationDetails.set(details);
         this.initializeDocumentForms();
-        this.startVerification(applicationId);
+        
+        // Only start verification if not already started
+        const currentStatus = details.applicationInfo?.status;
+        if (currentStatus !== 'DOCUMENT_VERIFICATION' && currentStatus !== 'DOCUMENT_VERIFIED') {
+          this.startVerification(applicationId);
+        }
+        
         this.isLoading.set(false);
       },
       error: (error) => {
@@ -126,89 +132,90 @@ export class DocumentVerificationComponent implements OnInit {
    * SMART FILTERING: Shows only relevant documents based on employment type
    */
   
-  // Get documents by category
-  getIdentityDocuments(): any[] {
-    const identityTypes = ['AADHAAR_CARD', 'PAN_CARD', 'PASSPORT', 'VOTER_ID', 'DRIVING_LICENSE'];
+  // Get documents by category - using computed signals to prevent excessive re-computation
+  identityDocuments = computed(() => {
+    const identityTypes = ['AADHAAR_CARD', 'PAN_CARD', 'PASSPORT', 'VOTER_ID', 'DRIVING_LICENSE', 'PHOTOGRAPH'];
     return this.applicationDetails()?.documents.filter(doc => identityTypes.includes(doc.documentType)) || [];
+  });
+
+  // Keep the old method for backward compatibility, but use the computed signal
+  getIdentityDocuments() {
+    return this.identityDocuments();
   }
 
   getEmploymentDocuments(): any[] {
-    const employmentType = this.applicationDetails()?.employmentDetails?.employmentType;
-    let employmentTypes: string[] = [];
+    // Comprehensive list of ALL employment-related document types
+    const allEmploymentTypes = [
+      // Salaried
+      'EMPLOYMENT_LETTER', 'APPOINTMENT_LETTER', 'OFFER_LETTER', 'EXPERIENCE_LETTER',
+      // Self-Employed/Business
+      'BUSINESS_REGISTRATION', 'GST_CERTIFICATE', 'SHOP_ESTABLISHMENT_LICENSE', 'TRADE_LICENSE',
+      // Professional
+      'PROFESSIONAL_LICENSE', 'PRACTICE_CERTIFICATE', 'REGISTRATION_CERTIFICATE',
+      // Freelancer
+      'CLIENT_CONTRACTS', 'WORK_PORTFOLIO', 'FREELANCE_AGREEMENTS',
+      // Retired
+      'PENSION_CERTIFICATE', 'RETIREMENT_LETTER', 'PPO',
+      // Student
+      'STUDENT_ID', 'ENROLLMENT_CERTIFICATE', 'GUARDIAN_DOCUMENTS',
+      // Other
+      'COMPANY_ID', 'PAYSLIP', 'EMPLOYMENT_PROOF'
+    ];
 
-    // Smart filtering based on employment type
-    switch (employmentType) {
-      case 'SALARIED':
-        employmentTypes = ['EMPLOYMENT_LETTER', 'APPOINTMENT_LETTER', 'OFFER_LETTER'];
-        break;
-      case 'SELF_EMPLOYED':
-      case 'BUSINESS_OWNER':
-        employmentTypes = ['BUSINESS_REGISTRATION', 'GST_CERTIFICATE', 'SHOP_ESTABLISHMENT_LICENSE'];
-        break;
-      case 'PROFESSIONAL':
-        employmentTypes = ['PROFESSIONAL_LICENSE', 'PRACTICE_CERTIFICATE', 'REGISTRATION_CERTIFICATE'];
-        break;
-      case 'FREELANCER':
-        employmentTypes = ['CLIENT_CONTRACTS', 'WORK_PORTFOLIO', 'FREELANCE_AGREEMENTS'];
-        break;
-      case 'RETIRED':
-        employmentTypes = ['PENSION_CERTIFICATE', 'RETIREMENT_LETTER', 'PPO'];
-        break;
-      case 'STUDENT':
-        employmentTypes = ['STUDENT_ID', 'ENROLLMENT_CERTIFICATE', 'GUARDIAN_DOCUMENTS'];
-        break;
-      case 'UNEMPLOYED':
-        employmentTypes = []; // No employment docs required
-        break;
-      default:
-        employmentTypes = ['EMPLOYMENT_LETTER', 'APPOINTMENT_LETTER', 'BUSINESS_REGISTRATION', 'PROFESSIONAL_LICENSE'];
-    }
-
-    return this.applicationDetails()?.documents.filter(doc => employmentTypes.includes(doc.documentType)) || [];
+    return this.applicationDetails()?.documents.filter(doc => 
+      allEmploymentTypes.includes(doc.documentType)
+    ) || [];
   }
 
   getIncomeDocuments(): any[] {
-    const employmentType = this.applicationDetails()?.employmentDetails?.employmentType;
-    let incomeTypes: string[] = [];
+    // Comprehensive list of ALL income-related document types
+    const allIncomeTypes = [
+      // Salaried
+      'SALARY_SLIP', 'FORM_16', 'PAYSLIP',
+      // Business/Self-Employed
+      'ITR', 'FINANCIAL_STATEMENT', 'PROFIT_LOSS_STATEMENT', 'BALANCE_SHEET',
+      // Professional
+      'PROFESSIONAL_TAX_RECEIPT', 'INCOME_CERTIFICATE',
+      // Freelancer
+      'INVOICE_RECEIPTS', 'CLIENT_PAYMENT_PROOF',
+      // Retired
+      'PENSION_SLIP',
+      // Student/Unemployed
+      'GUARDIAN_INCOME_PROOF', 'SCHOLARSHIP_CERTIFICATE', 'SAVINGS_PROOF', 'INVESTMENT_STATEMENTS',
+      // Other
+      'INCOME_TAX_RETURN', 'INCOME_PROOF'
+    ];
 
-    // Smart filtering based on employment type
-    switch (employmentType) {
-      case 'SALARIED':
-        incomeTypes = ['SALARY_SLIP', 'FORM_16', 'BANK_STATEMENT'];
-        break;
-      case 'SELF_EMPLOYED':
-      case 'BUSINESS_OWNER':
-        incomeTypes = ['ITR', 'FINANCIAL_STATEMENT', 'PROFIT_LOSS_STATEMENT', 'BALANCE_SHEET'];
-        break;
-      case 'PROFESSIONAL':
-        incomeTypes = ['ITR', 'PROFESSIONAL_TAX_RECEIPT', 'INCOME_CERTIFICATE'];
-        break;
-      case 'FREELANCER':
-        incomeTypes = ['ITR', 'BANK_STATEMENT', 'INVOICE_RECEIPTS'];
-        break;
-      case 'RETIRED':
-        incomeTypes = ['PENSION_SLIP', 'BANK_STATEMENT'];
-        break;
-      case 'STUDENT':
-        incomeTypes = ['GUARDIAN_INCOME_PROOF', 'SCHOLARSHIP_CERTIFICATE'];
-        break;
-      case 'UNEMPLOYED':
-        incomeTypes = ['SAVINGS_PROOF', 'INVESTMENT_STATEMENTS'];
-        break;
-      default:
-        incomeTypes = ['SALARY_SLIP', 'ITR', 'FINANCIAL_STATEMENT', 'INCOME_CERTIFICATE'];
-    }
-
-    return this.applicationDetails()?.documents.filter(doc => incomeTypes.includes(doc.documentType)) || [];
+    return this.applicationDetails()?.documents.filter(doc => 
+      allIncomeTypes.includes(doc.documentType)
+    ) || [];
   }
 
   getBankDocuments(): any[] {
-    const bankTypes = ['BANK_STATEMENT', 'CANCELLED_CHEQUE', 'PASSBOOK_COPY'];
+    const bankTypes = [
+      'BANK_STATEMENT', 
+      'CANCELLED_CHEQUE', 
+      'PASSBOOK_COPY',
+      'BANK_ACCOUNT_PROOF',
+      'CHEQUE_BOOK_COPY'
+    ];
     return this.applicationDetails()?.documents.filter(doc => bankTypes.includes(doc.documentType)) || [];
   }
 
   getAddressDocuments(): any[] {
-    const addressTypes = ['UTILITY_BILL', 'RENTAL_AGREEMENT', 'PROPERTY_TAX_RECEIPT', 'RATION_CARD'];
+    const addressTypes = [
+      'UTILITY_BILL', 
+      'RENTAL_AGREEMENT', 
+      'PROPERTY_TAX_RECEIPT', 
+      'RATION_CARD',
+      'ELECTRICITY_BILL',
+      'WATER_BILL',
+      'GAS_BILL',
+      'TELEPHONE_BILL',
+      'LEASE_AGREEMENT',
+      'PROPERTY_DEED',
+      'ADDRESS_PROOF'
+    ];
     return this.applicationDetails()?.documents.filter(doc => addressTypes.includes(doc.documentType)) || [];
   }
 
@@ -281,10 +288,38 @@ export class DocumentVerificationComponent implements OnInit {
   }
 
   /**
-   * Helper to download document
+   * Download document using fetch and blob (proper download)
    */
-  downloadDocument(fileUrl: string): void {
-    window.open(fileUrl, '_blank');
+  downloadDocument(fileUrl: string, fileName?: string): void {
+    this.notificationService.info('Download Started', `Downloading ${fileName || 'document'}...`);
+    
+    // Fetch the file as blob
+    fetch(fileUrl)
+      .then(response => response.blob())
+      .then(blob => {
+        // Create blob URL
+        const blobUrl = window.URL.createObjectURL(blob);
+        
+        // Create temporary anchor element
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = fileName || 'document.pdf';
+        
+        // Trigger download
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Clean up blob URL
+        window.URL.revokeObjectURL(blobUrl);
+        
+        this.notificationService.success('Download Complete', `${fileName || 'Document'} downloaded successfully`);
+      })
+      .catch(error => {
+        console.error('Download error:', error);
+        this.notificationService.error('Download Failed', 'Failed to download document. Opening in new tab instead.');
+        window.open(fileUrl, '_blank');
+      });
   }
 
   /**
@@ -445,7 +480,8 @@ export class DocumentVerificationComponent implements OnInit {
           'Document verification has been completed successfully.'
         );
         this.isSubmitting.set(false);
-        this.router.navigate(['/loan-officer/application', appId, 'details']);
+        // Navigate back to Review Workflow page
+        this.router.navigate(['/loan-officer/application', appId, 'review']);
       },
       error: (error) => {
         console.error('Verification error:', error);
@@ -470,12 +506,84 @@ export class DocumentVerificationComponent implements OnInit {
   }
 
   /**
-   * Cancel verification
+   * Get total number of categories available for verification
+   */
+  getTotalCategoriesCount(): number {
+    let count = 0;
+    if (this.hasIdentityDocuments()) count++;
+    if (this.hasEmploymentDocuments()) count++;
+    if (this.hasIncomeDocuments()) count++;
+    if (this.hasBankDocuments()) count++;
+    if (this.hasAddressDocuments()) count++;
+    return count;
+  }
+
+  /**
+   * Get number of completed categories
+   */
+  getCompletedCategoriesCount(): number {
+    const form = this.verificationForm.value;
+    let count = 0;
+    
+    if (this.hasIdentityDocuments() && form.identityVerified !== null) count++;
+    if (this.hasEmploymentDocuments() && form.employmentVerified !== null) count++;
+    if (this.hasIncomeDocuments() && form.incomeVerified !== null) count++;
+    if (this.hasBankDocuments() && form.bankVerified !== null) count++;
+    if (this.hasAddressDocuments() && form.addressVerified !== null) count++;
+    
+    return count;
+  }
+
+  /**
+   * Get progress percentage
+   */
+  getProgressPercentage(): number {
+    const total = this.getTotalCategoriesCount();
+    if (total === 0) return 0;
+    const completed = this.getCompletedCategoriesCount();
+    return Math.round((completed / total) * 100);
+  }
+
+  /**
+   * Check if form is valid (all available categories have decisions)
+   */
+  isFormValid(): boolean {
+    const form = this.verificationForm.value;
+    
+    // Check each available category
+    if (this.hasIdentityDocuments() && form.identityVerified === null) return false;
+    if (this.hasEmploymentDocuments() && form.employmentVerified === null) return false;
+    if (this.hasIncomeDocuments() && form.incomeVerified === null) return false;
+    if (this.hasBankDocuments() && form.bankVerified === null) return false;
+    if (this.hasAddressDocuments() && form.addressVerified === null) return false;
+    
+    return true;
+  }
+
+  /**
+   * Get list of missing categories
+   */
+  getMissingCategories(): string[] {
+    const form = this.verificationForm.value;
+    const missing: string[] = [];
+    
+    if (this.hasIdentityDocuments() && form.identityVerified === null) missing.push('Identity');
+    if (this.hasEmploymentDocuments() && form.employmentVerified === null) missing.push('Employment');
+    if (this.hasIncomeDocuments() && form.incomeVerified === null) missing.push('Income');
+    if (this.hasBankDocuments() && form.bankVerified === null) missing.push('Bank');
+    if (this.hasAddressDocuments() && form.addressVerified === null) missing.push('Address');
+    
+    return missing;
+  }
+
+  /**
+   * Cancel verification - navigate back to Review page
    */
   cancel(): void {
     const appId = this.applicationDetails()?.applicationInfo?.id;
     if (appId) {
-      this.router.navigate(['/loan-officer/application', appId, 'details']);
+      // Navigate back to Review Workflow page (Step 2 - Documents)
+      this.router.navigate(['/loan-officer/application', appId, 'review']);
     } else {
       this.router.navigate(['/loan-officer/applications/assigned']);
     }
@@ -595,8 +703,8 @@ export class DocumentVerificationComponent implements OnInit {
         );
         this.closeResubmissionDialog();
         this.isSubmittingResubmission.set(false);
-        // Navigate back to details
-        this.router.navigate(['/loan-officer/application', appId, 'details']);
+        // Navigate back to Review Workflow page
+        this.router.navigate(['/loan-officer/application', appId, 'review']);
       },
       error: (error) => {
         console.error('Error requesting resubmission:', error);

@@ -187,24 +187,58 @@ export class MainLayoutComponent {
   private updatePageTitle(): void {
     const currentUrl = this.router.url;
     
+    // Remove query parameters from URL (e.g., ?mode=view)
+    const urlWithoutQuery = currentUrl.split('?')[0];
+    
     // Find matching navigation item
     const matchingItem = this.navigationItems.find(item => 
-      currentUrl.includes(item.route)
+      urlWithoutQuery.includes(item.route)
     );
     
     if (matchingItem) {
       this.pageTitle.set(matchingItem.label);
     } else {
-      // Default title based on route segments
-      const segments = currentUrl.split('/').filter(s => s);
-      if (segments.length > 0) {
+      // Handle special routes with dynamic segments (UUIDs, IDs, etc.)
+      const segments = urlWithoutQuery.split('/').filter(s => s);
+      
+      // Check for specific route patterns
+      if (segments.includes('document-resubmission')) {
+        this.pageTitle.set('Document Resubmission');
+      } else if (segments.includes('application-details')) {
+        this.pageTitle.set('Application Details');
+      } else if (segments.includes('document-verification')) {
+        this.pageTitle.set('Document Verification');
+      } else if (segments.includes('application-summary')) {
+        this.pageTitle.set('Application Summary');
+      } else if (segments.includes('document-upload')) {
+        this.pageTitle.set('Document Upload');
+      } else if (segments.includes('employment-details')) {
+        this.pageTitle.set('Employment Details');
+      } else if (segments.includes('personal-details')) {
+        this.pageTitle.set('Personal Details');
+      } else if (segments.length > 0) {
+        // Default: use the last non-UUID segment
         const lastSegment = segments[segments.length - 1];
-        // Convert kebab-case to Title Case
-        const title = lastSegment
-          .split('-')
-          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-          .join(' ');
-        this.pageTitle.set(title);
+        
+        // Check if last segment is a UUID (contains hyphens and alphanumeric)
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(lastSegment);
+        
+        if (isUUID && segments.length > 1) {
+          // Use the second-to-last segment if last is UUID
+          const secondLastSegment = segments[segments.length - 2];
+          const title = secondLastSegment
+            .split('-')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+          this.pageTitle.set(title);
+        } else {
+          // Convert kebab-case to Title Case
+          const title = lastSegment
+            .split('-')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+          this.pageTitle.set(title);
+        }
       } else {
         this.pageTitle.set('Dashboard');
       }

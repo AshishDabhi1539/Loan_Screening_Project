@@ -47,8 +47,8 @@ export const applicantRoutes: Routes = [
     path: 'document-viewer/:applicationId',
     component: DocumentViewerComponent
   },
-//   {
-//     path: 'profile',
-//     loadComponent: () => import('./components/profile/profile.component').then(m => m.ProfileComponent)
-//   }
+  {
+    path: 'document-resubmission/:id',
+    loadComponent: () => import('./components/document-resubmission/document-resubmission.component').then(m => m.DocumentResubmissionComponent)
+  }
 ];

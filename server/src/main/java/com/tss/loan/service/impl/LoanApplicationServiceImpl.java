@@ -43,10 +43,12 @@ import com.tss.loan.repository.LoanDocumentRepository;
 import com.tss.loan.repository.ProfessionalEmploymentDetailsRepository;
 import com.tss.loan.repository.RetiredEmploymentDetailsRepository;
 import com.tss.loan.repository.StudentEmploymentDetailsRepository;
+import com.tss.loan.dto.response.CompleteApplicationDetailsResponse;
 import com.tss.loan.service.ApplicationAssignmentService;
 import com.tss.loan.service.ApplicationWorkflowService;
 import com.tss.loan.service.AuditLogService;
 import com.tss.loan.service.LoanApplicationService;
+import com.tss.loan.service.LoanOfficerService;
 import com.tss.loan.service.NotificationService;
 import com.tss.loan.service.ProfileCompletionService;
 
@@ -94,6 +96,9 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
     private ProfileCompletionService profileCompletionService;
     
     @Autowired
+    private LoanOfficerService loanOfficerService;
+    
+    @Autowired
     private ApplicationWorkflowService applicationWorkflowService;
     
     @Autowired
@@ -121,6 +126,9 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
         application.setPurpose(request.getPurpose());
         application.setRemarks(request.getAdditionalNotes());
         application.setStatus(ApplicationStatus.DRAFT);
+        
+        // ✅ AUTO-ASSIGN PRIORITY based on loan amount (business logic)
+        application.setPriority(calculatePriorityByAmount(request.getLoanAmount()));
         
         LoanApplication savedApplication = loanApplicationRepository.save(application);
         
@@ -284,6 +292,9 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
         application.setStatus(ApplicationStatus.SUBMITTED);
         application.setSubmittedAt(LocalDateTime.now());
         application.setUpdatedAt(LocalDateTime.now());
+        
+        // ✅ RECALCULATE PRIORITY on submission (in case amount was updated)
+        application.setPriority(calculatePriorityByAmount(application.getRequestedAmount()));
         
         LoanApplication submittedApplication = loanApplicationRepository.save(application);
         
@@ -767,54 +778,38 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
         // Get all documents for the application
         List<com.tss.loan.entity.loan.LoanDocument> documents = documentRepository.findByLoanApplicationIdOrderByUploadedAtDesc(applicationId);
         
-        // Get all required document types (you may want to make this configurable)
-        com.tss.loan.entity.enums.DocumentType[] requiredDocTypes = com.tss.loan.entity.enums.DocumentType.values();
-        
+        // Build document requirements - only for documents that exist (not MISSING)
         List<com.tss.loan.dto.response.ApplicantResubmissionRequirementsResponse.DocumentRequirement> documentRequirements = 
-            java.util.Arrays.stream(requiredDocTypes)
-                .map(docType -> {
-                    // Find the latest document of this type
-                    com.tss.loan.entity.loan.LoanDocument latestDoc = documents.stream()
-                        .filter(doc -> doc.getDocumentType() == docType)
-                        .findFirst()
-                        .orElse(null);
-                    
+            documents.stream()
+                .map(latestDoc -> {
+                    com.tss.loan.entity.enums.DocumentType docType = latestDoc.getDocumentType();
                     String status;
                     boolean canReupload;
                     String rejectionReason = null;
-                    String fileName = null;
-                    Long documentId = null;
-                    LocalDateTime lastUploadedAt = null;
+                    Long documentId = latestDoc.getId();
+                    String fileName = latestDoc.getFileName();
+                    LocalDateTime lastUploadedAt = latestDoc.getUploadedAt();
                     
-                    if (latestDoc == null) {
-                        status = "MISSING";
+                    com.tss.loan.entity.enums.VerificationStatus verificationStatus = latestDoc.getVerificationStatus();
+                    if (verificationStatus == null) {
+                        status = "PENDING";
                         canReupload = true;
                     } else {
-                        documentId = latestDoc.getId();
-                        fileName = latestDoc.getFileName();
-                        lastUploadedAt = latestDoc.getUploadedAt();
-                        
-                        com.tss.loan.entity.enums.VerificationStatus verificationStatus = latestDoc.getVerificationStatus();
-                        if (verificationStatus == null) {
-                            status = "PENDING";
-                            canReupload = true;
-                        } else {
-                            switch (verificationStatus) {
-                                case VERIFIED:
-                                    status = "VERIFIED";
-                                    canReupload = false; // Cannot reupload verified documents
-                                    break;
-                                case REJECTED:
-                                    status = "REJECTED";
-                                    canReupload = true;
-                                    rejectionReason = latestDoc.getVerificationNotes();
-                                    break;
-                                case PENDING:
-                                default:
-                                    status = "PENDING";
-                                    canReupload = true; // Can reupload pending documents
-                                    break;
-                            }
+                        switch (verificationStatus) {
+                            case VERIFIED:
+                                status = "VERIFIED";
+                                canReupload = false; // Cannot reupload verified documents
+                                break;
+                            case REJECTED:
+                                status = "REJECTED";
+                                canReupload = true;
+                                rejectionReason = latestDoc.getVerificationNotes();
+                                break;
+                            case PENDING:
+                            default:
+                                status = "PENDING";
+                                canReupload = true; // Can reupload pending documents
+                                break;
                         }
                     }
                     
@@ -1180,5 +1175,114 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
             default:
                 return null; // Allow null for unknown types
         }
+    }
+    
+    /**
+     * Calculate application priority based on loan amount
+     * Business Logic:
+     * - HIGH: > ₹10,00,000 (10 lakhs)
+     * - MEDIUM: ₹5,00,000 to ₹10,00,000 (5-10 lakhs)
+     * - LOW: < ₹5,00,000 (5 lakhs)
+     */
+    private com.tss.loan.entity.enums.Priority calculatePriorityByAmount(java.math.BigDecimal amount) {
+        if (amount == null) {
+            return com.tss.loan.entity.enums.Priority.LOW;
+        }
+        
+        double amountValue = amount.doubleValue();
+        
+        if (amountValue > 1000000) { // > 10 lakhs
+            return com.tss.loan.entity.enums.Priority.HIGH;
+        } else if (amountValue >= 500000) { // 5-10 lakhs
+            return com.tss.loan.entity.enums.Priority.MEDIUM;
+        } else { // < 5 lakhs
+            return com.tss.loan.entity.enums.Priority.LOW;
+        }
+    }
+    
+    @Override
+    public CompleteApplicationDetailsResponse getCompleteApplicationDetailsForApplicant(UUID applicationId, User applicant) {
+        log.info("Applicant {} requesting complete details for application: {}", applicant.getEmail(), applicationId);
+        
+        // Verify the application belongs to the applicant
+        LoanApplication application = loanApplicationRepository.findById(applicationId)
+            .orElseThrow(() -> new LoanApiException("Application not found"));
+        
+        if (!application.getApplicant().getId().equals(applicant.getId())) {
+            throw new LoanApiException("You do not have permission to view this application");
+        }
+        
+        // Use the internal method from LoanOfficerService to get complete details
+        // This method doesn't require officer validation
+        CompleteApplicationDetailsResponse response = loanOfficerService.getCompleteApplicationDetailsInternal(applicationId);
+        
+        log.info("Successfully retrieved complete details for applicant: {}", applicant.getEmail());
+        return response;
+    }
+    
+    @Override
+    public void markDocumentsResubmitted(UUID applicationId, User user) {
+        log.info("Marking documents as resubmitted for application: {} by user: {}", applicationId, user.getEmail());
+        
+        // Get application and validate ownership
+        LoanApplication application = loanApplicationRepository.findById(applicationId)
+            .orElseThrow(() -> new LoanApiException("Application not found"));
+        
+        if (!application.getApplicant().getId().equals(user.getId())) {
+            throw new LoanApiException("You can only update your own applications");
+        }
+        
+        // Validate current status - can only mark as resubmitted if status is DOCUMENT_INCOMPLETE
+        if (application.getStatus() != ApplicationStatus.DOCUMENT_INCOMPLETE) {
+            throw new LoanApiException("Documents can only be marked as resubmitted when status is DOCUMENT_INCOMPLETE. Current status: " + application.getStatus());
+        }
+        
+        // Check if there are any rejected documents that have been re-uploaded
+        List<com.tss.loan.entity.loan.LoanDocument> documents = documentRepository.findByLoanApplicationIdOrderByUploadedAtDesc(applicationId);
+        long rejectedCount = documents.stream()
+            .filter(doc -> doc.getVerificationStatus() == com.tss.loan.entity.enums.VerificationStatus.REJECTED)
+            .count();
+        
+        if (rejectedCount == 0) {
+            throw new LoanApiException("No rejected documents found. Please upload required documents before marking as resubmitted.");
+        }
+        
+        // Change status to DOCUMENT_REVERIFICATION
+        ApplicationStatus oldStatus = application.getStatus();
+        application.setStatus(ApplicationStatus.DOCUMENT_REVERIFICATION);
+        application.setUpdatedAt(LocalDateTime.now());
+        loanApplicationRepository.save(application);
+        
+        // Create workflow entry
+        applicationWorkflowService.createWorkflowEntry(
+            applicationId,
+            oldStatus,
+            ApplicationStatus.DOCUMENT_REVERIFICATION,
+            user,
+            "Applicant resubmitted documents for review"
+        );
+        
+        // Notify the assigned officer
+        if (application.getAssignedOfficer() != null) {
+            notificationService.createNotification(
+                application.getAssignedOfficer(),
+                NotificationType.EMAIL,
+                "Documents Resubmitted for Review",
+                String.format("Applicant %s has resubmitted documents for application %s. Please review the updated documents.",
+                    user.getEmail(), applicationId)
+            );
+        }
+        
+        // Audit log
+        auditLogService.logAction(
+            user,
+            "DOCUMENTS_RESUBMITTED",
+            "LoanApplication",
+            null, // LoanApplication uses UUID, not Long
+            String.format("Documents resubmitted for review. Application ID: %s, Status changed from %s to %s", 
+                applicationId, oldStatus, ApplicationStatus.DOCUMENT_REVERIFICATION)
+        );
+        
+        log.info("Successfully marked documents as resubmitted for application: {}", applicationId);
     }
 }

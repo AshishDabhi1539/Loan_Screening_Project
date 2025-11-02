@@ -67,6 +67,10 @@ export class DashboardComponent implements OnInit {
     )
   );
 
+  applicationsNeedingResubmission = computed(() => 
+    this.recentApplications().filter(app => app.status === 'DOCUMENT_INCOMPLETE')
+  );
+
   ngOnInit(): void {
     this.checkSubmissionSuccess();
     this.loadUserProfile();
@@ -130,7 +134,7 @@ export class DashboardComponent implements OnInit {
             role: currentUser.role || 'APPLICANT',
             status: currentUser.status || 'ACTIVE',
             displayName: currentUser.displayName || currentUser.email?.split('@')[0] || 'User',
-            hasPersonalDetails: false, // Assume false on error
+            hasPersonalDetails: false,
             requiresPersonalDetails: true,
             createdAt: new Date(),
             lastLoginAt: new Date()
@@ -427,7 +431,22 @@ export class DashboardComponent implements OnInit {
    * Check if application needs action
    */
   needsAction(application: LoanApplicationSummary): boolean {
-    return ['DRAFT', 'PENDING_DOCUMENTS', 'APPROVED'].includes(application.status);
+    return ['DRAFT', 'PENDING_DOCUMENTS', 'DOCUMENT_INCOMPLETE', 'APPROVED'].includes(application.status);
+  }
+
+  /**
+   * Check if application needs document resubmission
+   */
+  needsResubmission(application: LoanApplicationSummary): boolean {
+    return application.status === 'DOCUMENT_INCOMPLETE';
+  }
+
+  /**
+   * Navigate to document resubmission page
+   */
+  resubmitDocuments(event: Event, applicationId: string): void {
+    event.stopPropagation(); // Prevent row click
+    this.router.navigate(['/applicant/document-resubmission', applicationId]);
   }
 
   /**
@@ -438,7 +457,7 @@ export class DashboardComponent implements OnInit {
   }
 
   /**
-   * Get all pending tasks from backend
+   * Get all pending tasks - shows what actions are needed for DRAFT applications
    */
   getPendingTasks(): any[] {
     const tasks: any[] = [];
@@ -448,31 +467,84 @@ export class DashboardComponent implements OnInit {
       tasks.push({
         id: 'profile-completion',
         title: 'Complete Profile Setup',
-        description: 'Fill in your personal and financial details',
+        description: 'Fill in your personal and financial details to start applying for loans',
         priority: 'HIGH',
         type: 'PROFILE',
         actionUrl: '/applicant/personal-details',
-        actionText: 'Complete Now'
+        actionText: 'Complete Profile'
       });
     }
     
-    // Document upload tasks from pending applications
-    this.pendingApplications().forEach((application, index) => {
-      tasks.push({
-        id: `document-${application.id}`,
-        title: 'Submit Documents',
-        description: `Upload documents for ${this.getLoanTypeDisplay(application.loanType)}`,
-        priority: 'MEDIUM',
-        type: 'DOCUMENT',
-        actionMethod: 'viewApplication',
-        actionText: 'View Application',
-        applicationId: application.id
+    // Tasks for DRAFT applications based on what's missing
+    this.recentApplications()
+      .filter(app => app.status === 'DRAFT')
+      .forEach((application) => {
+        const loanTypeDisplay = this.getLoanTypeDisplay(application.loanType);
+        
+        // Check what's missing and create appropriate task
+        if (!application.hasPersonalDetails) {
+          tasks.push({
+            id: `personal-${application.id}`,
+            title: 'Complete Personal Details',
+            description: `Complete your personal information for ${loanTypeDisplay} application`,
+            priority: 'HIGH',
+            type: 'PERSONAL_DETAILS',
+            actionMethod: 'viewApplication',
+            actionText: 'Complete Now',
+            applicationId: application.id
+          });
+        } else if (!application.hasFinancialProfile) {
+          tasks.push({
+            id: `employment-${application.id}`,
+            title: 'Complete Employment & Financial Details',
+            description: `Add employment and income information for ${loanTypeDisplay} (${this.formatCurrency(application.requestedAmount)})`,
+            priority: 'HIGH',
+            type: 'EMPLOYMENT',
+            actionMethod: 'viewApplication',
+            actionText: 'Continue Application',
+            applicationId: application.id
+          });
+        } else if (!application.documentsCount || application.documentsCount === 0) {
+          tasks.push({
+            id: `documents-${application.id}`,
+            title: 'Upload Required Documents',
+            description: `Upload supporting documents for ${loanTypeDisplay} application`,
+            priority: 'MEDIUM',
+            type: 'DOCUMENTS',
+            actionMethod: 'viewApplication',
+            actionText: 'Upload Documents',
+            applicationId: application.id
+          });
+        } else {
+          // All steps complete, ready for final submission
+          tasks.push({
+            id: `submit-${application.id}`,
+            title: 'Submit Application for Review',
+            description: `Your ${loanTypeDisplay} application is ready. Review and submit for approval.`,
+            priority: 'HIGH',
+            type: 'SUBMIT',
+            actionMethod: 'viewApplication',
+            actionText: 'Review & Submit',
+            applicationId: application.id
+          });
+        }
       });
-    });
     
-    // Add other dynamic tasks from backend here
-    // This can be replaced with actual API call to get tasks
-    // Example: this.dashboardService.getPendingTasks()
+    // Tasks for applications needing additional documents
+    this.recentApplications()
+      .filter(app => app.status === 'PENDING_DOCUMENTS')
+      .forEach((application) => {
+        tasks.push({
+          id: `additional-docs-${application.id}`,
+          title: 'Additional Documents Required',
+          description: `Loan officer has requested additional documents for your ${this.getLoanTypeDisplay(application.loanType)} application`,
+          priority: 'URGENT',
+          type: 'ADDITIONAL_DOCUMENTS',
+          actionMethod: 'viewApplication',
+          actionText: 'Upload Now',
+          applicationId: application.id
+        });
+      });
     
     return tasks;
   }

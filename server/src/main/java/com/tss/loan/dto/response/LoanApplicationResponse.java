@@ -7,6 +7,7 @@ import java.util.UUID;
 import com.tss.loan.entity.enums.ApplicationStatus;
 import com.tss.loan.entity.enums.DecisionType;
 import com.tss.loan.entity.enums.LoanType;
+import com.tss.loan.entity.enums.Priority;
 import com.tss.loan.entity.enums.RiskLevel;
 
 import lombok.AllArgsConstructor;
@@ -30,6 +31,7 @@ public class LoanApplicationResponse {
     private Boolean existingLoans;
     private BigDecimal existingEmi;
     private ApplicationStatus status;
+    private Priority priority;
     private RiskLevel riskLevel;
     private LocalDateTime submittedAt;
     private LocalDateTime reviewedAt;

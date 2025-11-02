@@ -12,18 +12,24 @@
             Welcome to your loan processing dashboard
           </p>
         </div>
-        <div class="flex space-x-2">
-          <button
-            (click)="refreshDashboard()"
-            class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-lg transition-all duration-200 flex items-center space-x-2"
-            [disabled]="isLoading()"
+        <button
+          (click)="refreshDashboard()"
+          class="bg-white text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-lg transition-all duration-200 flex items-center space-x-2 shadow-md font-medium"
+          [disabled]="isLoading()"
+          [class.opacity-50]="isLoading()"
+          [class.cursor-not-allowed]="isLoading()"
+        >
+          <svg 
+            class="w-5 h-5" 
+            [class.animate-spin]="isLoading()"
+            fill="none" 
+            viewBox="0 0 24 24" 
+            stroke="currentColor"
           >
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            <span>Refresh</span>
-          </button>
-        </div>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          <span>Refresh</span>
+        </button>
       </div>
     </div>
   </div>
@@ -49,7 +55,7 @@
             </div>
             <div class="ml-5 w-0 flex-1">
               <dl>
-                <dt class="text-sm font-medium text-gray-500 truncate">Total Assigned</dt>
+                <dt class="text-sm font-medium text-gray-500">Total Assigned</dt>
                 <dd class="text-lg font-semibold text-gray-900">{{ dashboardData()!.totalAssigned }}</dd>
               </dl>
             </div>
@@ -71,7 +77,7 @@
             </div>
             <div class="ml-5 w-0 flex-1">
               <dl>
-                <dt class="text-sm font-medium text-gray-500 truncate">Pending Review</dt>
+                <dt class="text-sm font-medium text-gray-500">Pending Review</dt>
                 <dd class="text-lg font-semibold text-gray-900">{{ dashboardData()!.pendingReview }}</dd>
               </dl>
             </div>
@@ -92,7 +98,7 @@
             </div>
             <div class="ml-5 w-0 flex-1">
               <dl>
-                <dt class="text-sm font-medium text-gray-500 truncate">Under Verification</dt>
+                <dt class="text-sm font-medium text-gray-500">Under Verification</dt>
                 <dd class="text-lg font-semibold text-gray-900">{{ dashboardData()!.underVerification }}</dd>
               </dl>
             </div>
@@ -114,7 +120,7 @@
             </div>
             <div class="ml-5 w-0 flex-1">
               <dl>
-                <dt class="text-sm font-medium text-gray-500 truncate">Ready for Decision</dt>
+                <dt class="text-sm font-medium text-gray-500">Ready for Decision</dt>
                 <dd class="text-lg font-semibold text-gray-900">{{ dashboardData()!.readyForDecision }}</dd>
               </dl>
             </div>
@@ -181,7 +187,7 @@
               <div class="flex items-center justify-between mb-1">
                 <span class="text-sm text-gray-600">Avg. Processing Time</span>
                 <span class="text-sm font-semibold text-gray-900">
-                  {{ dashboardData()!.avgProcessingTime > 0 ? (dashboardData()!.avgProcessingTime / 60).toFixed(1) : 0 }} hrs
+                  {{ dashboardData()!.avgProcessingTime > 0 ? dashboardData()!.avgProcessingTime.toFixed(1) : 0 }} hrs
                 </span>
               </div>
             </div>
@@ -239,33 +245,33 @@
             </div>
           } @else {
             <div class="flow-root">
-              <ul class="-my-5 divide-y divide-gray-200">
-                @for (app of recentApplications(); track app.id) {
-                  <li class="py-5">
-                    <div class="flex items-center space-x-4">
+              <ul class="-my-2 divide-y divide-gray-200">
+                @for (app of recentApplications().slice(0, 5); track app.id; let idx = $index) {
+                  <li class="py-3">
+                    <div class="flex items-center space-x-3">
                       <div class="flex-shrink-0">
-                        <div class="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                          <span class="text-blue-600 font-medium text-sm">{{ app.applicantName.charAt(0).toUpperCase() }}</span>
+                        <div class="h-9 w-9 rounded-full bg-blue-100 flex items-center justify-center">
+                          <span class="text-blue-600 font-semibold text-xs">{{ app.applicantName.charAt(0).toUpperCase() }}</span>
                         </div>
                       </div>
                       <div class="flex-1 min-w-0">
-                        <p class="text-sm font-medium text-gray-900 truncate">
+                        <p class="text-sm font-semibold text-gray-900 truncate">
                           {{ app.applicantName }}
                         </p>
-                        <p class="text-sm text-gray-500 truncate">
+                        <p class="text-xs text-gray-500 truncate">
                           {{ app.loanType }} • {{ formatCurrency(app.requestedAmount) }}
                         </p>
                       </div>
-                      <div class="flex-shrink-0 flex flex-col items-end">
+                      <div class="flex-shrink-0 flex flex-col items-end space-y-1">
                         <span [ngClass]="getStatusBadgeClass(app.status)" 
-                              class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full">
-                          {{ app.status }}
+                              class="px-2 py-0.5 text-xs font-semibold rounded-full">
+                          {{ app.status.replace('_', ' ') }}
                         </span>
                         <button
                           (click)="viewApplication(app.id)"
-                          class="mt-2 text-xs text-blue-600 hover:text-blue-800"
+                          class="text-xs text-blue-600 hover:text-blue-800 font-medium"
                         >
-                          View Details
+                          View →
                         </button>
                       </div>
                     </div>
@@ -303,32 +309,32 @@
             </div>
           } @else {
             <div class="flow-root">
-              <ul class="-my-5 divide-y divide-gray-200">
-                @for (activity of recentActivities(); track activity.id) {
-                  <li class="py-5">
-                    <div class="flex items-start space-x-4">
+              <ul class="-my-2 divide-y divide-gray-200">
+                @for (activity of recentActivities().slice(0, 5); track activity.id; let idx = $index) {
+                  <li class="py-3">
+                    <div class="flex items-start space-x-3">
                       <div class="flex-shrink-0">
                         <div class="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
-                          <svg class="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <svg class="h-4 w-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                         </div>
                       </div>
                       <div class="flex-1 min-w-0">
-                        <p class="text-sm font-medium text-gray-900">
+                        <p class="text-sm font-semibold text-gray-900 truncate">
                           {{ activity.action }}
                         </p>
-                        <p class="text-sm text-gray-500">
-                          {{ activity.applicantName }} • Application #{{ activity.applicationId.substring(0, 8) }}
+                        <p class="text-xs text-gray-500 truncate">
+                          {{ activity.applicantName }} • #{{ activity.applicationId.substring(0, 8) }}
                         </p>
-                        <p class="text-xs text-gray-400 mt-1">
+                        <p class="text-xs text-gray-400 mt-0.5">
                           {{ getTimeAgo(activity.timestamp) }}
                         </p>
                       </div>
                       <div class="flex-shrink-0">
                         <span [ngClass]="getStatusBadgeClass(activity.status)" 
-                              class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full">
-                          {{ activity.status }}
+                              class="px-2 py-0.5 text-xs font-semibold rounded-full">
+                          {{ activity.status.replace('_', ' ') }}
                         </span>
                       </div>
                     </div>

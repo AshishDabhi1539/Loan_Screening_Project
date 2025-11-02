@@ -163,6 +163,7 @@ export class EmploymentDetailsComponent implements OnInit {
   loanType = signal<string | null>(null);
   loanAmount = signal<number>(0);
   selectedEmploymentType = signal<string | null>(null);
+  returnUrl = signal<string>(''); // URL to return to after completion
   
   // Employment type eligibility from backend
   employmentEligibility = signal<EmploymentTypeEligibility[]>([]);
@@ -236,19 +237,26 @@ export class EmploymentDetailsComponent implements OnInit {
   ];
 
   ngOnInit(): void {
-    // Get application ID and loan type from route
+    // Get application ID, loan type, and returnUrl from route
     this.route.queryParams.subscribe(params => {
       console.log('🔍 Query params received:', params);
       const appId = params['applicationId'];
       const loanTypeParam = params['loanType'];
+      const returnUrl = params['returnUrl'];
       
       console.log('📋 Application ID:', appId);
       console.log('💼 Loan Type from params:', loanTypeParam);
+      console.log('🔙 Return URL from params:', returnUrl);
+      
+      // Set returnUrl if provided
+      if (returnUrl) {
+        this.returnUrl.set(returnUrl);
+        console.log('✅ Return URL set:', returnUrl);
+      }
       
       if (appId) {
         this.applicationId.set(appId);
         
-        // Set loan type if provided
         if (loanTypeParam) {
           console.log('✅ Loan type found, loading eligibility for:', loanTypeParam);
           this.loanType.set(loanTypeParam);
@@ -811,10 +819,13 @@ export class EmploymentDetailsComponent implements OnInit {
   }
 
   /**
-   * Get progress percentage
+   * Get progress percentage based on COMPLETED steps
+   * When on step 2, only step 1 is completed = 20%
+   * When on step 3, steps 1 & 2 are completed = 40%
    */
   getProgressPercentage(): number {
-    return Math.round((this.currentStep() / this.totalSteps) * 100);
+    const completedSteps = this.currentStep() - 1;
+    return Math.round((completedSteps / this.totalSteps) * 100);
   }
   
   /**
@@ -885,15 +896,21 @@ export class EmploymentDetailsComponent implements OnInit {
     this.loanApplicationService.updateFinancialDetails(appId, request).subscribe({
       next: (response) => {
         this.isLoading.set(false);
-        this.notificationService.success('Success', 'Financial details saved successfully! Proceeding to document upload...');
+        this.notificationService.success('Success', 'Financial details saved successfully!');
         
-        // Navigate to document upload with application ID and employment type
-        this.router.navigate(['/applicant/document-upload'], {
-          queryParams: {
-            applicationId: appId,
-            employmentType: formData.employmentType
-          }
-        });
+        // Check if we have a return URL (coming from summary page)
+        const returnUrl = this.returnUrl();
+        if (returnUrl) {
+          this.router.navigateByUrl(returnUrl);
+        } else {
+          // Normal flow - Navigate to document upload with application ID and employment type
+          this.router.navigate(['/applicant/document-upload'], {
+            queryParams: {
+              applicationId: appId,
+              employmentType: formData.employmentType
+            }
+          });
+        }
       },
       error: (error) => {
         this.isLoading.set(false);
@@ -920,10 +937,15 @@ export class EmploymentDetailsComponent implements OnInit {
   }
 
   /**
-   * Cancel and go back
+   * Cancel and go back to dashboard or return URL
    */
   cancel(): void {
-    this.router.navigate(['/applicant/dashboard']);
+    const returnUrl = this.returnUrl();
+    if (returnUrl) {
+      this.router.navigateByUrl(returnUrl);
+    } else {
+      this.router.navigate(['/applicant/dashboard']);
+    }
   }
 
   /**

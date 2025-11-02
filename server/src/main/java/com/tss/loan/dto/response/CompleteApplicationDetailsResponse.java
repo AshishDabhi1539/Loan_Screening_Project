@@ -34,6 +34,9 @@ public class CompleteApplicationDetailsResponse {
     // Verification Status Summary
     private VerificationSummary verificationSummary;
     
+    // External Verification Results
+    private ExternalVerification externalVerification;
+    
     @Data
     @Builder
     @NoArgsConstructor
@@ -73,6 +76,8 @@ public class CompleteApplicationDetailsResponse {
             private String panNumber;
             private String aadhaarNumber;
             private String dateOfBirth;
+            private String gender;
+            private String maritalStatus;
             private AddressInfo addresses;
         }
         
@@ -125,6 +130,11 @@ public class CompleteApplicationDetailsResponse {
         private CompanyContact companyContact;
         private BankDetails bankDetails;
         private EmploymentVerificationStatus verificationStatus;
+        
+        // Financial Obligations
+        private BigDecimal existingLoanEmi;
+        private BigDecimal creditCardOutstanding;
+        private BigDecimal monthlyExpenses;
         
         @Data
         @Builder
@@ -263,5 +273,22 @@ public class CompleteApplicationDetailsResponse {
         private List<String> rejectedItems;
         private Boolean readyForExternalVerification;
         private Boolean readyForDecision;
+    }
+    
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ExternalVerification {
+        private Integer creditScore;
+        private String creditScoreReason;
+        private String riskScore;
+        private Integer riskScoreNumeric;
+        private Integer fraudScore;
+        private Boolean redAlertFlag;
+        private String riskFactors;
+        private Boolean dataFound;
+        private String recommendedAction;
+        private LocalDateTime verifiedAt;
     }
 }

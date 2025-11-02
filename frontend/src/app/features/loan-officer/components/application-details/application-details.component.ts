@@ -25,9 +25,18 @@ export class ApplicationDetailsComponent implements OnInit {
   
   // Active tab
   activeTab = signal<'overview' | 'personal' | 'financial' | 'documents' | 'external' | 'audit'>('overview');
+  
+  // View mode - determines if we show action buttons or not
+  isViewMode = signal(false);
 
   ngOnInit(): void {
     const applicationId = this.route.snapshot.paramMap.get('id');
+    
+    // Check if we're in view-only mode (from query param)
+    this.route.queryParams.subscribe(params => {
+      this.isViewMode.set(params['mode'] === 'view');
+    });
+    
     if (applicationId) {
       this.loadApplicationDetails(applicationId);
       
@@ -73,6 +82,15 @@ export class ApplicationDetailsComponent implements OnInit {
     // Load audit trail when audit tab is clicked
     if (tab === 'audit' && this.auditTrail().length === 0) {
       this.loadAuditTrail();
+    }
+    
+    // Refresh application details when external verification tab is clicked
+    // This ensures we get the latest verification results
+    if (tab === 'external') {
+      const appId = this.applicationDetails()?.applicationInfo?.id;
+      if (appId) {
+        this.loadApplicationDetails(appId);
+      }
     }
   }
 
@@ -154,12 +172,26 @@ export class ApplicationDetailsComponent implements OnInit {
   }
 
   /**
-   * Navigate to review workflow
+   * Start review process - changes status to DOCUMENT_VERIFICATION
    */
   startReview(): void {
     const appId = this.applicationDetails()?.applicationInfo?.id;
     if (appId) {
-      this.router.navigate(['/loan-officer/application', appId, 'review']);
+      // Call API to start document verification (changes status to DOCUMENT_VERIFICATION)
+      this.loanOfficerService.startDocumentVerification(appId).subscribe({
+        next: (response) => {
+          this.notificationService.success('Success', 'Review process started successfully');
+          // Navigate to review workflow page
+          this.router.navigate(['/loan-officer/application', appId, 'review']);
+        },
+        error: (error) => {
+          console.error('Error starting review:', error);
+          this.notificationService.error(
+            'Error',
+            error.error?.message || 'Failed to start review process'
+          );
+        }
+      });
     }
   }
 
@@ -168,6 +200,30 @@ export class ApplicationDetailsComponent implements OnInit {
    */
   viewApplicationDetails(): void {
     this.router.navigate(['/loan-officer/applications/assigned']);
+  }
+
+  /**
+   * Navigate back - either to review page or applications list
+   */
+  goBack(): void {
+    const fromReview = this.route.snapshot.queryParams['from'] === 'review';
+    const appId = this.applicationDetails()?.applicationInfo?.id;
+    
+    if (fromReview && appId) {
+      // Navigate back to review page
+      this.router.navigate(['/loan-officer/application', appId, 'review']);
+    } else {
+      // Navigate back to applications list
+      this.router.navigate(['/loan-officer/applications/assigned']);
+    }
+  }
+
+  /**
+   * Get back button text based on navigation context
+   */
+  getBackButtonText(): string {
+    const fromReview = this.route.snapshot.queryParams['from'] === 'review';
+    return fromReview ? 'Back to Review' : 'Back to Applications';
   }
 
   /**
@@ -181,6 +237,37 @@ export class ApplicationDetailsComponent implements OnInit {
   canProceedToDecision = computed(() => {
     const app = this.applicationDetails()?.applicationInfo;
     return app && app.status === 'READY_FOR_DECISION';
+  });
+  
+  /**
+   * Check if we should show action buttons
+   * Logic:
+   * - UNDER_REVIEW: Always show action buttons
+   * - After UNDER_REVIEW: Hide if in view mode, show if in resume mode
+   */
+  shouldShowActionButtons = computed(() => {
+    const app = this.applicationDetails()?.applicationInfo;
+    if (!app) return false;
+    
+    // For UNDER_REVIEW status, always show action buttons (keep as is)
+    if (app.status === 'UNDER_REVIEW') {
+      return true;
+    }
+    
+    // For statuses after UNDER_REVIEW (DOCUMENT_VERIFICATION onwards)
+    // Show buttons only if NOT in view mode
+    const postReviewStatuses = [
+      'DOCUMENT_VERIFICATION', 'DOCUMENT_INCOMPLETE', 
+      'PENDING_EXTERNAL_VERIFICATION', 'EXTERNAL_VERIFICATION',
+      'FRAUD_CHECK', 'READY_FOR_DECISION'
+    ];
+    
+    if (postReviewStatuses.includes(app.status)) {
+      return !this.isViewMode(); // Hide if view mode, show if resume mode
+    }
+    
+    // For other statuses, show buttons
+    return true;
   });
 
   /**
@@ -250,10 +337,33 @@ export class ApplicationDetailsComponent implements OnInit {
   });
 
   /**
+   * Check if personal details are verified
+   */
+  isPersonalDetailsVerified = computed(() => {
+    const personal = this.getPersonalDetails();
+    if (!personal) return false;
+    // Check if both identity and address are verified
+    return (personal as any).identityVerified === true && (personal as any).addressVerified === true;
+  });
+
+  /**
    * Get contact info
    */
   getContactInfo = computed(() => {
     return this.applicationDetails()?.applicantIdentity?.contactInfo;
+  });
+
+  /**
+   * Check if financial details are verified
+   */
+  isFinancialDetailsVerified = computed(() => {
+    const employment = this.applicationDetails()?.employmentDetails;
+    if (!employment) return false;
+    // Check if employment, income, and bank are all verified
+    const empVerified = (employment as any).employmentVerificationStatus === 'VERIFIED';
+    const incomeVerified = (employment as any).incomeVerificationStatus === 'VERIFIED';
+    const bankVerified = (employment as any).bankVerificationStatus === 'VERIFIED';
+    return empVerified && incomeVerified && bankVerified;
   });
 
   /**
@@ -272,10 +382,11 @@ export class ApplicationDetailsComponent implements OnInit {
       monthlyIncome: employment?.monthlyIncome || 0,
       annualIncome: employment?.annualIncome || 0,
       additionalIncome: 0, // Not in backend structure
-      existingEmi: 0, // Calculate from existing loans if needed
+      existingEmi: employment?.existingLoanEmi || 0,
       otherObligations: 0, // Not in backend structure
       foir: financial?.calculatedRatios?.emiToIncomeRatio || 0,
-      creditCardOutstanding: 0, // Not in backend structure
+      creditCardOutstanding: employment?.creditCardOutstanding || 0,
+      monthlyExpenses: employment?.monthlyExpenses || 0,
       employmentStartDate: null, // Not in backend structure
       companyAddress: employment?.companyContact?.companyAddress || '',
       bankName: employment?.bankDetails?.bankName || 'N/A',
@@ -357,8 +468,8 @@ export class ApplicationDetailsComponent implements OnInit {
         };
       case 'UNDER_REVIEW':
         return {
-          text: 'Continue Review Process',
-          action: 'continue-review',
+          text: 'Start Review',
+          action: 'start-review',
           color: 'bg-orange-600 hover:bg-orange-700',
           icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2',
           method: () => this.startReview()
@@ -451,6 +562,14 @@ export class ApplicationDetailsComponent implements OnInit {
         steps[1].status = 'completed';
         steps[2].status = 'current';
         steps[2].current = true;
+        break;
+      case 'FLAGGED_FOR_COMPLIANCE':
+        // Application flagged for compliance review
+        steps[1].status = 'completed';
+        steps[2].status = 'completed';
+        steps[3].status = 'current';
+        steps[3].current = true;
+        steps[3].name = 'Compliance Review';
         break;
       case 'READY_FOR_DECISION':
         steps[1].status = 'completed';

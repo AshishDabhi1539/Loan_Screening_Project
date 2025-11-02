@@ -6,6 +6,7 @@ import java.util.UUID;
 import com.tss.loan.dto.request.ApplicantFinancialDetailsRequest;
 import com.tss.loan.dto.request.ApplicantPersonalDetailsRequest;
 import com.tss.loan.dto.request.LoanApplicationRequest;
+import com.tss.loan.dto.response.CompleteApplicationDetailsResponse;
 import com.tss.loan.dto.response.LoanApplicationResponse;
 import com.tss.loan.dto.response.LoanApplicationCreateResponse;
 import com.tss.loan.dto.response.PersonalDetailsUpdateResponse;
@@ -63,6 +64,11 @@ public interface LoanApplicationService {
     com.tss.loan.dto.response.ApplicantResubmissionRequirementsResponse getResubmissionRequirements(UUID applicationId, User user);
     
     /**
+     * Mark documents as resubmitted - changes status to DOCUMENT_REVERIFICATION
+     */
+    void markDocumentsResubmitted(UUID applicationId, User user);
+    
+    /**
      * Check if application is complete (all required fields filled)
      */
     boolean isApplicationComplete(UUID applicationId);
@@ -94,4 +100,10 @@ public interface LoanApplicationService {
      */
     FinancialDetailsCreateResponse updateFinancialDetailsForApplication(UUID applicationId, 
                                                                        ApplicantFinancialDetailsRequest request, User user);
+    
+    /**
+     * Get complete application details for applicant (for summary page)
+     * Includes personal details, financial details, and documents
+     */
+    CompleteApplicationDetailsResponse getCompleteApplicationDetailsForApplicant(UUID applicationId, User applicant);
 }

@@ -191,30 +191,22 @@ export class ApplicationsListComponent implements OnInit {
   }
 
   /**
-   * Navigate to application details
+   * Navigate to application details in VIEW-ONLY mode
+   * This will hide action buttons for post-UNDER_REVIEW statuses
    */
   viewApplication(applicationId: string): void {
-    this.router.navigate(['/loan-officer/application', applicationId, 'details']);
+    this.router.navigate(['/loan-officer/application', applicationId, 'details'], {
+      queryParams: { mode: 'view' }
+    });
   }
 
   /**
    * Resume specific step for an application
    */
   resumeStep(applicationId: string, step: string): void {
-    switch (step) {
-      case 'document-verification':
-        // Navigate directly to document verification page
-        this.router.navigate(['/loan-officer/application', applicationId, 'document-verification']);
-        break;
-      case 'external-verification':
-        // Navigate to external verification page
-        this.router.navigate(['/loan-officer/application', applicationId, 'external-verification']);
-        break;
-      case 'final-decision':
-        // Navigate to decision page
-        this.router.navigate(['/loan-officer/application', applicationId, 'decision']);
-        break;
-    }
+    // Always navigate to review workflow page
+    // The review page will show the appropriate step based on application status
+    this.router.navigate(['/loan-officer/application', applicationId, 'review']);
   }
 
 

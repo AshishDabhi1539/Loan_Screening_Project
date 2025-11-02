@@ -36,6 +36,7 @@ public class LoanApplicationMapper {
                 .existingLoans(entity.getExistingLoans())
                 .existingEmi(entity.getExistingEmi())
                 .status(entity.getStatus())
+                .priority(entity.getPriority())
                 .riskLevel(entity.getRiskLevel())
                 .submittedAt(entity.getSubmittedAt())
                 .reviewedAt(entity.getReviewedAt())
