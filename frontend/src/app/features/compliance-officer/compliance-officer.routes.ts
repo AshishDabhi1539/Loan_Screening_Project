@@ -15,7 +15,7 @@ export const complianceOfficerRoutes: Routes = [
     loadComponent: () => import('./components/applications-list/applications-list.component').then(m => m.ApplicationsListComponent)
   },
   {
-    path: 'applications/:id',
+    path: 'applications/review',
     loadComponent: () => import('./components/application-details/application-details.component').then(m => m.ApplicationDetailsComponent)
   },
   // Legacy routes for backward compatibility

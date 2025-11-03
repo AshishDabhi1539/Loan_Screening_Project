@@ -1,6 +1,9 @@
 import { Injectable, inject } from '@angular/core';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { ApiService } from './api.service';
+import { environment } from '../../../environments/environment';
 
 /**
  * Compliance Dashboard Response
@@ -133,6 +136,7 @@ export interface ComplianceInvestigationResponse {
 })
 export class ComplianceService {
   private apiService = inject(ApiService);
+  private http = inject(HttpClient);
   private readonly BASE_URL = '/compliance';
 
   /**
@@ -186,9 +190,20 @@ export class ComplianceService {
 
   /**
    * Start compliance investigation
+   * Note: Backend returns plain text, so we use HttpClient directly with responseType: 'text'
    */
   startInvestigation(applicationId: string): Observable<string> {
-    return this.apiService.post<string>(`${this.BASE_URL}/applications/${applicationId}/start-investigation`, {});
+    const url = `${environment.apiUrl}${this.BASE_URL}/applications/${applicationId}/start-investigation`;
+    
+    // Use HttpClient directly to handle text/plain response
+    // responseType: 'text' returns Observable<string> directly
+    const response = this.http.post(url, {}, { 
+      responseType: 'text'
+    }) as Observable<string>;
+    
+    return response.pipe(
+      map((text: string) => text || 'Investigation started successfully')
+    );
   }
 
   /**
