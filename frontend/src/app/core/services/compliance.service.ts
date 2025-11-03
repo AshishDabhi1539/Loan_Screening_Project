@@ -121,14 +121,14 @@ export interface ComplianceDocumentRequest {
  * Compliance Investigation Response
  */
 export interface ComplianceInvestigationResponse {
-  applicationId: string;
   investigationId: string;
-  riskScore: number;
-  fraudIndicators: string[];
-  verificationResults: any;
-  recommendations: string[];
-  investigatedBy: string;
-  investigatedAt: string;
+  investigationDate: string;
+  applicantProfile: any;
+  overallAssessment: any;
+  bank_details: any;
+  fraud_records: any;
+  loan_history: any;
+  consolidatedFindings: any;
 }
 
 @Injectable({

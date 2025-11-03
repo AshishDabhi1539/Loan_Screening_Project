@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { ComplianceService, LoanApplicationResponse } from '../../../../core/services/compliance.service';
+import { ComplianceService, LoanApplicationResponse, ComplianceInvestigationResponse } from '../../../../core/services/compliance.service';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { IdEncoderService } from '../../../../core/services/id-encoder.service';
 
@@ -23,7 +23,9 @@ export class ApplicationDetailsComponent implements OnInit {
   application = signal<any | null>(null);
   isLoading = signal(true);
   applicationId = signal<string>('');
-  activeTab = signal<'information' | 'documents' | 'verification'>('information');
+  activeTab = signal<'information' | 'verification' | 'investigation'>('information');
+  investigationResults = signal<ComplianceInvestigationResponse | null>(null);
+  isRunningInvestigation = signal(false);
 
   // Computed properties for easier access
   applicationInfo = computed(() => this.application()?.applicationInfo);
@@ -95,6 +97,7 @@ export class ApplicationDetailsComponent implements OnInit {
     const statusColors: { [key: string]: string } = {
       'FLAGGED_FOR_COMPLIANCE': 'bg-red-100 text-red-800',
       'COMPLIANCE_REVIEW': 'bg-yellow-100 text-yellow-800',
+      'UNDER_INVESTIGATION': 'bg-purple-100 text-purple-800',
       'PENDING_COMPLIANCE_DOCS': 'bg-orange-100 text-orange-800',
       'READY_FOR_DECISION': 'bg-green-100 text-green-800',
       'REJECTED': 'bg-red-100 text-red-800',
@@ -153,8 +156,64 @@ export class ApplicationDetailsComponent implements OnInit {
   /**
    * Switch active tab
    */
-  setActiveTab(tab: 'information' | 'documents' | 'verification'): void {
+  setActiveTab(tab: 'information' | 'verification' | 'investigation'): void {
     this.activeTab.set(tab);
+  }
+
+  /**
+   * Check if investigation has been performed
+   */
+  hasInvestigationResults(): boolean {
+    return this.investigationResults() !== null;
+  }
+
+  /**
+   * Perform comprehensive compliance investigation
+   */
+  performInvestigation(): void {
+    const id = this.applicationId();
+    if (!id) {
+      this.notificationService.error('Error', 'Application ID not found');
+      return;
+    }
+
+    this.isRunningInvestigation.set(true);
+
+    this.complianceService.performComprehensiveInvestigation(id).subscribe({
+      next: (response) => {
+        console.log('✅ Investigation completed:', response);
+        this.investigationResults.set(response);
+        this.isRunningInvestigation.set(false);
+        this.activeTab.set('investigation'); // Switch to investigation tab
+        
+        // Reload application details to get updated status
+        setTimeout(() => {
+          this.loadApplicationDetails(id);
+        }, 500);
+        
+        this.notificationService.success(
+          'Investigation Completed',
+          'Comprehensive compliance investigation has been completed successfully. Application status updated to Under Investigation. Review the results in the Investigation tab.'
+        );
+      },
+      error: (error) => {
+        console.error('❌ Error performing investigation:', error);
+        this.isRunningInvestigation.set(false);
+        
+        let errorMessage = 'Failed to perform investigation. Please try again.';
+        if (error?.error) {
+          if (typeof error.error === 'string') {
+            errorMessage = error.error;
+          } else if (error.error.message) {
+            errorMessage = error.error.message;
+          }
+        } else if (error?.message) {
+          errorMessage = error.message;
+        }
+        
+        this.notificationService.error('Error', errorMessage);
+      }
+    });
   }
 
   /**
@@ -217,6 +276,63 @@ export class ApplicationDetailsComponent implements OnInit {
   }
 
   /**
+   * Format JSON for display
+   */
+  formatJSON(obj: any): string {
+    if (!obj) return 'N/A';
+    try {
+      return JSON.stringify(obj, null, 2);
+    } catch (e) {
+      return String(obj);
+    }
+  }
+
+  /**
+   * Get band color based on risk band
+   */
+  getBandColor(band: string): string {
+    const bandColors: { [key: string]: string } = {
+      'EXCELLENT': 'bg-green-100 text-green-800',
+      'GOOD': 'bg-blue-100 text-blue-800',
+      'FAIR': 'bg-yellow-100 text-yellow-800',
+      'POOR': 'bg-orange-100 text-orange-800',
+      'CRITICAL': 'bg-red-100 text-red-800'
+    };
+    return bandColors[band?.toUpperCase()] || 'bg-gray-100 text-gray-800';
+  }
+
+  /**
+   * Format compliance decision for display
+   */
+  formatComplianceDecision(decision: string): string {
+    if (!decision) return 'N/A';
+    return decision.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  }
+
+  /**
+   * Get compliance decision color
+   */
+  getComplianceDecisionColor(decision: string): string {
+    if (!decision) return 'bg-gray-100 text-gray-800';
+    const upperDecision = decision.toUpperCase();
+    if (upperDecision.includes('PROCEED') || upperDecision.includes('APPROVED')) {
+      return 'bg-green-100 text-green-800';
+    } else if (upperDecision.includes('REJECT') || upperDecision.includes('IMMEDIATE')) {
+      return 'bg-red-100 text-red-800';
+    } else if (upperDecision.includes('CONDITIONAL') || upperDecision.includes('ENHANCED')) {
+      return 'bg-orange-100 text-orange-800';
+    }
+    return 'bg-gray-100 text-gray-800';
+  }
+
+  /**
+   * Check if value is an array
+   */
+  isArray(value: any): boolean {
+    return Array.isArray(value);
+  }
+
+  /**
    * Check if application can start investigation (status is FLAGGED_FOR_COMPLIANCE)
    */
   canStartInvestigation(): boolean {
@@ -229,7 +345,7 @@ export class ApplicationDetailsComponent implements OnInit {
    */
   isUnderComplianceReview(): boolean {
     const status = this.applicationInfo()?.status;
-    return status === 'COMPLIANCE_REVIEW' || status === 'PENDING_COMPLIANCE_DOCS';
+    return status === 'COMPLIANCE_REVIEW' || status === 'PENDING_COMPLIANCE_DOCS' || status === 'UNDER_INVESTIGATION';
   }
 
   /**
