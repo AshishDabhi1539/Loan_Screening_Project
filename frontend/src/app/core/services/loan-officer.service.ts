@@ -317,16 +317,27 @@ export interface DocumentInfo {
 }
 
 export interface ExternalVerificationInfo {
+  // Credit Scoring Results
   creditScore: number | null;
-  riskScore: string;
-  riskScoreNumeric: number;
-  fraudScore: number;
-  riskFactors: string;
-  creditScoreReason?: string;
-  redAlertFlag: boolean;
-  recommendedAction: string;
+  riskType: string;              // LOW, MEDIUM, HIGH, INVALID, UNKNOWN
+  riskScoreNumeric: number;      // 0-100 numeric risk score
+  riskFactors: string;           // Detailed risk factors explanation
+  creditScoreReason: string;     // Explanation for credit score
+  redAlertFlag: boolean;         // Critical risk indicator
+  
+  // Financial Metrics
+  totalOutstanding: number;      // Total outstanding loan amount
+  activeLoansCount: number;      // Number of active loans
+  totalMissedPayments: number;   // Total missed payments
+  hasDefaults: boolean;          // Loan default history flag
+  activeFraudCases: number;      // Active fraud cases count
+  
+  // Data Availability
+  dataFound: boolean;            // Whether external data was found
+  
+  // Metadata
+  recommendedAction: string;     // Recommended action based on scoring
   verifiedAt: Date;
-  dataFound: boolean;
 }
 
 export interface AuditEntry {
@@ -408,16 +419,37 @@ export interface ComplianceFlagRequest {
 }
 
 export interface ExternalVerificationResponse {
+  // Application Status
+  message: string;
+  applicationId: string;
+  previousStatus: string;
+  newStatus: string;
+  completedAt: Date;
+  
+  // Credit Scoring Results
   creditScore: number | null;
-  riskScore: string;
-  riskScoreNumeric: number;
-  fraudScore: number;
-  riskFactors: string;
-  creditScoreReason?: string;
-  redAlertFlag: boolean;
-  recommendedAction: string;
-  dataFound: boolean;
-  verificationDate: Date;
+  riskType: string;              // LOW, MEDIUM, HIGH, INVALID, UNKNOWN
+  riskScoreNumeric: number;      // 0-100 numeric risk score
+  riskFactors: string;           // Detailed risk factors explanation
+  creditScoreReason: string;     // Explanation for credit score
+  redAlertFlag: boolean;         // Critical risk indicator
+  
+  // Financial Metrics
+  totalOutstanding: number;      // Total outstanding loan amount
+  activeLoansCount: number;      // Number of active loans
+  totalMissedPayments: number;   // Total missed payments
+  hasDefaults: boolean;          // Loan default history flag
+  activeFraudCases: number;      // Active fraud cases count
+  
+  // Data Availability
+  dataFound: boolean;            // Whether external data was found
+  
+  // Next Steps
+  nextSteps: string;
+  readyForDecision: boolean;
+  
+  // Banking Recommendation
+  recommendedAction: string;     // Recommended action based on scoring
 }
 
 @Injectable({

@@ -1,5 +1,6 @@
 package com.tss.loan.service.impl;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -496,13 +497,19 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
         // ✅ DIRECT EXTERNAL CREDIT SCORING IMPLEMENTATION (MOVED FROM ExternalScoreService)
         log.info("Starting external credit score calculation for application: {}", applicationId);
         
-        // Initialize scoring variables
+        // Initialize ALL scoring variables (matching stored procedure outputs)
         Integer creditScore = null;
         String riskType = "UNKNOWN";
         Integer riskTypeNumeric = 0;
         Boolean redAlertFlag = false;
+        BigDecimal totalOutstanding = BigDecimal.ZERO;
+        Integer activeLoansCount = 0;
+        Integer totalMissedPayments = 0;
+        Boolean hasDefaults = false;
+        Integer activeFraudCases = 0;
         String riskFactors = "No external data available for assessment";
         String creditScoreReason = "Unable to calculate";
+        Boolean dataFound = false;
         
         try {
             // Get applicant personal details for Aadhaar and PAN
@@ -529,16 +536,19 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
             if (result != null && result.length > 0) {
                 log.info("Stored procedure executed successfully. Result array length: {}", result.length);
                 
-                // Parse stored procedure results - EXACT SAME LOGIC as ExternalScoreServiceImpl
+                // Parse ALL stored procedure results (12 output parameters)
                 creditScore = result[0] != null ? ((Number) result[0]).intValue() : null;
                 riskType = result[1] != null ? result[1].toString() : "UNKNOWN";
                 riskTypeNumeric = result[2] != null ? ((Number) result[2]).intValue() : 0;
                 redAlertFlag = result[3] != null ? ((Number) result[3]).intValue() == 1 : false;
-                Boolean hasDefaults = result[7] != null ? ((Number) result[7]).intValue() == 1 : false;
-                Long activeFraudCases = result[8] != null ? ((Number) result[8]).longValue() : 0L;
+                totalOutstanding = result[4] != null ? new BigDecimal(result[4].toString()) : BigDecimal.ZERO;
+                activeLoansCount = result[5] != null ? ((Number) result[5]).intValue() : 0;
+                totalMissedPayments = result[6] != null ? ((Number) result[6]).intValue() : 0;
+                hasDefaults = result[7] != null ? ((Number) result[7]).intValue() == 1 : false;
+                activeFraudCases = result[8] != null ? ((Number) result[8]).intValue() : 0;
                 riskFactors = result[9] != null ? result[9].toString() : "No risk factors identified";
                 creditScoreReason = result[10] != null ? result[10].toString() : "Based on available data";
-                Boolean dataFound = result[11] != null ? ((Number) result[11]).intValue() == 1 : false;
+                dataFound = result[11] != null ? ((Number) result[11]).intValue() == 1 : false;
                 
                 // Handle different response scenarios
                 if ("INVALID".equals(riskType)) {
@@ -546,7 +556,7 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
                 } else if (dataFound && creditScore != null) {
                     // Valid data found - save to history
                     saveCreditScoreHistory(aadhaar, pan, creditScore, riskType, hasDefaults, 
-                                         activeFraudCases, calculatedAt);
+                                         activeFraudCases.longValue(), calculatedAt);
                     
                     log.info("Score calculation completed. Credit Score: {}, Risk Score: {}, Numeric Risk: {}, Red Alert: {}", 
                              creditScore, riskType, riskTypeNumeric, redAlertFlag);
@@ -660,30 +670,40 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
         
         log.info("External verification completed for application: {}", applicationId);
         
-        // Build enhanced response with credit scoring details
+        // Build enhanced response with ALL credit scoring details
         ExternalVerificationResponse.ExternalVerificationResponseBuilder responseBuilder = ExternalVerificationResponse.builder()
             .message("External verification and credit scoring completed successfully")
             .applicationId(applicationId)
             .previousStatus("FRAUD_CHECK")
             .newStatus("READY_FOR_DECISION")
             .completedAt(LocalDateTime.now())
-            .creditScore(application.getCreditScore())
-            .riskScoreNumeric(application.getFraudScore())
-            .riskFactors(application.getFraudReasons())
+            // Credit Scoring Results
+            .creditScore(creditScore)
+            .riskType(riskType)
+            .riskScoreNumeric(riskTypeNumeric)
+            .riskFactors(riskFactors)
+            .creditScoreReason(creditScoreReason)
+            .redAlertFlag(redAlertFlag)
+            // Financial Metrics
+            .totalOutstanding(totalOutstanding)
+            .activeLoansCount(activeLoansCount)
+            .totalMissedPayments(totalMissedPayments)
+            .hasDefaults(hasDefaults)
+            .activeFraudCases(activeFraudCases)
+            // Data Availability
+            .dataFound(dataFound)
+            // Next Steps
             .nextSteps("Application is ready for final decision - approve, reject, or flag for compliance")
             .readyForDecision(true);
-            
-        // Add additional fields from direct scoring calculation
-        responseBuilder
-            .riskType(riskType)
-            .creditScoreReason(creditScoreReason)
-            .redAlertFlag(redAlertFlag);
             
         // 🏦 REAL-WORLD BANKING RECOMMENDATION LOGIC
         String recommendedAction = determineRecommendedAction(creditScore, riskType, riskTypeNumeric, redAlertFlag);
         responseBuilder.recommendedAction(recommendedAction);
         
         ExternalVerificationResponse response = responseBuilder.build();
+        
+        log.info("Complete external verification response prepared with all metrics - Credit Score: {}, Risk: {}, Outstanding: {}, Active Loans: {}", 
+            creditScore, riskType, totalOutstanding, activeLoansCount);
             
         return response;
     }
