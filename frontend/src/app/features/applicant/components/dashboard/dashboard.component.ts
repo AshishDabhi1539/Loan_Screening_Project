@@ -63,12 +63,12 @@ export class DashboardComponent implements OnInit {
   
   pendingApplications = computed(() => 
     this.recentApplications().filter(app => 
-      ['SUBMITTED', 'UNDER_REVIEW', 'PENDING_DOCUMENTS'].includes(app.status)
+      ['SUBMITTED', 'UNDER_REVIEW', 'PENDING_DOCUMENTS', 'PENDING_COMPLIANCE_DOCS'].includes(app.status)
     )
   );
 
   applicationsNeedingResubmission = computed(() => 
-    this.recentApplications().filter(app => app.status === 'DOCUMENT_INCOMPLETE')
+    this.recentApplications().filter(app => app.status === 'DOCUMENT_INCOMPLETE' || app.status === 'PENDING_COMPLIANCE_DOCS')
   );
 
   ngOnInit(): void {
@@ -532,12 +532,14 @@ export class DashboardComponent implements OnInit {
     
     // Tasks for applications needing additional documents
     this.recentApplications()
-      .filter(app => app.status === 'PENDING_DOCUMENTS')
+      .filter(app => app.status === 'PENDING_DOCUMENTS' || app.status === 'PENDING_COMPLIANCE_DOCS')
       .forEach((application) => {
         tasks.push({
           id: `additional-docs-${application.id}`,
-          title: 'Additional Documents Required',
-          description: `Loan officer has requested additional documents for your ${this.getLoanTypeDisplay(application.loanType)} application`,
+          title: application.status === 'PENDING_COMPLIANCE_DOCS' ? 'Compliance Requested Documents' : 'Additional Documents Required',
+          description: application.status === 'PENDING_COMPLIANCE_DOCS'
+            ? `Compliance officer has requested additional documents for your ${this.getLoanTypeDisplay(application.loanType)} application`
+            : `Loan officer has requested additional documents for your ${this.getLoanTypeDisplay(application.loanType)} application`,
           priority: 'URGENT',
           type: 'ADDITIONAL_DOCUMENTS',
           actionMethod: 'viewApplication',

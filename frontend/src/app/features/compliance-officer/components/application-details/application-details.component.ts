@@ -1,14 +1,15 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { ComplianceService, LoanApplicationResponse, ComplianceInvestigationResponse } from '../../../../core/services/compliance.service';
+import { ComplianceService, LoanApplicationResponse, ComplianceInvestigationResponse, ComplianceDocumentRequest } from '../../../../core/services/compliance.service';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { IdEncoderService } from '../../../../core/services/id-encoder.service';
 
 @Component({
   selector: 'app-application-details',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './application-details.component.html',
   styleUrl: './application-details.component.css'
 })
@@ -27,11 +28,23 @@ export class ApplicationDetailsComponent implements OnInit {
   investigationResults = signal<ComplianceInvestigationResponse | null>(null);
   isRunningInvestigation = signal(false);
 
+  // Request additional documents modal state
+  showRequestDocsModal = signal(false);
+  requestDocsItems = signal<{ documentType: string; reason: string }[]>([]);
+  requestDocsInstructions = signal('');
+  requestDocsDueDate = signal(''); // YYYY-MM-DD
+  minDueDate = computed(() => this.getTodayStr());
+  requestDocsReason = signal('');
+  requestDocsPriority = signal<'HIGH' | 'MEDIUM' | 'LOW'>('MEDIUM');
+  requestDocsMandatory = signal(false);
+  requestDocsCategory = signal('COMPLIANCE_EXTRA');
+
   // Computed properties for easier access
   applicationInfo = computed(() => this.application()?.applicationInfo);
   applicantIdentity = computed(() => this.application()?.applicantIdentity);
   employmentDetails = computed(() => this.application()?.employmentDetails);
   documents = computed(() => this.application()?.documents || []);
+  complianceOnlyDocuments = computed<any[]>(() => (this.documents() || []).filter((d: any) => this.isComplianceOnlyDoc(d)));
   financialAssessment = computed(() => this.application()?.financialAssessment);
   verificationSummary = computed(() => this.application()?.verificationSummary);
 
@@ -44,6 +57,8 @@ export class ApplicationDetailsComponent implements OnInit {
         const decodedId = this.idEncoder.decodeId(encodedId);
         if (decodedId) {
           this.applicationId.set(decodedId);
+          // Restore investigation results from localStorage before loading application details
+          this.restoreInvestigationResults(decodedId);
           this.loadApplicationDetails(decodedId);
         } else {
           this.notificationService.error('Error', 'Invalid application reference');
@@ -67,6 +82,10 @@ export class ApplicationDetailsComponent implements OnInit {
         this.application.set(data);
         this.isLoading.set(false);
         console.log('✅ Application details loaded:', data);
+        // If status is UNDER_INVESTIGATION, try to restore investigation results
+        if (data?.applicationInfo?.status === 'UNDER_INVESTIGATION') {
+          this.restoreInvestigationResults(id);
+        }
       },
       error: (error) => {
         console.error('❌ Error loading application details:', error);
@@ -88,6 +107,101 @@ export class ApplicationDetailsComponent implements OnInit {
    */
   refresh(): void {
     this.loadApplicationDetails(this.applicationId());
+  }
+
+  /** Open/close Request Documents modal */
+  openRequestDocsModal(): void {
+    // Ensure at least one row exists
+    if (this.requestDocsItems().length === 0) {
+      this.requestDocsItems.set([{ documentType: '', reason: '' }]);
+    }
+    // Default due date to today if empty
+    if (!this.requestDocsDueDate()) {
+      this.requestDocsDueDate.set(this.getTodayStr());
+    }
+    this.showRequestDocsModal.set(true);
+  }
+  closeRequestDocsModal(): void {
+    this.showRequestDocsModal.set(false);
+  }
+
+  addRequestDoc(): void {
+    this.requestDocsItems.update(list => [...list, { documentType: '', reason: '' }]);
+  }
+  removeRequestDoc(index: number): void {
+    const current = this.requestDocsItems();
+    if (current.length <= 1) {
+      this.notificationService.warning?.('Not Allowed', 'At least one document is required');
+      return;
+    }
+    this.requestDocsItems.update(list => list.filter((_, i) => i !== index));
+  }
+
+  updateRequestDocType(index: number, value: string): void {
+    this.requestDocsItems.update(list => {
+      const copy = [...list];
+      copy[index] = { ...copy[index], documentType: value };
+      return copy;
+    });
+  }
+
+  updateRequestDocReason(index: number, value: string): void {
+    this.requestDocsItems.update(list => {
+      const copy = [...list];
+      copy[index] = { ...copy[index], reason: value };
+      return copy;
+    });
+  }
+
+  submitRequestDocuments(): void {
+    const appId = this.applicationId();
+    if (!appId) {
+      this.notificationService.error('Error', 'Application ID not found');
+      return;
+    }
+
+    const items = this.requestDocsItems().filter(i => i.documentType && i.documentType.trim().length > 0);
+    if (items.length === 0) {
+      this.notificationService.error('Validation', 'Add at least one document type to request');
+      return;
+    }
+
+    if (!this.requestDocsReason() || this.requestDocsReason().trim().length === 0) {
+      this.notificationService.error('Validation', 'Provide a request reason');
+      return;
+    }
+
+    if (!this.requestDocsDueDate()) {
+      this.notificationService.error('Validation', 'Select a due date');
+      return;
+    }
+    if (this.isDueDatePast(this.requestDocsDueDate())) {
+      this.notificationService.error('Validation', 'Due date cannot be in the past');
+      return;
+    }
+
+    const payload: ComplianceDocumentRequest = {
+      requiredDocumentTypes: items.map(i => i.documentType),
+      requestReason: this.requestDocsReason().trim(),
+      additionalInstructions: this.requestDocsInstructions() ? `[COMPLIANCE_ONLY] ${this.requestDocsInstructions().trim()}` : undefined,
+      deadlineDays: this.getDeadlineDaysFrom(this.requestDocsDueDate()),
+      priorityLevel: this.requestDocsPriority(),
+      isMandatory: this.requestDocsMandatory(),
+      complianceCategory: this.requestDocsCategory()
+    };
+
+    this.complianceService.requestAdditionalDocuments(appId, payload).subscribe({
+      next: () => {
+        this.notificationService.success('Requested', 'Additional documents requested from applicant');
+        this.showRequestDocsModal.set(false);
+        // Optionally reload details to reflect pending docs state on compliance side
+        this.loadApplicationDetails(appId);
+      },
+      error: (err) => {
+        console.error('Error requesting additional documents', err);
+        this.notificationService.error('Error', 'Failed to request additional documents');
+      }
+    });
   }
 
   /**
@@ -185,6 +299,9 @@ export class ApplicationDetailsComponent implements OnInit {
         this.investigationResults.set(response);
         this.isRunningInvestigation.set(false);
         this.activeTab.set('investigation'); // Switch to investigation tab
+        
+        // Persist investigation results to localStorage
+        this.saveInvestigationResults(id, response);
         
         // Reload application details to get updated status
         setTimeout(() => {
@@ -330,6 +447,191 @@ export class ApplicationDetailsComponent implements OnInit {
    */
   isArray(value: any): boolean {
     return Array.isArray(value);
+  }
+
+  /**
+   * Block actions when pending compliance documents
+   */
+  isBlockedByPendingDocs(): boolean {
+    return (this.applicationInfo()?.status === 'PENDING_COMPLIANCE_DOCS');
+  }
+
+  /**
+   * Local date string YYYY-MM-DD (no timezone shift)
+   */
+  private getTodayStr(): string {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  private isDueDatePast(dateStr: string): boolean {
+    if (!dateStr) return false;
+    const today = new Date(this.getTodayStr());
+    const sel = new Date(dateStr);
+    // Compare date-only
+    return sel.getTime() < today.getTime();
+  }
+
+  private getDeadlineDaysFrom(dateStr: string): number {
+    const today = new Date(this.getTodayStr());
+    const sel = new Date(dateStr);
+    const msPerDay = 24 * 60 * 60 * 1000;
+    const diff = Math.ceil((sel.getTime() - today.getTime()) / msPerDay);
+    return Math.max(diff, 0);
+  }
+
+  /** Compliance-only documents: review state */
+  complianceReviewNotes = signal('');
+  complianceDocDecisions = signal<Record<string, { verified: boolean | null; notes?: string; rejectionReason?: string }>>({});
+
+  setComplianceDocDecision(documentId: string, verified: boolean): void {
+    const current = { ...this.complianceDocDecisions() };
+    current[documentId] = { ...(current[documentId] || { verified: null }), verified };
+    this.complianceDocDecisions.set(current);
+  }
+
+  setComplianceDocNotes(documentId: string, value: string): void {
+    const current = { ...this.complianceDocDecisions() };
+    current[documentId] = { ...(current[documentId] || { verified: null }), notes: value };
+    this.complianceDocDecisions.set(current);
+  }
+
+  setComplianceDocRejectionReason(documentId: string, value: string): void {
+    const current = { ...this.complianceDocDecisions() };
+    current[documentId] = { ...(current[documentId] || { verified: null }), rejectionReason: value };
+    this.complianceDocDecisions.set(current);
+  }
+
+  canSubmitComplianceDocReview(): boolean {
+    const docs = this.complianceOnlyDocuments();
+    if (!docs || docs.length === 0) return false;
+    const decisions = this.complianceDocDecisions();
+    // At least one decision must be made, and any rejected must have a reason
+    let hasAny = false;
+    for (const doc of docs) {
+      const entry = decisions[doc.documentId];
+      if (entry && entry.verified !== null) {
+        hasAny = true;
+        if (entry.verified === false && (!entry.rejectionReason || entry.rejectionReason.trim().length === 0)) {
+          return false;
+        }
+      }
+    }
+    return hasAny;
+  }
+
+  submitComplianceDocReview(): void {
+    const appId = this.applicationId();
+    if (!appId) {
+      this.notificationService.error('Error', 'Application ID not found');
+      return;
+    }
+    const docs = this.complianceOnlyDocuments();
+    const decisions = this.complianceDocDecisions();
+    const payload = {
+      documentVerifications: docs
+        .filter((d: any) => decisions[d.documentId] && decisions[d.documentId].verified !== null)
+        .map((d: any) => ({
+          documentId: String(d.documentId),
+          verified: Boolean(decisions[d.documentId].verified),
+          verificationNotes: decisions[d.documentId].verified ? (decisions[d.documentId].notes || 'Compliance verification') : undefined,
+          rejectionReason: decisions[d.documentId].verified ? undefined : (decisions[d.documentId].rejectionReason || 'Not acceptable')
+        })),
+      generalNotes: this.complianceReviewNotes()
+    };
+
+    if (payload.documentVerifications.length === 0) {
+      this.notificationService.error('Validation', 'Select approve/reject for at least one document');
+      return;
+    }
+
+    this.isLoading.set(true);
+    this.complianceService.verifyComplianceDocuments(appId, payload).subscribe({
+      next: () => {
+        this.notificationService.success('Submitted', 'Compliance document review submitted');
+        this.isLoading.set(false);
+        // Refresh to reflect any status changes
+        this.loadApplicationDetails(appId);
+      },
+      error: (err) => {
+        console.error('Compliance review submit error', err);
+        this.notificationService.error('Error', 'Failed to submit compliance document review');
+        this.isLoading.set(false);
+      }
+    });
+  }
+
+  private isComplianceOnlyDoc(doc: any): boolean {
+    try {
+      if (!doc) return false;
+      if (doc.tags && Array.isArray(doc.tags) && doc.tags.includes('COMPLIANCE_ONLY')) return true;
+      if (doc.meta && (doc.meta.requestedBy === 'COMPLIANCE' || doc.meta.visibility === 'COMPLIANCE_ONLY')) return true;
+      if (typeof doc.additionalInstructions === 'string' && doc.additionalInstructions.includes('[COMPLIANCE_ONLY]')) return true;
+      if (typeof doc.notes === 'string' && doc.notes.includes('[COMPLIANCE_ONLY]')) return true;
+      return false;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * UI helper: disable Request button when invalid
+   */
+  isRequestDocsSubmitDisabled(): boolean {
+    const docsCount = this.requestDocsItems().filter(i => i.documentType && i.documentType.trim().length > 0).length;
+    const due = this.requestDocsDueDate();
+    const reason = this.requestDocsReason();
+    return (
+      docsCount === 0 ||
+      !due || this.isDueDatePast(due) ||
+      !reason || reason.trim().length === 0
+    );
+  }
+
+  /**
+   * Save investigation results to localStorage
+   */
+  private saveInvestigationResults(applicationId: string, results: ComplianceInvestigationResponse): void {
+    try {
+      const key = `investigation_${applicationId}`;
+      localStorage.setItem(key, JSON.stringify(results));
+      console.log('✅ Investigation results saved to localStorage');
+    } catch (error) {
+      console.error('❌ Error saving investigation results to localStorage:', error);
+    }
+  }
+
+  /**
+   * Restore investigation results from localStorage
+   */
+  private restoreInvestigationResults(applicationId: string): void {
+    try {
+      const key = `investigation_${applicationId}`;
+      const stored = localStorage.getItem(key);
+      if (stored) {
+        const results = JSON.parse(stored) as ComplianceInvestigationResponse;
+        this.investigationResults.set(results);
+        console.log('✅ Investigation results restored from localStorage');
+      }
+    } catch (error) {
+      console.error('❌ Error restoring investigation results from localStorage:', error);
+    }
+  }
+
+  /**
+   * Clear investigation results from localStorage
+   */
+  private clearInvestigationResults(applicationId: string): void {
+    try {
+      const key = `investigation_${applicationId}`;
+      localStorage.removeItem(key);
+      console.log('✅ Investigation results cleared from localStorage');
+    } catch (error) {
+      console.error('❌ Error clearing investigation results from localStorage:', error);
+    }
   }
 
   /**

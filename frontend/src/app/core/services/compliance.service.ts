@@ -108,9 +108,9 @@ export interface ComplianceDecisionResponse {
 }
 
 /**
- * Compliance Document Request
+ * Legacy placeholder (do not use)
  */
-export interface ComplianceDocumentRequest {
+export interface LegacyComplianceDocumentRequest {
   documentTypes: string[];
   requestReason: string;
   deadline?: string;
@@ -129,6 +129,16 @@ export interface ComplianceInvestigationResponse {
   fraud_records: any;
   loan_history: any;
   consolidatedFindings: any;
+}
+
+export interface ComplianceDocumentRequest {
+  requiredDocumentTypes: string[];
+  requestReason: string;
+  additionalInstructions?: string;
+  deadlineDays: number;
+  priorityLevel?: 'HIGH' | 'MEDIUM' | 'LOW';
+  isMandatory: boolean;
+  complianceCategory?: string;
 }
 
 @Injectable({
@@ -211,6 +221,31 @@ export class ComplianceService {
    */
   performComprehensiveInvestigation(applicationId: string): Observable<ComplianceInvestigationResponse> {
     return this.apiService.post<ComplianceInvestigationResponse>(`${this.BASE_URL}/applications/${applicationId}/investigate`, {});
+  }
+
+  /**
+   * Request additional documents via existing officer resubmission endpoint
+   */
+  requestAdditionalDocuments(
+    applicationId: string,
+    payload: ComplianceDocumentRequest
+  ): Observable<string> {
+    // Backend returns plain text; use HttpClient with responseType 'text'
+    const url = `${environment.apiUrl}${this.BASE_URL}/applications/${applicationId}/request-documents`;
+    const resp = this.http.post(url, payload, { responseType: 'text' }) as Observable<string>;
+    return resp.pipe(map(text => text || 'Compliance document request sent successfully'));
+  }
+
+  /**
+   * Submit compliance-only document verification decisions
+   * Reuses a compliance endpoint expected on backend
+   */
+  verifyComplianceDocuments(applicationId: string, body: {
+    documentVerifications: Array<{ documentId: string; verified: boolean; verificationNotes?: string; rejectionReason?: string }>;
+    generalNotes?: string;
+  }): Observable<any> {
+    const url = `${this.BASE_URL}/applications/${applicationId}/verify-documents`;
+    return this.apiService.post<any>(url, body);
   }
 
   /**

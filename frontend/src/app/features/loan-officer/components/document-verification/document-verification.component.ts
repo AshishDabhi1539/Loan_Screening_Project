@@ -135,7 +135,7 @@ export class DocumentVerificationComponent implements OnInit {
   // Get documents by category - using computed signals to prevent excessive re-computation
   identityDocuments = computed(() => {
     const identityTypes = ['AADHAAR_CARD', 'PAN_CARD', 'PASSPORT', 'VOTER_ID', 'DRIVING_LICENSE', 'PHOTOGRAPH'];
-    return this.applicationDetails()?.documents.filter(doc => identityTypes.includes(doc.documentType)) || [];
+    return this.applicationDetails()?.documents.filter(doc => identityTypes.includes(doc.documentType) && !this.isComplianceOnlyDoc(doc)) || [];
   });
 
   // Keep the old method for backward compatibility, but use the computed signal
@@ -163,7 +163,7 @@ export class DocumentVerificationComponent implements OnInit {
     ];
 
     return this.applicationDetails()?.documents.filter(doc => 
-      allEmploymentTypes.includes(doc.documentType)
+      allEmploymentTypes.includes(doc.documentType) && !this.isComplianceOnlyDoc(doc)
     ) || [];
   }
 
@@ -187,7 +187,7 @@ export class DocumentVerificationComponent implements OnInit {
     ];
 
     return this.applicationDetails()?.documents.filter(doc => 
-      allIncomeTypes.includes(doc.documentType)
+      allIncomeTypes.includes(doc.documentType) && !this.isComplianceOnlyDoc(doc)
     ) || [];
   }
 
@@ -199,7 +199,7 @@ export class DocumentVerificationComponent implements OnInit {
       'BANK_ACCOUNT_PROOF',
       'CHEQUE_BOOK_COPY'
     ];
-    return this.applicationDetails()?.documents.filter(doc => bankTypes.includes(doc.documentType)) || [];
+    return this.applicationDetails()?.documents.filter(doc => bankTypes.includes(doc.documentType) && !this.isComplianceOnlyDoc(doc)) || [];
   }
 
   getAddressDocuments(): any[] {
@@ -216,7 +216,7 @@ export class DocumentVerificationComponent implements OnInit {
       'PROPERTY_DEED',
       'ADDRESS_PROOF'
     ];
-    return this.applicationDetails()?.documents.filter(doc => addressTypes.includes(doc.documentType)) || [];
+    return this.applicationDetails()?.documents.filter(doc => addressTypes.includes(doc.documentType) && !this.isComplianceOnlyDoc(doc)) || [];
   }
 
   // Helper to check if category has documents
@@ -574,6 +574,22 @@ export class DocumentVerificationComponent implements OnInit {
     if (this.hasAddressDocuments() && form.addressVerified === null) missing.push('Address');
     
     return missing;
+  }
+
+  /**
+   * Hide compliance-only documents from loan officer views
+   */
+  private isComplianceOnlyDoc(doc: any): boolean {
+    try {
+      if (!doc) return false;
+      if (doc.tags && Array.isArray(doc.tags) && doc.tags.includes('COMPLIANCE_ONLY')) return true;
+      if (doc.meta && (doc.meta.requestedBy === 'COMPLIANCE' || doc.meta.visibility === 'COMPLIANCE_ONLY')) return true;
+      if (typeof doc.additionalInstructions === 'string' && doc.additionalInstructions.includes('[COMPLIANCE_ONLY]')) return true;
+      if (typeof doc.notes === 'string' && doc.notes.includes('[COMPLIANCE_ONLY]')) return true;
+      return false;
+    } catch {
+      return false;
+    }
   }
 
   /**
