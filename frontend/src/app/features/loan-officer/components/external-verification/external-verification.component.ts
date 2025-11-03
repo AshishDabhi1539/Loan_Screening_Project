@@ -118,4 +118,14 @@ export class ExternalVerificationComponent implements OnInit {
   getRiskLevelBadgeClass(riskLevel: string): string {
     return this.loanOfficerService.getRiskLevelBadgeClass(riskLevel);
   }
+
+  /**
+   * Format currency for display
+   */
+  formatCurrency(amount: number): string {
+    if (!amount) return '0';
+    return new Intl.NumberFormat('en-IN', {
+      maximumFractionDigits: 0
+    }).format(amount);
+  }
 }

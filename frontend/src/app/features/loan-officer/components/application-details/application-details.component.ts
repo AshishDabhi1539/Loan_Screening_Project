@@ -413,16 +413,27 @@ export class ApplicationDetailsComponent implements OnInit {
     if (!financial?.riskAssessment && !summary) return null;
 
     return {
+      // Credit Scoring Results
       creditScore: null,
-      riskScore: financial?.riskAssessment?.riskLevel || 'UNKNOWN',
+      riskType: financial?.riskAssessment?.riskLevel || 'UNKNOWN',
       riskScoreNumeric: financial?.riskAssessment?.riskScore || 0,
-      fraudScore: financial?.riskAssessment?.fraudScore || 0,
       riskFactors: financial?.riskAssessment?.riskFactors?.join(', ') || 'No risk factors identified',
-      creditScoreReason: undefined,
+      creditScoreReason: 'Based on available data',
       redAlertFlag: (financial?.riskAssessment?.fraudScore || 0) > 70,
+      
+      // Financial Metrics
+      totalOutstanding: 0,
+      activeLoansCount: 0,
+      totalMissedPayments: 0,
+      hasDefaults: false,
+      activeFraudCases: 0,
+      
+      // Data Availability
+      dataFound: summary?.externalVerificationComplete || false,
+      
+      // Metadata
       recommendedAction: financial?.riskAssessment?.overallAssessment || summary?.nextAction || 'Review required',
-      verifiedAt: new Date(),
-      dataFound: summary?.externalVerificationComplete || false
+      verifiedAt: new Date()
     };
   });
 
