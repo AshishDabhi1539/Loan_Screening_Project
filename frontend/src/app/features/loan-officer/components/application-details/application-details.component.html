@@ -30,34 +30,39 @@
           </p>
         </div>
         <div class="flex items-center space-x-3">
-          @if (getSmartActionButton()) {
-            <button
-              (click)="getSmartActionButton()!.method()"
-              [class]="'inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ' + getSmartActionButton()!.color"
-            >
-              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" [attr.d]="getSmartActionButton()!.icon"/>
-              </svg>
-              {{ getSmartActionButton()!.text }}
-            </button>
+          <!-- Show action buttons only if shouldShowActionButtons is true -->
+          @if (shouldShowActionButtons()) {
+            @if (getSmartActionButton()) {
+              <button
+                (click)="getSmartActionButton()!.method()"
+                [class]="'inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ' + getSmartActionButton()!.color"
+              >
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" [attr.d]="getSmartActionButton()!.icon"/>
+                </svg>
+                {{ getSmartActionButton()!.text }}
+              </button>
+            }
+            @if (applicationDetails()?.applicationInfo?.status !== 'UNDER_REVIEW') {
+              <button
+                (click)="startReview()"
+                class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                </svg>
+                Review Workflow
+              </button>
+            }
           }
           <button
-            (click)="startReview()"
-            class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-            </svg>
-            Review Workflow
-          </button>
-          <button
-            (click)="viewApplicationDetails()"
+            (click)="goBack()"
             class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
             </svg>
-            Back to Applications
+            {{ getBackButtonText() }}
           </button>
         </div>
       </div>
@@ -329,7 +334,14 @@
                 <div class="bg-purple-50 rounded-lg p-4">
                   <div class="text-sm text-gray-600">Personal Details</div>
                   <div class="mt-2">
-                    @if (getPersonalDetails()) {
+                    @if (isPersonalDetailsVerified()) {
+                      <span class="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full font-medium flex items-center gap-1 w-fit">
+                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                          <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                        VERIFIED
+                      </span>
+                    } @else if (getPersonalDetails()) {
                       <span class="text-xs px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full font-medium">
                         SUBMITTED
                       </span>
@@ -340,13 +352,20 @@
                     }
                   </div>
                   <div class="text-xs text-gray-500 mt-2">
-                    Awaiting verification
+                    {{ isPersonalDetailsVerified() ? 'Verification complete' : 'Awaiting verification' }}
                   </div>
                 </div>
                 <div class="bg-green-50 rounded-lg p-4">
                   <div class="text-sm text-gray-600">Financial Details</div>
                   <div class="mt-2">
-                    @if (getFinancialDetails()) {
+                    @if (isFinancialDetailsVerified()) {
+                      <span class="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full font-medium flex items-center gap-1 w-fit">
+                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                          <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                        VERIFIED
+                      </span>
+                    } @else if (getFinancialDetails()) {
                       <span class="text-xs px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full font-medium">
                         SUBMITTED
                       </span>
@@ -357,7 +376,7 @@
                     }
                   </div>
                   <div class="text-xs text-gray-500 mt-2">
-                    Awaiting verification
+                    {{ isFinancialDetailsVerified() ? 'Verification complete' : 'Awaiting verification' }}
                   </div>
                 </div>
               </div>
@@ -393,6 +412,14 @@
                   <div>
                     <div class="text-sm text-gray-500">Date of Birth</div>
                     <div class="text-base font-medium text-gray-900 mt-1">{{ formatDate(personal.dateOfBirth) }}</div>
+                  </div>
+                  <div>
+                    <div class="text-sm text-gray-500">Gender</div>
+                    <div class="text-base font-medium text-gray-900 mt-1">{{ personal.gender || 'Not provided' }}</div>
+                  </div>
+                  <div>
+                    <div class="text-sm text-gray-500">Marital Status</div>
+                    <div class="text-base font-medium text-gray-900 mt-1">{{ personal.maritalStatus || 'Not provided' }}</div>
                   </div>
                 </div>
               </div>
@@ -573,6 +600,12 @@
                       <div class="text-base font-medium text-gray-900 mt-1">{{ formatCurrency(financial.creditCardOutstanding) }}</div>
                     </div>
                   }
+                  @if (financial.monthlyExpenses) {
+                    <div>
+                      <div class="text-sm text-gray-500">Monthly Expenses</div>
+                      <div class="text-base font-medium text-gray-900 mt-1">{{ formatCurrency(financial.monthlyExpenses) }}</div>
+                    </div>
+                  }
                   @if (financial.otherObligations) {
                     <div>
                       <div class="text-sm text-gray-500">Other Obligations</div>
@@ -648,59 +681,160 @@
           <div class="space-y-6">
             @if (getExternalVerification()) {
               <ng-container *ngIf="getExternalVerification() as external">
-              <div class="bg-gray-50 rounded-lg p-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <div class="text-sm text-gray-500">Credit Score</div>
-                    <div class="text-3xl font-bold text-gray-900 mt-2">
-                      {{ external.creditScore !== null ? external.creditScore : 'N/A' }}
+              <div class="bg-white shadow-xl rounded-xl p-8">
+                <div class="flex items-center gap-3 mb-6">
+                  <div class="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg p-2">
+                    <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                    </svg>
+                  </div>
+                  <h2 class="text-2xl font-bold text-gray-900">Verification Results</h2>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                  <!-- Credit Score -->
+                  <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 border border-blue-200 shadow-md hover:shadow-lg transition-shadow">
+                    <div class="flex items-center gap-2 mb-3">
+                      <svg class="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/>
+                      </svg>
+                      <div class="text-sm font-semibold text-gray-700">Credit Score</div>
                     </div>
-                    @if (external.creditScoreReason) {
-                      <div class="text-xs text-gray-500 mt-1">{{ external.creditScoreReason }}</div>
+                    @if (external.creditScore !== null && external.creditScore > 0) {
+                      <div class="text-3xl font-bold text-blue-600 mt-2">
+                        {{ external.creditScore }}
+                      </div>
+                      <div class="text-xs text-gray-600 mt-2">
+                        @if (external.creditScore >= 750) {
+                          <span class="text-green-600 font-medium">✓ Excellent</span>
+                        } @else if (external.creditScore >= 650) {
+                          <span class="text-blue-600 font-medium">Good</span>
+                        } @else if (external.creditScore >= 550) {
+                          <span class="text-yellow-600 font-medium">Fair</span>
+                        } @else {
+                          <span class="text-red-600 font-medium">⚠ Poor</span>
+                        }
+                      </div>
+                    } @else {
+                      <div class="text-2xl font-semibold text-gray-400 mt-2">N/A</div>
+                      <div class="text-xs text-gray-500 mt-2">{{ external.creditScoreReason || 'No credit history available' }}</div>
                     }
                   </div>
-                  <div>
-                    <div class="text-sm text-gray-500">Risk Score</div>
+
+                  <!-- Risk Assessment -->
+                  <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-6 border border-purple-200 shadow-md hover:shadow-lg transition-shadow">
+                    <div class="flex items-center gap-2 mb-3">
+                      <svg class="w-5 h-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                      </svg>
+                      <div class="text-sm font-semibold text-gray-700">Risk Assessment</div>
+                    </div>
                     <div class="mt-2">
-                      <span [ngClass]="getRiskLevelBadgeClass(external.riskScore)"
-                            class="px-4 py-2 text-lg font-semibold rounded-full">
-                        {{ external.riskScore }} ({{ external.riskScoreNumeric }})
-                      </span>
+                      @if (external.riskScore) {
+                        <span [ngClass]="getRiskLevelBadgeClass(external.riskScore)"
+                              class="px-4 py-2 text-lg font-semibold rounded-full">
+                          {{ external.riskScore }}
+                        </span>
+                        @if (external.riskScoreNumeric !== null && external.riskScoreNumeric !== undefined) {
+                          <div class="text-sm text-gray-600 mt-2">Score: {{ external.riskScoreNumeric }}</div>
+                        }
+                      } @else {
+                        <span class="px-4 py-2 text-lg font-semibold rounded-full bg-gray-100 text-gray-500">
+                          Not Assessed
+                        </span>
+                      }
                     </div>
                   </div>
-                  <div>
-                    <div class="text-sm text-gray-500">Fraud Score</div>
-                    <div class="text-2xl font-bold text-gray-900 mt-2">{{ external.fraudScore }}</div>
-                    @if (external.redAlertFlag) {
-                      <div class="text-xs text-red-600 font-semibold mt-1">⚠️ Red Alert Flagged</div>
+
+                  <!-- Fraud Detection -->
+                  <div class="bg-gradient-to-br from-red-50 to-red-100 rounded-xl p-6 border border-red-200 shadow-md hover:shadow-lg transition-shadow">
+                    <div class="flex items-center gap-2 mb-3">
+                      <svg class="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd"/>
+                      </svg>
+                      <div class="text-sm font-semibold text-gray-700">Fraud Detection</div>
+                    </div>
+                    @if (external.fraudScore !== null && external.fraudScore !== undefined) {
+                      <div class="text-3xl font-bold text-red-600 mt-2">{{ external.fraudScore }}</div>
+                      @if (external.redAlertFlag) {
+                        <div class="text-xs text-red-600 font-semibold mt-2">⚠️ Red Alert Flagged</div>
+                      }
+                    } @else {
+                      <div class="text-2xl font-semibold mt-2">
+                        @if (external.redAlertFlag) {
+                          <span class="text-red-600">⚠️ Alert</span>
+                        } @else {
+                          <span class="text-green-600">✓ Clear</span>
+                        }
+                      </div>
+                      <div class="text-xs text-gray-500 mt-2">{{ external.redAlertFlag ? 'Fraud indicators detected' : 'No fraud indicators' }}</div>
                     }
                   </div>
-                  <div>
-                    <div class="text-sm text-gray-500">Data Found</div>
-                    <div class="mt-2">
-                      <span [ngClass]="external.dataFound ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'"
-                            class="px-4 py-2 text-sm font-semibold rounded-full">
-                        {{ external.dataFound ? 'Yes' : 'No' }}
-                      </span>
+
+                  <!-- External Data -->
+                  <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-6 border border-green-200 shadow-md hover:shadow-lg transition-shadow">
+                    <div class="flex items-center gap-2 mb-3">
+                      <svg class="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M3 12v3c0 1.657 3.134 3 7 3s7-1.343 7-3v-3c0 1.657-3.134 3-7 3s-7-1.343-7-3z"/>
+                        <path d="M3 7v3c0 1.657 3.134 3 7 3s7-1.343 7-3V7c0 1.657-3.134 3-7 3S3 8.657 3 7z"/>
+                        <path d="M17 5c0 1.657-3.134 3-7 3S3 6.657 3 5s3.134-3 7-3 7 1.343 7 3z"/>
+                      </svg>
+                      <div class="text-sm font-semibold text-gray-700">External Data</div>
                     </div>
-                  </div>
-                  @if (external.riskFactors) {
-                    <div class="md:col-span-2">
-                      <div class="text-sm text-gray-500">Risk Factors</div>
-                      <div class="text-base text-gray-900 mt-2 bg-white p-3 rounded">
-                        {{ external.riskFactors }}
+                    <div class="mt-2">
+                      <span [ngClass]="external.dataFound ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'"
+                            class="px-4 py-2 text-sm font-semibold rounded-full inline-flex items-center gap-1">
+                        @if (external.dataFound) {
+                          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                          </svg>
+                          Found
+                        } @else {
+                          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                          </svg>
+                          Limited Data
+                        }
+                      </span>
+                      <div class="text-xs text-gray-500 mt-2">
+                        {{ external.dataFound ? 'Complete external records found' : 'Partial or no external records' }}
                       </div>
                     </div>
-                  }
-                  <div class="md:col-span-2">
-                    <div class="text-sm text-gray-500">Recommended Action</div>
-                    <div class="text-base font-medium text-gray-900 mt-2">
-                      {{ external.recommendedAction }}
+                  </div>
+                </div>
+
+                @if (external.riskFactors) {
+                  <div class="bg-gradient-to-br from-red-50 to-orange-50 rounded-xl p-6 border-l-4 border-red-500 shadow-md mb-6">
+                    <div class="flex items-center gap-2 mb-3">
+                      <svg class="w-6 h-6 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                      </svg>
+                      <div class="text-base font-bold text-red-900">Risk Factors Identified</div>
+                    </div>
+                    <div class="bg-white rounded-lg p-4 shadow-sm">
+                      <p class="text-sm text-gray-900 leading-relaxed">{{ external.riskFactors }}</p>
                     </div>
                   </div>
-                  <div>
-                    <div class="text-sm text-gray-500">Verified At</div>
-                    <div class="text-base text-gray-900 mt-2">{{ formatDateTime(external.verifiedAt) }}</div>
+                }
+
+                <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border-l-4 border-blue-600 shadow-md mb-6">
+                  <div class="flex items-center gap-2 mb-3">
+                    <svg class="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                    </svg>
+                    <div class="text-base font-bold text-blue-900">Recommended Action</div>
+                  </div>
+                  <div class="bg-white rounded-lg p-4 shadow-sm">
+                    <p class="text-base font-semibold text-gray-900">{{ external.recommendedAction }}</p>
+                  </div>
+                </div>
+
+                <div class="bg-gray-50 rounded-lg p-4">
+                  <div class="flex items-center gap-2 text-sm text-gray-600">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+                    </svg>
+                    <span>Verified at: {{ formatDateTime(external.verifiedAt) }}</span>
                   </div>
                 </div>
               </div>

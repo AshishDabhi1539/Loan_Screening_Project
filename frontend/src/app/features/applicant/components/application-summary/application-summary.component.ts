@@ -40,6 +40,7 @@ interface ApplicationSummary {
 
 interface FinancialDetails {
   employerName?: string;
+  businessName?: string;
   designation?: string;
   employmentType?: string;
   primaryMonthlyIncome?: number;
@@ -47,6 +48,7 @@ interface FinancialDetails {
   monthlyExpenses?: number;
   bankName?: string;
   accountNumber?: string;
+  workExperienceYears?: number;
 }
 
 interface DocumentInfo {
@@ -74,6 +76,7 @@ export class ApplicationSummaryComponent implements OnInit {
   applicationId = signal<string>('');
   employmentType = signal<string>('SALARIED'); // Store employment type from query params
   application = signal<ApplicationSummary | null>(null);
+  personalDetails = signal<any | null>(null); // Personal details with DOB, gender, address, etc.
   financialDetails = signal<FinancialDetails | null>(null);
   documents = signal<DocumentInfo[]>([]);
   isLoading = signal<boolean>(true);
@@ -134,6 +137,7 @@ export class ApplicationSummaryComponent implements OnInit {
     }
 
     this.loadApplicationData();
+    this.loadPersonalDetails(); // This now loads both personal and financial data
     this.loadDocuments();
   }
 
@@ -279,23 +283,127 @@ export class ApplicationSummaryComponent implements OnInit {
   }
 
   /**
-   * Edit section
+   * Get full address from personal details
+   */
+  getFullAddress(): string {
+    const details = this.personalDetails();
+    if (!details) return 'Not provided';
+    
+    const parts = [
+      details.addressLine1,
+      details.addressLine2,
+      details.city,
+      details.state,
+      details.pincode
+    ].filter(part => part);
+    
+    return parts.length > 0 ? parts.join(', ') : 'Not provided';
+  }
+
+  /**
+   * Mask account number for security
+   */
+  maskAccountNumber(accountNumber?: string): string {
+    if (!accountNumber) return 'Not provided';
+    if (accountNumber.length <= 4) return accountNumber;
+    const lastFour = accountNumber.slice(-4);
+    const masked = 'X'.repeat(accountNumber.length - 4);
+    return masked + lastFour;
+  }
+
+  /**
+   * Load personal details using complete-details endpoint
+   */
+  private loadPersonalDetails(): void {
+    const token = this.authService.getStoredToken();
+    const headers = new HttpHeaders({
+      'Authorization': `Bearer ${token}`
+    });
+
+    this.http.get<any>(
+      `${environment.apiUrl}/loan-application/${this.applicationId()}/complete-details`,
+      { headers }
+    ).subscribe({
+      next: (data) => {
+        console.log('✅ Complete details received:', data);
+        
+        // Extract personal details from nested structure
+        if (data.applicantIdentity?.personalDetails) {
+          const personalData = data.applicantIdentity.personalDetails;
+          const addresses = personalData.addresses;
+          
+          this.personalDetails.set({
+            firstName: personalData.firstName,
+            lastName: personalData.lastName,
+            middleName: personalData.middleName,
+            dateOfBirth: personalData.dateOfBirth,
+            gender: data.applicantIdentity?.personalDetails?.gender || 'Not provided',
+            maritalStatus: data.applicantIdentity?.personalDetails?.maritalStatus || 'Not provided',
+            addressLine1: addresses?.currentAddress || '',
+            city: addresses?.city || '',
+            state: addresses?.state || '',
+            pincode: addresses?.pincode || ''
+          });
+          console.log('✅ Personal details set:', this.personalDetails());
+        }
+        
+        // Extract financial details from nested structure
+        if (data.employmentDetails) {
+          const empData = data.employmentDetails;
+          
+          this.financialDetails.set({
+            employerName: empData.companyName,
+            businessName: empData.companyName, // Same as employer for now
+            designation: empData.designation,
+            employmentType: empData.employmentType,
+            primaryMonthlyIncome: empData.monthlyIncome,
+            additionalIncome: 0,
+            monthlyExpenses: 0,
+            bankName: empData.bankDetails?.bankName,
+            accountNumber: empData.bankDetails?.accountNumber,
+            workExperienceYears: empData.workExperience ? parseInt(empData.workExperience) : 0
+          });
+          console.log('✅ Financial details set:', this.financialDetails());
+        }
+      },
+      error: (error) => {
+        console.error('❌ Failed to load complete details:', error);
+        // Set empty objects so UI shows 'Not provided' instead of errors
+        this.personalDetails.set({});
+        this.financialDetails.set({});
+      }
+    });
+  }
+
+  /**
+   * Load financial details - placeholder
+   */
+  private loadFinancialDetails(): void {
+    // Placeholder - no action needed
+  }
+
+  /**
+   * Edit section with return navigation to summary
    */
   editSection(section: string): void {
     const appId = this.applicationId();
+    const returnUrl = `/applicant/application-summary?applicationId=${appId}`;
     
     switch(section) {
-      case 'loan':
-        this.router.navigate(['/applicant/apply-loan'], {
-          queryParams: { applicationId: appId }
-        });
-        break;
       case 'personal':
-        this.router.navigate(['/applicant/personal-details']);
+        this.router.navigate(['/applicant/personal-details'], {
+          queryParams: { 
+            applicationId: appId,
+            returnUrl: returnUrl
+          }
+        });
         break;
       case 'employment':
         this.router.navigate(['/applicant/employment-details'], {
-          queryParams: { applicationId: appId }
+          queryParams: { 
+            applicationId: appId,
+            returnUrl: returnUrl
+          }
         });
         break;
       case 'documents':
@@ -303,7 +411,8 @@ export class ApplicationSummaryComponent implements OnInit {
         this.router.navigate(['/applicant/document-upload'], {
           queryParams: { 
             applicationId: appId,
-            employmentType: this.employmentType()
+            employmentType: this.employmentType(),
+            returnUrl: returnUrl
           }
         });
         break;

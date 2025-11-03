@@ -20,6 +20,7 @@ import com.tss.loan.dto.response.LoanApplicationResponse;
 import com.tss.loan.dto.response.OfficerDashboardResponse;
 import com.tss.loan.entity.applicant.ApplicantPersonalDetails;
 import com.tss.loan.entity.enums.ApplicationStatus;
+import com.tss.loan.entity.enums.Priority;
 import com.tss.loan.entity.enums.NotificationType;
 import com.tss.loan.entity.external.CreditScoreHistory;
 import com.tss.loan.entity.loan.LoanApplication;
@@ -132,6 +133,24 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
         // Calculate average processing time
         double averageProcessingTimeHours = calculateAverageProcessingTime(assignedApplications);
         
+        // Priority breakdown calculation
+        int highPriority = (int) assignedApplications.stream()
+            .filter(app -> app.getPriority() == Priority.HIGH)
+            .count();
+        int mediumPriority = (int) assignedApplications.stream()
+            .filter(app -> app.getPriority() == Priority.MEDIUM)
+            .count();
+        int lowPriority = (int) assignedApplications.stream()
+            .filter(app -> app.getPriority() == Priority.LOW || app.getPriority() == null)
+            .count();
+        
+        OfficerDashboardResponse.PriorityBreakdown priorityBreakdown = 
+            OfficerDashboardResponse.PriorityBreakdown.builder()
+                .high(highPriority)
+                .medium(mediumPriority)
+                .low(lowPriority)
+                .build();
+        
         // High priority applications
         int urgentApplications = (int) assignedApplications.stream()
             .filter(app -> app.getRequestedAmount().doubleValue() > 1000000 && 
@@ -142,23 +161,55 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
             .filter(app -> app.getRequestedAmount().doubleValue() > 500000)
             .count();
         
+        // Recent applications (last 5)
+        List<OfficerDashboardResponse.LoanApplicationSummary> recentApplications = assignedApplications.stream()
+            .limit(5)
+            .map(app -> OfficerDashboardResponse.LoanApplicationSummary.builder()
+                .id(app.getId().toString())
+                .applicantName(userDisplayService.getDisplayName(app.getApplicant()))
+                .applicantEmail(app.getApplicant().getEmail())
+                .loanType(app.getLoanType() != null ? app.getLoanType().toString() : "PERSONAL")
+                .requestedAmount(app.getRequestedAmount().doubleValue())
+                .status(app.getStatus().toString())
+                .priority(app.getPriority() != null ? app.getPriority().toString() : "LOW")
+                .submittedAt(app.getCreatedAt())
+                .build())
+            .collect(Collectors.toList());
+        
+        // Recent activities (last 10 audit entries)
+        List<OfficerDashboardResponse.RecentActivity> recentActivities = assignedApplications.stream()
+            .limit(10)
+            .map(app -> OfficerDashboardResponse.RecentActivity.builder()
+                .id(java.util.UUID.randomUUID().toString())
+                .action("Application " + app.getStatus().toString().replace("_", " ").toLowerCase())
+                .applicationId(app.getId().toString())
+                .applicantName(userDisplayService.getDisplayName(app.getApplicant()))
+                .status(app.getStatus().toString())
+                .timestamp(app.getUpdatedAt() != null ? app.getUpdatedAt() : app.getCreatedAt())
+                .performedBy(officerProfileService.getOfficerDisplayName(officer))
+                .build())
+            .collect(Collectors.toList());
+        
         // Build response
         return OfficerDashboardResponse.builder()
             .officerId(officer.getId())
-            .officerName(userDisplayService.getDisplayName(officer))
+            .officerName(officerProfileService.getOfficerDisplayName(officer))
             .officerEmail(officer.getEmail())
             .role(officer.getRole().toString())
-            .totalAssignedApplications(totalAssigned)
+            .totalAssigned(totalAssigned) // Fixed field name
             .pendingReview(pendingReview)
-            .underDocumentVerification(underDocumentVerification)
+            .underVerification(underDocumentVerification) // Fixed field name
             .pendingExternalVerification(pendingExternalVerification)
             .readyForDecision(readyForDecision)
             .completedToday(completedToday)
             .completedThisWeek(completedThisWeek)
             .completedThisMonth(completedThisMonth)
-            .averageProcessingTimeHours(averageProcessingTimeHours)
+            .avgProcessingTime(averageProcessingTimeHours) // Fixed field name
             .applicationsProcessedToday(completedToday)
             .applicationsProcessedThisWeek(completedThisWeek)
+            .priorityBreakdown(priorityBreakdown) // NEW
+            .recentApplications(recentApplications) // NEW
+            .recentActivities(recentActivities) // NEW
             .lastLoginAt(officer.getLastLoginAt())
             .lastActivityAt(LocalDateTime.now())
             .hasCapacityForNewApplications(totalAssigned < 10)
@@ -805,6 +856,9 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
         // Build verification summary
         CompleteApplicationDetailsResponse.VerificationSummary verificationSummary = buildVerificationSummary(application, documents, personalDetails, financialProfile);
         
+        // Build external verification
+        CompleteApplicationDetailsResponse.ExternalVerification externalVerification = buildExternalVerification(application);
+        
         return CompleteApplicationDetailsResponse.builder()
             .applicationInfo(applicationInfo)
             .applicantIdentity(applicantIdentity)
@@ -812,6 +866,7 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
             .documents(documentInfos)
             .financialAssessment(financialAssessment)
             .verificationSummary(verificationSummary)
+            .externalVerification(externalVerification)
             .build();
     }
     
@@ -830,6 +885,8 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
                 .panNumber(personalDetails != null ? personalDetails.getPanNumber() : null)
                 .aadhaarNumber(personalDetails != null ? personalDetails.getAadhaarNumber() : null)
                 .dateOfBirth(personalDetails != null ? personalDetails.getDateOfBirth().toString() : null)
+                .gender(personalDetails != null && personalDetails.getGender() != null ? personalDetails.getGender().toString() : null)
+                .maritalStatus(personalDetails != null && personalDetails.getMaritalStatus() != null ? personalDetails.getMaritalStatus().toString() : null)
                 .addresses(personalDetails != null ? 
                     CompleteApplicationDetailsResponse.ApplicantIdentity.AddressInfo.builder()
                         .permanentAddress(personalDetails.getPermanentAddress())
@@ -915,6 +972,10 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
             .companyContact(companyContact)
             .bankDetails(bankDetails)
             .verificationStatus(verificationStatus)
+            // Financial Obligations
+            .existingLoanEmi(financialProfile.getExistingEmiAmount() != null ? financialProfile.getExistingEmiAmount() : java.math.BigDecimal.ZERO)
+            .creditCardOutstanding(financialProfile.getCreditCardOutstanding() != null ? financialProfile.getCreditCardOutstanding() : java.math.BigDecimal.ZERO)
+            .monthlyExpenses(financialProfile.getMonthlyExpenses() != null ? financialProfile.getMonthlyExpenses() : java.math.BigDecimal.ZERO)
             .build();
     }
     
@@ -990,6 +1051,73 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
             .existingLoans(existingLoans)
             .calculatedRatios(calculatedRatios)
             .riskAssessment(riskAssessment)
+            .build();
+    }
+    
+    private CompleteApplicationDetailsResponse.ExternalVerification buildExternalVerification(LoanApplication application) {
+        // Check if external verification has been completed
+        if (application.getCreditScore() == null && application.getFraudScore() == null) {
+            return null; // No external verification data available
+        }
+        
+        // Determine risk score level based on numeric value
+        String riskScore = "UNKNOWN";
+        if (application.getFraudScore() != null) {
+            int fraudScore = application.getFraudScore();
+            if (fraudScore >= 75) {
+                riskScore = "HIGH";
+            } else if (fraudScore >= 50) {
+                riskScore = "MEDIUM";
+            } else if (fraudScore >= 25) {
+                riskScore = "LOW";
+            } else {
+                riskScore = "VERY_LOW";
+            }
+        }
+        
+        // Determine recommended action based on scores
+        String recommendedAction = "PENDING_EXTERNAL_VERIFICATION";
+        if (application.getCreditScore() != null || application.getFraudScore() != null) {
+            Integer creditScore = application.getCreditScore();
+            Integer fraudScore = application.getFraudScore();
+            
+            // High risk scenarios
+            if ((fraudScore != null && fraudScore >= 75) || (creditScore != null && creditScore < 400)) {
+                recommendedAction = "IMMEDIATE_REJECTION_RECOMMENDED";
+            } else if ((fraudScore != null && fraudScore >= 50) || (creditScore != null && creditScore < 550)) {
+                recommendedAction = "FLAG_FOR_COMPLIANCE_REVIEW";
+            } else if (creditScore != null && creditScore >= 750 && (fraudScore == null || fraudScore < 25)) {
+                recommendedAction = "APPROVAL_RECOMMENDED";
+            } else {
+                recommendedAction = "MANUAL_REVIEW_REQUIRED";
+            }
+        }
+        
+        // Check if data was found (if credit score or fraud score exists, data was found)
+        Boolean dataFound = (application.getCreditScore() != null && application.getCreditScore() > 0) ||
+                           (application.getFraudScore() != null && application.getFraudScore() > 0);
+        
+        // Determine red alert flag
+        Boolean redAlertFlag = false;
+        if (application.getFraudReasons() != null && 
+            (application.getFraudReasons().contains("RED ALERT") || 
+             application.getFraudReasons().contains("fraud cases") ||
+             application.getFraudReasons().contains("Active fraud"))) {
+            redAlertFlag = true;
+        }
+        
+        return CompleteApplicationDetailsResponse.ExternalVerification.builder()
+            .creditScore(application.getCreditScore())
+            .creditScoreReason(application.getCreditScore() != null && application.getCreditScore() > 0 ? 
+                "Based on external credit history" : "Insufficient data for credit score calculation")
+            .riskScore(riskScore)
+            .riskScoreNumeric(application.getFraudScore())
+            .fraudScore(application.getFraudScore())
+            .redAlertFlag(redAlertFlag)
+            .riskFactors(application.getFraudReasons() != null ? application.getFraudReasons() : "No risk factors identified")
+            .dataFound(dataFound)
+            .recommendedAction(recommendedAction)
+            .verifiedAt(application.getUpdatedAt()) // Use application updated time as verification time
             .build();
     }
     

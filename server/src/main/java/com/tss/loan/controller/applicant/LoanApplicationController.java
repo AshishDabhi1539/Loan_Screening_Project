@@ -23,6 +23,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.tss.loan.dto.request.ApplicantFinancialDetailsRequest;
 import com.tss.loan.dto.request.LoanApplicationRequest;
+import com.tss.loan.dto.response.CompleteApplicationDetailsResponse;
 import com.tss.loan.dto.response.DocumentUploadResponse;
 import com.tss.loan.dto.response.FinancialDetailsCreateResponse;
 import com.tss.loan.dto.response.LoanApplicationCreateResponse;
@@ -231,6 +232,22 @@ public class LoanApplicationController {
     
     
     /**
+     * Get complete application details with all sections (for applicant summary page)
+     */
+    @GetMapping("/{applicationId}/complete-details")
+    public ResponseEntity<CompleteApplicationDetailsResponse> getCompleteApplicationDetails(
+            @PathVariable UUID applicationId,
+            Authentication authentication) {
+        
+        log.info("Getting complete application details for applicant: {}", applicationId);
+        
+        User user = getCurrentUser(authentication);
+        CompleteApplicationDetailsResponse response = loanApplicationService.getCompleteApplicationDetailsForApplicant(applicationId, user);
+        
+        return ResponseEntity.ok(response);
+    }
+    
+    /**
      * Get resubmission requirements for applicant
      */
     @GetMapping("/{applicationId}/resubmission-requirements")
@@ -245,6 +262,25 @@ public class LoanApplicationController {
             loanApplicationService.getResubmissionRequirements(applicationId, user);
         
         return ResponseEntity.ok(requirements);
+    }
+    
+    /**
+     * Mark documents as resubmitted - changes status to DOCUMENT_REVERIFICATION
+     */
+    @PostMapping("/{applicationId}/mark-resubmitted")
+    public ResponseEntity<java.util.Map<String, String>> markDocumentsResubmitted(
+            @PathVariable UUID applicationId,
+            Authentication authentication) {
+        
+        log.info("Marking documents as resubmitted for application: {}", applicationId);
+        
+        User user = getCurrentUser(authentication);
+        loanApplicationService.markDocumentsResubmitted(applicationId, user);
+        
+        return ResponseEntity.ok(java.util.Map.of(
+            "message", "Documents marked as resubmitted. Your application is now under review.",
+            "status", "success"
+        ));
     }
     
     private User getCurrentUser(Authentication authentication) {

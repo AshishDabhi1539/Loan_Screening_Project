@@ -26,8 +26,14 @@ export class DashboardComponent implements OnInit {
 
   // Computed values
   userDisplayName = computed(() => {
+    // Use officerName from dashboard response (set by backend)
+    const officerName = this.dashboardData()?.officerName;
+    if (officerName) {
+      return officerName;
+    }
+    // Fallback to currentUser email
     const user = this.currentUser();
-    return user?.displayName || user?.email?.split('@')[0] || 'Officer';
+    return user?.email?.split('@')[0] || 'Officer';
   });
 
   stats = computed(() => this.dashboardData());
@@ -101,10 +107,34 @@ export class DashboardComponent implements OnInit {
   }
 
   /**
-   * Navigate to application details
+   * Navigate to application - smart routing based on status
    */
   viewApplication(applicationId: string): void {
-    this.router.navigate(['/loan-officer/application', applicationId, 'details']);
+    // Find the application to check its status
+    const app = this.dashboardData()?.recentApplications?.find(a => a.id === applicationId);
+    
+    if (app) {
+      // If application is in review workflow, navigate to review page
+      const reviewStatuses = [
+        'DOCUMENT_VERIFICATION', 
+        'DOCUMENT_INCOMPLETE',
+        'PENDING_EXTERNAL_VERIFICATION',
+        'EXTERNAL_VERIFICATION',
+        'FRAUD_CHECK',
+        'READY_FOR_DECISION'
+      ];
+      
+      if (reviewStatuses.includes(app.status)) {
+        // Navigate to review workflow page
+        this.router.navigate(['/loan-officer/application', applicationId, 'review']);
+      } else {
+        // Navigate to details page for other statuses
+        this.router.navigate(['/loan-officer/application', applicationId, 'details']);
+      }
+    } else {
+      // Fallback to details page if app not found
+      this.router.navigate(['/loan-officer/application', applicationId, 'details']);
+    }
   }
 
   /**

@@ -5,19 +5,47 @@ import { environment } from '../../../environments/environment';
 
 // Import models (will create next)
 export interface OfficerDashboardResponse {
+  // Officer Info
+  officerId?: string;
+  officerName: string;
+  officerEmail: string;
+  role: string;
+  
+  // Application Statistics
   totalAssigned: number;
   pendingReview: number;
   underVerification: number;
+  pendingExternalVerification?: number;
   readyForDecision: number;
   completedToday: number;
+  completedThisWeek?: number;
+  completedThisMonth?: number;
+  
+  // Performance Metrics
   avgProcessingTime: number;
+  applicationsProcessedToday?: number;
+  applicationsProcessedThisWeek?: number;
+  
+  // Priority Breakdown
   priorityBreakdown: {
     high: number;
     medium: number;
     low: number;
   };
+  
+  // Recent Data
   recentApplications: LoanApplicationSummary[];
   recentActivities: RecentActivity[];
+  
+  // Workload Status
+  lastLoginAt?: Date;
+  lastActivityAt?: Date;
+  hasCapacityForNewApplications?: boolean;
+  maxWorkloadCapacity?: number;
+  currentWorkload?: number;
+  urgentApplications?: number;
+  highValueApplications?: number;
+  flaggedApplications?: number;
 }
 
 export interface LoanApplicationSummary {
@@ -103,6 +131,8 @@ export interface PersonalDetailsNested {
   panNumber: string;
   aadhaarNumber: string;
   dateOfBirth: string;
+  gender?: string;
+  maritalStatus?: string;
   addresses: AddressInfo;
 }
 
@@ -138,6 +168,10 @@ export interface EmploymentDetails {
   companyContact: CompanyContact;
   bankDetails: BankDetails;
   verificationStatus: EmploymentVerificationStatus;
+  // Financial Obligations
+  existingLoanEmi?: number;
+  creditCardOutstanding?: number;
+  monthlyExpenses?: number;
 }
 
 export interface CompanyContact {

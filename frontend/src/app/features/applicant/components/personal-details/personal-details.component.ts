@@ -1,7 +1,7 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 
 import { AuthService } from '../../../../core/services/auth.service';
 import { NotificationService } from '../../../../core/services/notification.service';
@@ -17,6 +17,7 @@ import { UserProfileService, PersonalDetailsRequest, AddressRequest } from '../.
 export class PersonalDetailsComponent implements OnInit {
   private fb = inject(FormBuilder);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
   private authService = inject(AuthService);
   private notificationService = inject(NotificationService);
   private userProfileService = inject(UserProfileService);
@@ -27,6 +28,8 @@ export class PersonalDetailsComponent implements OnInit {
   currentStep = signal(1);
   totalSteps = 3;
   isEditMode = signal(false); // Track if user is editing existing data
+  returnUrl = signal<string>(''); // URL to return to after completion
+  applicationId = signal<string>(''); // Application ID if provided
   
   // Fields that cannot be edited in edit mode (as per real-world regulations)
   readonly nonEditableFields = [
@@ -68,6 +71,10 @@ export class PersonalDetailsComponent implements OnInit {
   ];
 
   ngOnInit(): void {
+    // Get query parameters
+    this.returnUrl.set(this.route.snapshot.queryParams['returnUrl'] || '');
+    this.applicationId.set(this.route.snapshot.queryParams['applicationId'] || '');
+    
     this.initializeForm();
     this.checkExistingData();
   }
@@ -379,7 +386,12 @@ export class PersonalDetailsComponent implements OnInit {
       next: (response) => {
         this.isLoading.set(false);
         
-        if (this.isEditMode()) {
+        // Check if we have a return URL (coming from summary page)
+        const returnUrl = this.returnUrl();
+        if (returnUrl) {
+          this.notificationService.success('Success', 'Personal details updated successfully!');
+          this.router.navigateByUrl(returnUrl);
+        } else if (this.isEditMode()) {
           // EDIT mode - return to profile
           this.notificationService.success('Success', 'Profile updated successfully!');
           this.router.navigate(['/applicant/profile']);
@@ -448,10 +460,15 @@ export class PersonalDetailsComponent implements OnInit {
   }
 
   /**
-   * Cancel and go back to dashboard
+   * Cancel and go back to dashboard or return URL
    */
   cancel(): void {
-    this.router.navigate(['/applicant/dashboard']);
+    const returnUrl = this.returnUrl();
+    if (returnUrl) {
+      this.router.navigateByUrl(returnUrl);
+    } else {
+      this.router.navigate(['/applicant/dashboard']);
+    }
   }
 
   /**

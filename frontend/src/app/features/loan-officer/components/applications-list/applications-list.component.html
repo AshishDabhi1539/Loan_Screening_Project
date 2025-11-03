@@ -114,7 +114,7 @@
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
             <tr>
-              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                   (click)="onSortChange('applicantName')">
                 <div class="flex items-center space-x-1">
                   <span>Applicant</span>
@@ -127,11 +127,11 @@
                   }
                 </div>
               </th>
-              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                   (click)="onSortChange('loanType')">
                 Loan Type
               </th>
-              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                   (click)="onSortChange('requestedAmount')">
                 <div class="flex items-center space-x-1">
                   <span>Amount</span>
@@ -144,16 +144,13 @@
                   }
                 </div>
               </th>
-              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Status
               </th>
-              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Priority
               </th>
-              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Risk Level
-              </th>
-              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+              <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                   (click)="onSortChange('submittedAt')">
                 <div class="flex items-center space-x-1">
                   <span>Submitted</span>
@@ -166,7 +163,7 @@
                   }
                 </div>
               </th>
-              <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th scope="col" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Actions
               </th>
             </tr>
@@ -174,58 +171,100 @@
           <tbody class="bg-white divide-y divide-gray-200">
             @for (app of paginatedApplications(); track app.id) {
               <tr class="hover:bg-gray-50 transition-colors">
-                <td class="px-6 py-4 whitespace-nowrap">
+                <td class="px-4 py-3 whitespace-nowrap">
                   <div class="flex items-center">
-                    <div class="flex-shrink-0 h-10 w-10">
-                      <div class="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                        <span class="text-blue-600 font-medium text-sm">{{ app.applicantName.charAt(0).toUpperCase() }}</span>
+                    <div class="flex-shrink-0 h-8 w-8">
+                      <div class="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+                        <span class="text-blue-600 font-semibold text-xs">{{ app.applicantName.charAt(0).toUpperCase() }}</span>
                       </div>
                     </div>
-                    <div class="ml-4">
-                      <div class="text-sm font-medium text-gray-900">{{ app.applicantName }}</div>
-                      <div class="text-sm text-gray-500">{{ app.applicantEmail }}</div>
+                    <div class="ml-3">
+                      <div class="text-sm font-semibold text-gray-900">{{ app.applicantName }}</div>
+                      <div class="text-xs text-gray-500">{{ app.applicantEmail }}</div>
                     </div>
                   </div>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm text-gray-900">{{ app.loanType }}</div>
-                  <div class="text-sm text-gray-500">{{ app.tenureMonths }} months</div>
+                <td class="px-4 py-3 whitespace-nowrap">
+                  <div class="text-sm font-medium text-gray-900">{{ app.loanType }}</div>
+                  <div class="text-xs text-gray-500">{{ app.tenureMonths }} months</div>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm font-medium text-gray-900">{{ formatCurrency(app.requestedAmount) }}</div>
+                <td class="px-4 py-3 whitespace-nowrap">
+                  <div class="text-sm font-semibold text-gray-900">{{ formatCurrency(app.requestedAmount) }}</div>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap">
+                <td class="px-4 py-3 whitespace-nowrap">
                   <span [ngClass]="getStatusBadgeClass(app.status)"
-                        class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full">
-                    {{ app.status }}
+                        class="px-2 py-1 inline-flex text-xs font-semibold rounded-full whitespace-nowrap">
+                    {{ app.status.replace('_', ' ') }}
                   </span>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap">
+                <td class="px-4 py-3 whitespace-nowrap text-center">
                   <span [ngClass]="getPriorityBadgeClass(app.priority)"
-                        class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full">
+                        class="px-3 py-1 inline-flex text-xs font-bold rounded-full">
                     {{ app.priority }}
                   </span>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <span [ngClass]="getRiskLevelBadgeClass(app.riskLevel)"
-                        class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full">
-                    {{ app.riskLevel }}
-                  </span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
                   {{ formatDate(app.submittedAt) }}
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <button
-                    (click)="viewApplication(app.id)"
-                    class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
-                  >
-                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                    </svg>
-                    View Details
-                  </button>
+                <td class="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
+                  <div class="flex items-center justify-end gap-1.5">
+                    <!-- View Details Button -->
+                    <button
+                      (click)="viewApplication(app.id)"
+                      class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors shadow-sm"
+                      title="View application details"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                      </svg>
+                      <span class="hidden lg:inline ml-1">View</span>
+                    </button>
+                    
+                    <!-- Resume Button (conditional) -->
+                    @if (app.status === 'DOCUMENT_VERIFICATION' || app.status === 'DOCUMENT_REVERIFICATION') {
+                      <button
+                        (click)="resumeStep(app.id, 'document-verification')"
+                        class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors shadow-sm"
+                        title="Resume document verification"
+                      >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        <span class="hidden lg:inline ml-1">Resume</span>
+                      </button>
+                    } @else if (app.status === 'DOCUMENT_INCOMPLETE') {
+                      <span class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-orange-700 bg-orange-100 rounded-md">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <span class="hidden lg:inline">Waiting for resubmission</span>
+                        <span class="lg:hidden">Pending</span>
+                      </span>
+                    } @else if (app.status === 'PENDING_EXTERNAL_VERIFICATION' || app.status === 'EXTERNAL_VERIFICATION' || app.status === 'FRAUD_CHECK') {
+                      <button
+                        (click)="resumeStep(app.id, 'external-verification')"
+                        class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors shadow-sm"
+                        title="Resume external verification"
+                      >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                        </svg>
+                        <span class="hidden lg:inline ml-1">Resume</span>
+                      </button>
+                    } @else if (app.status === 'READY_FOR_DECISION') {
+                      <button
+                        (click)="resumeStep(app.id, 'final-decision')"
+                        class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors shadow-sm"
+                        title="Resume final decision"
+                      >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <span class="hidden lg:inline ml-1">Decide</span>
+                      </button>
+                    }
+                  </div>
                 </td>
               </tr>
             }

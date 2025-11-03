@@ -8,6 +8,35 @@
     <ng-container *ngIf="applicationDetails() as details">
       <ng-container *ngIf="details.applicationInfo as app">
 
+    <!-- Sticky Progress Tracker -->
+    <div class="sticky top-0 z-20 bg-gradient-to-r from-blue-600 to-blue-700 shadow-lg p-4 mb-6 rounded-lg">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <div class="bg-white/20 rounded-full p-2">
+            <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+          <div class="text-white">
+            <h3 class="font-semibold text-lg">Verification Progress</h3>
+            <p class="text-sm text-blue-100">{{ getCompletedCategoriesCount() }} of {{ getTotalCategoriesCount() }} categories verified</p>
+          </div>
+        </div>
+        <div class="flex items-center space-x-4">
+          <div class="text-right text-white">
+            <div class="text-2xl font-bold">{{ getProgressPercentage() }}%</div>
+            <div class="text-xs text-blue-100">Complete</div>
+          </div>
+          <div class="w-48 bg-white/20 rounded-full h-3">
+            <div 
+              class="bg-white h-3 rounded-full transition-all duration-500 ease-out"
+              [style.width.%]="getProgressPercentage()"
+            ></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Header -->
     <div class="bg-white shadow rounded-lg p-6">
       <div class="flex items-center justify-between">
@@ -104,7 +133,7 @@
                       </button>
                       <button
                         type="button"
-                        (click)="downloadDocument(doc.fileUrl)"
+                        (click)="downloadDocument(doc.fileUrl, doc.fileName)"
                         class="px-3 py-1 text-xs text-gray-600 bg-gray-100 rounded hover:bg-gray-200"
                       >
                         Download
@@ -147,34 +176,35 @@
               <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
                 <h4 class="text-sm font-medium text-red-900 mb-3">Select Rejected Documents & Provide Reasons:</h4>
                 <div class="space-y-3" formArrayName="documents">
-                  @for (doc of getIdentityDocuments(); track doc.documentId) {
-                    @if (getDocumentFormIndex(doc.documentId); as formIdx) {
-                      @if (formIdx >= 0 && documentsFormArray.at(formIdx); as docForm) {
-                        <div [formGroupName]="formIdx" class="bg-white rounded p-3 border border-red-300">
-                          <label class="flex items-start space-x-3">
-                            <input
-                              type="checkbox"
-                              formControlName="rejected"
-                              class="mt-1 h-4 w-4 text-red-600 focus:ring-red-500 rounded"
-                            />
-                            <div class="flex-1">
-                              <div class="text-sm font-medium text-gray-900">{{ doc.documentType.replace('_', ' ') }}</div>
-                              <div class="text-xs text-gray-500">{{ doc.fileName }}</div>
-                              @if (docForm.get('rejected')?.value) {
-                                <textarea
-                                  formControlName="rejectionReason"
-                                  rows="2"
-                                  placeholder="Enter rejection reason for this document..."
-                                  class="mt-2 w-full px-3 py-2 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 text-sm"
-                                ></textarea>
-                              }
-                            </div>
-                          </label>
-                        </div>
-                      }
+                  @for (doc of getIdentityDocuments(); track doc.documentId; let idx = $index) {
+                    @if (getDocumentFormIndex(doc.documentId) !== -1) {
+                      <div [formGroupName]="getDocumentFormIndex(doc.documentId)" class="bg-white rounded p-3 border border-red-300">
+                            <label class="flex items-start space-x-3">
+                              <input
+                                type="checkbox"
+                                formControlName="rejected"
+                                class="mt-1 h-4 w-4 text-red-600 focus:ring-red-500 rounded"
+                              />
+                              <div class="flex-1">
+                                <div class="text-sm font-medium text-gray-900">{{ doc.documentType.replace('_', ' ') }}</div>
+                                <div class="text-xs text-gray-500">{{ doc.fileName }}</div>
+                                @if (documentsFormArray.at(getDocumentFormIndex(doc.documentId)).get('rejected')?.value) {
+                                  <textarea
+                                    formControlName="rejectionReason"
+                                    rows="2"
+                                    placeholder="Enter rejection reason for this document..."
+                                    class="mt-2 w-full px-3 py-2 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 text-sm"
+                                  ></textarea>
+                                }
+                              </div>
+                            </label>
+                      </div>
                     }
                   }
                 </div>
+                @if (getIdentityDocuments().length === 0) {
+                  <p class="text-sm text-gray-500 italic">No identity documents uploaded.</p>
+                }
               </div>
             }
 
@@ -248,7 +278,7 @@
                       </button>
                       <button
                         type="button"
-                        (click)="downloadDocument(doc.fileUrl)"
+                        (click)="downloadDocument(doc.fileUrl, doc.fileName)"
                         class="px-3 py-1 text-xs text-gray-600 bg-gray-100 rounded hover:bg-gray-200"
                       >
                         Download
@@ -285,6 +315,43 @@
                 <span class="ml-2 text-sm font-medium text-gray-700">✗ Employment Rejected</span>
               </label>
             </div>
+
+            <!-- Show document-level rejection UI when category is rejected -->
+            @if (verificationForm.get('employmentVerified')?.value === false) {
+              <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                <h4 class="text-sm font-medium text-red-900 mb-3">Select Rejected Documents & Provide Reasons:</h4>
+                <div class="space-y-3" formArrayName="documents">
+                  @for (doc of getEmploymentDocuments(); track doc.documentId) {
+                    @if (getDocumentFormIndex(doc.documentId); as formIdx) {
+                      @if (formIdx >= 0 && documentsFormArray.at(formIdx); as docForm) {
+                        <div [formGroupName]="formIdx" class="bg-white rounded p-3 border border-red-300">
+                          <label class="flex items-start space-x-3">
+                            <input
+                              type="checkbox"
+                              formControlName="rejected"
+                              class="mt-1 h-4 w-4 text-red-600 focus:ring-red-500 rounded"
+                            />
+                            <div class="flex-1">
+                              <div class="text-sm font-medium text-gray-900">{{ doc.documentType.replace('_', ' ') }}</div>
+                              <div class="text-xs text-gray-500">{{ doc.fileName }}</div>
+                              @if (docForm.get('rejected')?.value) {
+                                <textarea
+                                  formControlName="rejectionReason"
+                                  rows="2"
+                                  placeholder="Enter rejection reason for this document..."
+                                  class="mt-2 w-full px-3 py-2 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 text-sm"
+                                ></textarea>
+                              }
+                            </div>
+                          </label>
+                        </div>
+                      }
+                    }
+                  }
+                </div>
+              </div>
+            }
+
             <textarea
               formControlName="employmentNotes"
               rows="2"
@@ -345,7 +412,7 @@
                       </button>
                       <button
                         type="button"
-                        (click)="downloadDocument(doc.fileUrl)"
+                        (click)="downloadDocument(doc.fileUrl, doc.fileName)"
                         class="px-3 py-1 text-xs text-gray-600 bg-gray-100 rounded hover:bg-gray-200"
                       >
                         Download
@@ -382,6 +449,43 @@
                 <span class="ml-2 text-sm font-medium text-gray-700">✗ Income Rejected</span>
               </label>
             </div>
+
+            <!-- Show document-level rejection UI when category is rejected -->
+            @if (verificationForm.get('incomeVerified')?.value === false) {
+              <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                <h4 class="text-sm font-medium text-red-900 mb-3">Select Rejected Documents & Provide Reasons:</h4>
+                <div class="space-y-3" formArrayName="documents">
+                  @for (doc of getIncomeDocuments(); track doc.documentId) {
+                    @if (getDocumentFormIndex(doc.documentId); as formIdx) {
+                      @if (formIdx >= 0 && documentsFormArray.at(formIdx); as docForm) {
+                        <div [formGroupName]="formIdx" class="bg-white rounded p-3 border border-red-300">
+                          <label class="flex items-start space-x-3">
+                            <input
+                              type="checkbox"
+                              formControlName="rejected"
+                              class="mt-1 h-4 w-4 text-red-600 focus:ring-red-500 rounded"
+                            />
+                            <div class="flex-1">
+                              <div class="text-sm font-medium text-gray-900">{{ doc.documentType.replace('_', ' ') }}</div>
+                              <div class="text-xs text-gray-500">{{ doc.fileName }}</div>
+                              @if (docForm.get('rejected')?.value) {
+                                <textarea
+                                  formControlName="rejectionReason"
+                                  rows="2"
+                                  placeholder="Enter rejection reason for this document..."
+                                  class="mt-2 w-full px-3 py-2 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 text-sm"
+                                ></textarea>
+                              }
+                            </div>
+                          </label>
+                        </div>
+                      }
+                    }
+                  }
+                </div>
+              </div>
+            }
+
             <textarea
               formControlName="incomeNotes"
               rows="2"
@@ -454,7 +558,7 @@
                       </button>
                       <button
                         type="button"
-                        (click)="downloadDocument(doc.fileUrl)"
+                        (click)="downloadDocument(doc.fileUrl, doc.fileName)"
                         class="px-3 py-1 text-xs text-gray-600 bg-gray-100 rounded hover:bg-gray-200"
                       >
                         Download
@@ -491,6 +595,43 @@
                 <span class="ml-2 text-sm font-medium text-gray-700">✗ Bank Rejected</span>
               </label>
             </div>
+
+            <!-- Show document-level rejection UI when category is rejected -->
+            @if (verificationForm.get('bankVerified')?.value === false) {
+              <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                <h4 class="text-sm font-medium text-red-900 mb-3">Select Rejected Documents & Provide Reasons:</h4>
+                <div class="space-y-3" formArrayName="documents">
+                  @for (doc of getBankDocuments(); track doc.documentId) {
+                    @if (getDocumentFormIndex(doc.documentId); as formIdx) {
+                      @if (formIdx >= 0 && documentsFormArray.at(formIdx); as docForm) {
+                        <div [formGroupName]="formIdx" class="bg-white rounded p-3 border border-red-300">
+                          <label class="flex items-start space-x-3">
+                            <input
+                              type="checkbox"
+                              formControlName="rejected"
+                              class="mt-1 h-4 w-4 text-red-600 focus:ring-red-500 rounded"
+                            />
+                            <div class="flex-1">
+                              <div class="text-sm font-medium text-gray-900">{{ doc.documentType.replace('_', ' ') }}</div>
+                              <div class="text-xs text-gray-500">{{ doc.fileName }}</div>
+                              @if (docForm.get('rejected')?.value) {
+                                <textarea
+                                  formControlName="rejectionReason"
+                                  rows="2"
+                                  placeholder="Enter rejection reason for this document..."
+                                  class="mt-2 w-full px-3 py-2 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 text-sm"
+                                ></textarea>
+                              }
+                            </div>
+                          </label>
+                        </div>
+                      }
+                    }
+                  }
+                </div>
+              </div>
+            }
+
             <textarea
               formControlName="bankNotes"
               rows="2"
@@ -557,7 +698,7 @@
                       </button>
                       <button
                         type="button"
-                        (click)="downloadDocument(doc.fileUrl)"
+                        (click)="downloadDocument(doc.fileUrl, doc.fileName)"
                         class="px-3 py-1 text-xs text-gray-600 bg-gray-100 rounded hover:bg-gray-200"
                       >
                         Download
@@ -594,6 +735,43 @@
                 <span class="ml-2 text-sm font-medium text-gray-700">✗ Address Rejected</span>
               </label>
             </div>
+
+            <!-- Show document-level rejection UI when category is rejected -->
+            @if (verificationForm.get('addressVerified')?.value === false) {
+              <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                <h4 class="text-sm font-medium text-red-900 mb-3">Select Rejected Documents & Provide Reasons:</h4>
+                <div class="space-y-3" formArrayName="documents">
+                  @for (doc of getAddressDocuments(); track doc.documentId) {
+                    @if (getDocumentFormIndex(doc.documentId); as formIdx) {
+                      @if (formIdx >= 0 && documentsFormArray.at(formIdx); as docForm) {
+                        <div [formGroupName]="formIdx" class="bg-white rounded p-3 border border-red-300">
+                          <label class="flex items-start space-x-3">
+                            <input
+                              type="checkbox"
+                              formControlName="rejected"
+                              class="mt-1 h-4 w-4 text-red-600 focus:ring-red-500 rounded"
+                            />
+                            <div class="flex-1">
+                              <div class="text-sm font-medium text-gray-900">{{ doc.documentType.replace('_', ' ') }}</div>
+                              <div class="text-xs text-gray-500">{{ doc.fileName }}</div>
+                              @if (docForm.get('rejected')?.value) {
+                                <textarea
+                                  formControlName="rejectionReason"
+                                  rows="2"
+                                  placeholder="Enter rejection reason for this document..."
+                                  class="mt-2 w-full px-3 py-2 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 text-sm"
+                                ></textarea>
+                              }
+                            </div>
+                          </label>
+                        </div>
+                      }
+                    }
+                  }
+                </div>
+              </div>
+            }
+
             <textarea
               formControlName="addressNotes"
               rows="2"
@@ -615,11 +793,149 @@
         ></textarea>
       </div>
 
+      <!-- VERIFICATION SUMMARY -->
+      @if (getCompletedCategoriesCount() > 0) {
+        <div class="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-6 shadow-md">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+              <svg class="w-6 h-6 mr-2 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+              </svg>
+              Verification Summary
+            </h2>
+            <span class="px-3 py-1 bg-blue-600 text-white rounded-full text-sm font-semibold">
+              {{ getCompletedCategoriesCount() }}/{{ getTotalCategoriesCount() }} Complete
+            </span>
+          </div>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            @if (hasIdentityDocuments()) {
+              <div [class]="verificationForm.get('identityVerified')?.value === true 
+                ? 'bg-green-50 border-2 border-green-300 rounded-lg p-4'
+                : verificationForm.get('identityVerified')?.value === false
+                  ? 'bg-red-50 border-2 border-red-300 rounded-lg p-4'
+                  : 'bg-gray-50 border-2 border-gray-300 rounded-lg p-4'">
+                <div class="flex items-center justify-between">
+                  <span class="font-medium text-gray-900">🆔 Identity</span>
+                  @if (verificationForm.get('identityVerified')?.value === true) {
+                    <span class="px-2 py-1 bg-green-600 text-white rounded text-xs font-semibold">✓ Verified</span>
+                  } @else if (verificationForm.get('identityVerified')?.value === false) {
+                    <span class="px-2 py-1 bg-red-600 text-white rounded text-xs font-semibold">✗ Rejected</span>
+                  } @else {
+                    <span class="px-2 py-1 bg-gray-400 text-white rounded text-xs">Pending</span>
+                  }
+                </div>
+              </div>
+            }
+
+            @if (hasEmploymentDocuments()) {
+              <div [class]="verificationForm.get('employmentVerified')?.value === true 
+                ? 'bg-green-50 border-2 border-green-300 rounded-lg p-4'
+                : verificationForm.get('employmentVerified')?.value === false
+                  ? 'bg-red-50 border-2 border-red-300 rounded-lg p-4'
+                  : 'bg-gray-50 border-2 border-gray-300 rounded-lg p-4'">
+                <div class="flex items-center justify-between">
+                  <span class="font-medium text-gray-900">💼 Employment</span>
+                  @if (verificationForm.get('employmentVerified')?.value === true) {
+                    <span class="px-2 py-1 bg-green-600 text-white rounded text-xs font-semibold">✓ Verified</span>
+                  } @else if (verificationForm.get('employmentVerified')?.value === false) {
+                    <span class="px-2 py-1 bg-red-600 text-white rounded text-xs font-semibold">✗ Rejected</span>
+                  } @else {
+                    <span class="px-2 py-1 bg-gray-400 text-white rounded text-xs">Pending</span>
+                  }
+                </div>
+              </div>
+            }
+
+            @if (hasIncomeDocuments()) {
+              <div [class]="verificationForm.get('incomeVerified')?.value === true 
+                ? 'bg-green-50 border-2 border-green-300 rounded-lg p-4'
+                : verificationForm.get('incomeVerified')?.value === false
+                  ? 'bg-red-50 border-2 border-red-300 rounded-lg p-4'
+                  : 'bg-gray-50 border-2 border-gray-300 rounded-lg p-4'">
+                <div class="flex items-center justify-between">
+                  <span class="font-medium text-gray-900">💰 Income</span>
+                  @if (verificationForm.get('incomeVerified')?.value === true) {
+                    <span class="px-2 py-1 bg-green-600 text-white rounded text-xs font-semibold">✓ Verified</span>
+                  } @else if (verificationForm.get('incomeVerified')?.value === false) {
+                    <span class="px-2 py-1 bg-red-600 text-white rounded text-xs font-semibold">✗ Rejected</span>
+                  } @else {
+                    <span class="px-2 py-1 bg-gray-400 text-white rounded text-xs">Pending</span>
+                  }
+                </div>
+              </div>
+            }
+
+            @if (hasBankDocuments()) {
+              <div [class]="verificationForm.get('bankVerified')?.value === true 
+                ? 'bg-green-50 border-2 border-green-300 rounded-lg p-4'
+                : verificationForm.get('bankVerified')?.value === false
+                  ? 'bg-red-50 border-2 border-red-300 rounded-lg p-4'
+                  : 'bg-gray-50 border-2 border-gray-300 rounded-lg p-4'">
+                <div class="flex items-center justify-between">
+                  <span class="font-medium text-gray-900">🏦 Bank</span>
+                  @if (verificationForm.get('bankVerified')?.value === true) {
+                    <span class="px-2 py-1 bg-green-600 text-white rounded text-xs font-semibold">✓ Verified</span>
+                  } @else if (verificationForm.get('bankVerified')?.value === false) {
+                    <span class="px-2 py-1 bg-red-600 text-white rounded text-xs font-semibold">✗ Rejected</span>
+                  } @else {
+                    <span class="px-2 py-1 bg-gray-400 text-white rounded text-xs">Pending</span>
+                  }
+                </div>
+              </div>
+            }
+
+            @if (hasAddressDocuments()) {
+              <div [class]="verificationForm.get('addressVerified')?.value === true 
+                ? 'bg-green-50 border-2 border-green-300 rounded-lg p-4'
+                : verificationForm.get('addressVerified')?.value === false
+                  ? 'bg-red-50 border-2 border-red-300 rounded-lg p-4'
+                  : 'bg-gray-50 border-2 border-gray-300 rounded-lg p-4'">
+                <div class="flex items-center justify-between">
+                  <span class="font-medium text-gray-900">📍 Address</span>
+                  @if (verificationForm.get('addressVerified')?.value === true) {
+                    <span class="px-2 py-1 bg-green-600 text-white rounded text-xs font-semibold">✓ Verified</span>
+                  } @else if (verificationForm.get('addressVerified')?.value === false) {
+                    <span class="px-2 py-1 bg-red-600 text-white rounded text-xs font-semibold">✗ Rejected</span>
+                  } @else {
+                    <span class="px-2 py-1 bg-gray-400 text-white rounded text-xs">Pending</span>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
       <!-- SUBMIT BUTTONS -->
       <div class="bg-white shadow rounded-lg p-6">
+        <!-- Validation Warning -->
+        @if (!isFormValid()) {
+          <div class="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div class="flex items-start space-x-3">
+              <svg class="w-5 h-5 text-yellow-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+              </svg>
+              <div class="flex-1">
+                <h4 class="text-sm font-semibold text-yellow-800">Incomplete Verification</h4>
+                <p class="text-sm text-yellow-700 mt-1">
+                  Please make a verification decision (Verified/Rejected) for all available categories before submitting.
+                </p>
+                <div class="mt-2 text-xs text-yellow-600">
+                  Missing: {{ getMissingCategories().join(', ') }}
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+
         <div class="flex items-center justify-between">
           <div class="text-sm text-gray-600">
-            Please verify all required categories before submitting.
+            @if (isFormValid()) {
+              <span class="text-green-600 font-medium">✓ All categories verified. Ready to submit.</span>
+            } @else {
+              <span class="text-gray-500">Please verify all required categories before submitting.</span>
+            }
           </div>
           <div class="flex space-x-3">
             <button
@@ -631,8 +947,10 @@
             </button>
             <button
               type="submit"
-              [disabled]="isSubmitting()"
-              class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+              [disabled]="isSubmitting() || !isFormValid()"
+              [class]="isFormValid() && !isSubmitting()
+                ? 'px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2 shadow-md hover:shadow-lg'
+                : 'px-6 py-2 bg-gray-300 text-gray-500 rounded-lg cursor-not-allowed flex items-center space-x-2 opacity-60'"
             >
               @if (isSubmitting()) {
                 <span class="flex items-center space-x-2">

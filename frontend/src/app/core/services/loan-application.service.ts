@@ -50,6 +50,33 @@ export interface DocumentUploadResponse {
   status: string;
 }
 
+export interface DocumentRequirement {
+  documentType: string;
+  documentTypeName: string;
+  currentStatus: string; // VERIFIED, REJECTED, MISSING, PENDING
+  canReupload: boolean;
+  rejectionReason?: string;
+  requiredAction: string;
+  specificInstructions?: string;
+  isRequired: boolean;
+  lastUploadedAt?: string;
+  fileName?: string;
+  currentDocumentId?: number;
+}
+
+export interface ResubmissionRequirementsResponse {
+  applicationId: string;
+  applicationStatus: string;
+  hasResubmissionRequirements: boolean;
+  resubmissionDeadline?: string;
+  additionalInstructions?: string;
+  documentRequirements: DocumentRequirement[];
+  requestedAt?: string;
+  requestedByOfficer?: string;
+  totalDocumentsRequired: number;
+  documentsAlreadyVerified: number;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -162,7 +189,14 @@ export class LoanApplicationService {
   /**
    * Get resubmission requirements
    */
-  getResubmissionRequirements(applicationId: string): Observable<any> {
-    return this.apiService.get(`/loan-application/${applicationId}/resubmission-requirements`);
+  getResubmissionRequirements(applicationId: string): Observable<ResubmissionRequirementsResponse> {
+    return this.apiService.get<ResubmissionRequirementsResponse>(`/loan-application/${applicationId}/resubmission-requirements`);
+  }
+
+  /**
+   * Mark documents as resubmitted - changes status to DOCUMENT_REVERIFICATION
+   */
+  markDocumentsResubmitted(applicationId: string): Observable<{message: string, status: string}> {
+    return this.apiService.post<{message: string, status: string}>(`/loan-application/${applicationId}/mark-resubmitted`, {});
   }
 }

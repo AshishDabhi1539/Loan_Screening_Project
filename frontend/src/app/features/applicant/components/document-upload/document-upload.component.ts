@@ -6,18 +6,11 @@ import { HttpClient, HttpEventType, HttpHeaders } from '@angular/common/http';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { environment } from '../../../../../environments/environment';
-
-interface DocumentCategory {
-  id: string;
-  name: string;
-  description: string;
-  required: boolean;
-  maxFiles: number;
-  maxFileSize: number; // in MB
-  acceptedTypes: string[];
-  documentTypes: string[]; // Backend DocumentType enum values
-  icon: string;
-}
+import { 
+  CategoryRequirement, 
+  DocumentRequirement,
+  getDocumentRequirements
+} from '../../../../core/models/document-requirements.model';
 
 interface UploadedDocument {
   id: number;
@@ -46,42 +39,66 @@ export class DocumentUploadComponent implements OnInit {
   private notificationService = inject(NotificationService);
   private authService = inject(AuthService);
 
+  // Application state
   applicationId = signal<string>('');
-  employmentType = signal<string>('');
+  employmentType = signal<string>('SALARIED');
+  returnUrl = signal<string>(''); // URL to return to after completion
   
   // Upload state
   uploadedDocuments = signal<UploadedDocument[]>([]);
   isLoading = signal<boolean>(false);
   dragOver = signal<boolean>(false);
   
-  // Categories based on employment type
-  documentCategories = computed<DocumentCategory[]>(() => {
-    const empType = this.employmentType();
-    return this.getDocumentCategories(empType);
-  });
+  // Document categories from centralized model
+  documentCategories = signal<CategoryRequirement[]>([]);
 
   // Progress tracking
-  uploadProgress = signal<number>(0);
   totalDocumentsRequired = computed(() => {
-    return this.documentCategories().filter(cat => cat.required).length;
+    let count = 0;
+    this.documentCategories().forEach(cat => {
+      count += cat.documents.filter(doc => doc.required).length;
+    });
+    return count;
   });
   
   documentsUploaded = computed(() => {
-    return this.uploadedDocuments().length;
+    const uploaded = this.uploadedDocuments();
+    const required = this.getRequiredDocumentTypes();
+    // Only count documents that are fully uploaded (not currently uploading and no errors)
+    return uploaded.filter(doc => 
+      required.includes(doc.documentType) && 
+      !doc.uploading && 
+      !doc.error
+    ).length;
   });
   
   isComplete = computed(() => {
-    const required = this.documentCategories().filter(cat => cat.required);
+    const categories = this.documentCategories();
     const uploaded = this.uploadedDocuments();
     
-    return required.every(cat => 
-      uploaded.some(doc => cat.documentTypes.includes(doc.documentType))
-    );
+    // Check if all required documents are uploaded AND fully complete
+    for (const category of categories) {
+      for (const doc of category.documents) {
+        if (doc.required) {
+          // Check if document is uploaded, not currently uploading, and has no errors
+          const isUploaded = uploaded.some(u => 
+            u.documentType === doc.documentType && 
+            !u.uploading && 
+            !u.error
+          );
+          if (!isUploaded) {
+            return false;
+          }
+        }
+      }
+    }
+    return true;
   });
 
   ngOnInit(): void {
     this.applicationId.set(this.route.snapshot.queryParams['applicationId'] || '');
     this.employmentType.set(this.route.snapshot.queryParams['employmentType'] || 'SALARIED');
+    this.returnUrl.set(this.route.snapshot.queryParams['returnUrl'] || '');
     
     if (!this.applicationId()) {
       this.notificationService.error('Error', 'Application ID not found');
@@ -89,211 +106,31 @@ export class DocumentUploadComponent implements OnInit {
       return;
     }
 
+    // Load document requirements based on employment type
+    const requirements = getDocumentRequirements(this.employmentType());
+    this.documentCategories.set(requirements);
+
+    // Load already uploaded documents
     this.loadUploadedDocuments();
   }
 
   /**
-   * Get document categories based on employment type
+   * Get all required document types
    */
-  private getDocumentCategories(employmentType: string): DocumentCategory[] {
-    const baseCategories: DocumentCategory[] = [
-      {
-        id: 'identity',
-        name: 'Identity Proof',
-        description: 'Government issued photo ID (Aadhaar, PAN, Passport, Driving License)',
-        required: true,
-        maxFiles: 2,
-        maxFileSize: 5, // 5MB
-        acceptedTypes: ['application/pdf', 'image/jpeg', 'image/png'],
-        documentTypes: ['AADHAAR_CARD', 'PAN_CARD', 'PASSPORT', 'DRIVING_LICENSE'],
-        icon: '🆔'
-      },
-      {
-        id: 'address',
-        name: 'Address Proof',
-        description: 'Utility bill, bank statement, or rental agreement (not older than 3 months)',
-        required: true,
-        maxFiles: 1,
-        maxFileSize: 5, // 5MB
-        acceptedTypes: ['application/pdf', 'image/jpeg', 'image/png'],
-        documentTypes: ['UTILITY_BILL', 'RENTAL_AGREEMENT', 'PROPERTY_DOCUMENTS'],
-        icon: '🏠'
-      },
-      {
-        id: 'photograph',
-        name: 'Photograph',
-        description: 'Recent passport-size photograph',
-        required: true,
-        maxFiles: 1,
-        maxFileSize: 2, // 2MB for photos
-        acceptedTypes: ['image/jpeg', 'image/png'],
-        documentTypes: ['PHOTOGRAPH'],
-        icon: '📷'
-      }
-    ];
-
-    if (employmentType === 'SALARIED') {
-      return [
-        ...baseCategories,
-        {
-          id: 'salary',
-          name: 'Salary Slips',
-          description: 'Last 3 months salary slips',
-          required: true,
-          maxFiles: 3,
-          maxFileSize: 5, // 5MB
-          acceptedTypes: ['application/pdf', 'image/jpeg', 'image/png'],
-          documentTypes: ['SALARY_SLIP'],
-          icon: '💰'
-        },
-        {
-          id: 'employment',
-          name: 'Employment Proof',
-          description: 'Appointment/Employment Letter',
-          required: true,
-          maxFiles: 1,
-          maxFileSize: 5, // 5MB
-          acceptedTypes: ['application/pdf', 'image/jpeg', 'image/png'],
-          documentTypes: ['APPOINTMENT_LETTER', 'EMPLOYMENT_CERTIFICATE'],
-          icon: '📄'
-        },
-        {
-          id: 'bank',
-          name: 'Bank Statement',
-          description: 'Last 6 months bank statement',
-          required: true,
-          maxFiles: 1,
-          maxFileSize: 10, // 10MB for bank statements
-          acceptedTypes: ['application/pdf'],
-          documentTypes: ['BANK_STATEMENT'],
-          icon: '🏦'
+  private getRequiredDocumentTypes(): string[] {
+    const types: string[] = [];
+    this.documentCategories().forEach(cat => {
+      cat.documents.forEach(doc => {
+        if (doc.required) {
+          types.push(doc.documentType);
         }
-      ];
-    } else if (employmentType === 'SELF_EMPLOYED') {
-      return [
-        ...baseCategories,
-        {
-          id: 'business_reg',
-          name: 'Business Registration',
-          description: 'Business registration certificate or professional license',
-          required: true,
-          maxFiles: 1,
-          maxFileSize: 5, // 5MB
-          acceptedTypes: ['application/pdf', 'image/jpeg', 'image/png'],
-          documentTypes: ['BUSINESS_REGISTRATION'],
-          icon: '📝'
-        },
-        {
-          id: 'gst',
-          name: 'GST Certificate',
-          description: 'GST registration certificate (if applicable)',
-          required: false,
-          maxFiles: 1,
-          maxFileSize: 5, // 5MB
-          acceptedTypes: ['application/pdf', 'image/jpeg', 'image/png'],
-          documentTypes: ['GST_CERTIFICATE'],
-          icon: '📋'
-        },
-        {
-          id: 'itr',
-          name: 'Income Tax Returns',
-          description: 'ITR for last 2 years',
-          required: true,
-          maxFiles: 2,
-          maxFileSize: 5, // 5MB
-          acceptedTypes: ['application/pdf'],
-          documentTypes: ['BUSINESS_ITR', 'ITR_FORM'],
-          icon: '📊'
-        },
-        {
-          id: 'business_bank',
-          name: 'Business Bank Statement',
-          description: 'Last 12 months business bank statement',
-          required: true,
-          maxFiles: 1,
-          maxFileSize: 10, // 10MB for bank statements
-          acceptedTypes: ['application/pdf'],
-          documentTypes: ['BUSINESS_BANK_STATEMENT'],
-          icon: '🏦'
-        }
-      ];
-    } else if (employmentType === 'BUSINESS_OWNER') {
-      return [
-        ...baseCategories,
-        {
-          id: 'company_pan',
-          name: 'Company PAN Card',
-          description: 'PAN Card of the company',
-          required: true,
-          maxFiles: 1,
-          maxFileSize: 5, // 5MB
-          acceptedTypes: ['application/pdf', 'image/jpeg', 'image/png'],
-          documentTypes: ['PAN_CARD'],
-          icon: '🏢'
-        },
-        {
-          id: 'business_reg',
-          name: 'Business Registration',
-          description: 'Company registration certificate (ROC)',
-          required: true,
-          maxFiles: 1,
-          maxFileSize: 5, // 5MB
-          acceptedTypes: ['application/pdf'],
-          documentTypes: ['BUSINESS_REGISTRATION'],
-          icon: '📝'
-        },
-        {
-          id: 'gst',
-          name: 'GST Certificate',
-          description: 'GST registration certificate',
-          required: true,
-          maxFiles: 1,
-          maxFileSize: 5, // 5MB
-          acceptedTypes: ['application/pdf', 'image/jpeg', 'image/png'],
-          documentTypes: ['GST_CERTIFICATE'],
-          icon: '📋'
-        },
-        {
-          id: 'financials',
-          name: 'Financial Statements',
-          description: 'Audited financials (last 2-3 years) or Profit & Loss, Balance Sheet',
-          required: true,
-          maxFiles: 3,
-          maxFileSize: 10, // 10MB for financial documents
-          acceptedTypes: ['application/pdf'],
-          documentTypes: ['FINANCIAL_STATEMENT', 'PROFIT_LOSS_STATEMENT', 'BALANCE_SHEET'],
-          icon: '📈'
-        },
-        {
-          id: 'itr',
-          name: 'Income Tax Returns',
-          description: 'Company ITR for last 2-3 years',
-          required: true,
-          maxFiles: 3,
-          maxFileSize: 10, // 10MB for ITR documents
-          acceptedTypes: ['application/pdf'],
-          documentTypes: ['BUSINESS_ITR', 'ITR_FORM'],
-          icon: '📊'
-        },
-        {
-          id: 'business_bank',
-          name: 'Business Bank Statement',
-          description: 'Last 12 months business bank statement',
-          required: true,
-          maxFiles: 1,
-          maxFileSize: 10, // 10MB for bank statements
-          acceptedTypes: ['application/pdf'],
-          documentTypes: ['BUSINESS_BANK_STATEMENT'],
-          icon: '🏦'
-        }
-      ];
-    }
-
-    return baseCategories;
+      });
+    });
+    return types;
   }
 
   /**
-   * Load already uploaded documents
+   * Load already uploaded documents from backend
    */
   private loadUploadedDocuments(): void {
     const appId = this.applicationId();
@@ -310,7 +147,7 @@ export class DocumentUploadComponent implements OnInit {
     ).subscribe({
       next: (documents) => {
         const uploadedDocs: UploadedDocument[] = documents.map(doc => ({
-          id: doc.id, // Use real database ID
+          id: doc.id,
           name: doc.fileName,
           size: doc.fileSize,
           type: doc.fileType || 'application/pdf',
@@ -329,17 +166,19 @@ export class DocumentUploadComponent implements OnInit {
   }
 
   /**
-   * Handle file selection
+   * Handle file selection for a specific document
    */
-  onFileSelected(event: Event, category: DocumentCategory): void {
+  onFileSelected(event: Event, document: DocumentRequirement): void {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
-      this.handleFiles(Array.from(input.files), category);
+      this.handleFiles(Array.from(input.files), document);
     }
+    // Reset input to allow re-uploading same file
+    input.value = '';
   }
 
   /**
-   * Handle drag over
+   * Handle drag over event
    */
   onDragOver(event: DragEvent): void {
     event.preventDefault();
@@ -348,7 +187,7 @@ export class DocumentUploadComponent implements OnInit {
   }
 
   /**
-   * Handle drag leave
+   * Handle drag leave event
    */
   onDragLeave(event: DragEvent): void {
     event.preventDefault();
@@ -357,62 +196,62 @@ export class DocumentUploadComponent implements OnInit {
   }
 
   /**
-   * Handle drop
+   * Handle drop event for a specific document
    */
-  onDrop(event: DragEvent, category: DocumentCategory): void {
+  onDrop(event: DragEvent, document: DocumentRequirement): void {
     event.preventDefault();
     event.stopPropagation();
     this.dragOver.set(false);
 
     if (event.dataTransfer?.files && event.dataTransfer.files.length > 0) {
-      this.handleFiles(Array.from(event.dataTransfer.files), category);
+      this.handleFiles(Array.from(event.dataTransfer.files), document);
     }
   }
 
   /**
-   * Handle files
+   * Handle files for upload
    */
-  private handleFiles(files: File[], category: DocumentCategory): void {
-    // Validate file count
+  private handleFiles(files: File[], document: DocumentRequirement): void {
+    // Check current upload count for this document type
     const currentCount = this.uploadedDocuments().filter(doc => 
-      category.documentTypes.includes(doc.documentType)
+      doc.documentType === document.documentType
     ).length;
 
-    if (currentCount + files.length > category.maxFiles) {
+    if (currentCount + files.length > document.maxFiles) {
       this.notificationService.warning(
         'Too Many Files',
-        `Maximum ${category.maxFiles} file(s) allowed for ${category.name}`
+        `Maximum ${document.maxFiles} file(s) allowed for ${document.displayName}`
       );
       return;
     }
 
     // Validate and upload each file
     files.forEach(file => {
-      if (this.validateFile(file, category)) {
-        this.uploadFile(file, category);
+      if (this.validateFile(file, document)) {
+        this.uploadFile(file, document);
       }
     });
   }
 
   /**
-   * Validate file
+   * Validate file before upload
    */
-  private validateFile(file: File, category: DocumentCategory): boolean {
+  private validateFile(file: File, document: DocumentRequirement): boolean {
     // Check file type
-    if (!category.acceptedTypes.includes(file.type)) {
+    if (!document.acceptedTypes.includes(file.type)) {
       this.notificationService.error(
         'Invalid File Type',
-        `${file.name} is not a valid file type. Accepted: ${category.acceptedTypes.join(', ')}`
+        `${file.name} is not a valid file type. Accepted: ${this.getAcceptedTypesDisplay(document.acceptedTypes)}`
       );
       return false;
     }
 
-    // Check file size using category maxFileSize
-    const maxSize = category.maxFileSize * 1024 * 1024; // Convert MB to bytes
-    if (file.size > maxSize) {
+    // Check file size
+    const maxSizeBytes = document.maxFileSize * 1024 * 1024;
+    if (file.size > maxSizeBytes) {
       this.notificationService.error(
         'File Too Large',
-        `${file.name} exceeds ${category.maxFileSize}MB limit`
+        `${file.name} exceeds maximum size of ${document.maxFileSize}MB`
       );
       return false;
     }
@@ -423,78 +262,75 @@ export class DocumentUploadComponent implements OnInit {
   /**
    * Upload file to backend
    */
-  private uploadFile(file: File, category: DocumentCategory): void {
+  private uploadFile(file: File, document: DocumentRequirement): void {
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('documentType', category.documentTypes[0]); // Use first document type
+    formData.append('documentType', document.documentType);
 
+    // Create temporary document for UI
     const tempDoc: UploadedDocument = {
       id: Date.now(),
       name: file.name,
       size: file.size,
       type: file.type,
-      documentType: category.documentTypes[0],
+      documentType: document.documentType,
       uploadedAt: new Date(),
-      progress: 0,
-      uploading: true
+      uploading: true,
+      progress: 0
     };
 
-    // Add to uploaded documents with uploading state
+    // Add to uploaded documents
     this.uploadedDocuments.update(docs => [...docs, tempDoc]);
 
-    // Upload to backend
     const token = this.authService.getStoredToken();
     const headers = new HttpHeaders({
       'Authorization': `Bearer ${token}`
     });
 
-    this.http.post<any>(
+    // Upload to backend
+    this.http.post(
       `${environment.apiUrl}/loan-application/${this.applicationId()}/documents/upload`,
       formData,
-      { headers, reportProgress: true, observe: 'events' }
+      {
+        headers,
+        reportProgress: true,
+        observe: 'events'
+      }
     ).subscribe({
       next: (event) => {
         if (event.type === HttpEventType.UploadProgress && event.total) {
-          const progress = Math.round(100 * event.loaded / event.total);
-          this.updateDocumentProgress(tempDoc.id, progress);
+          // Update progress
+          const progress = Math.round((100 * event.loaded) / event.total);
+          this.uploadedDocuments.update(docs => 
+            docs.map(d => d.id === tempDoc.id ? { ...d, progress } : d)
+          );
         } else if (event.type === HttpEventType.Response) {
-          const response = event.body;
-          this.updateDocumentComplete(tempDoc.id, response.documentId);
+          // Upload complete
+          const response = event.body as any;
+          this.uploadedDocuments.update(docs => 
+            docs.map(d => d.id === tempDoc.id ? {
+              ...d,
+              id: response.documentId || response.id,
+              uploading: false,
+              progress: 100,
+              url: response.fileUrl
+            } : d)
+          );
           this.notificationService.success('Success', `${file.name} uploaded successfully`);
         }
       },
       error: (error) => {
-        this.updateDocumentError(tempDoc.id, error.error?.message || 'Upload failed');
+        console.error('Upload failed:', error);
+        this.uploadedDocuments.update(docs => 
+          docs.map(d => d.id === tempDoc.id ? {
+            ...d,
+            uploading: false,
+            error: error.error?.message || 'Upload failed'
+          } : d)
+        );
         this.notificationService.error('Upload Failed', error.error?.message || 'Failed to upload document');
       }
     });
-  }
-
-  /**
-   * Update document upload progress
-   */
-  private updateDocumentProgress(tempId: number, progress: number): void {
-    this.uploadedDocuments.update(docs =>
-      docs.map(doc => doc.id === tempId ? { ...doc, progress } : doc)
-    );
-  }
-
-  /**
-   * Update document as complete
-   */
-  private updateDocumentComplete(tempId: number, documentId: number): void {
-    this.uploadedDocuments.update(docs =>
-      docs.map(doc => doc.id === tempId ? { ...doc, id: documentId, uploading: false, progress: 100 } : doc)
-    );
-  }
-
-  /**
-   * Update document with error
-   */
-  private updateDocumentError(tempId: number, error: string): void {
-    this.uploadedDocuments.update(docs =>
-      docs.map(doc => doc.id === tempId ? { ...doc, uploading: false, error } : doc)
-    );
   }
 
   /**
@@ -516,9 +352,10 @@ export class DocumentUploadComponent implements OnInit {
     ).subscribe({
       next: () => {
         this.uploadedDocuments.update(docs => docs.filter(d => d.id !== doc.id));
-        this.notificationService.success('Deleted', `${doc.name} deleted successfully`);
+        this.notificationService.success('Deleted', 'Document deleted successfully');
       },
       error: (error) => {
+        console.error('Delete failed:', error);
         this.notificationService.error('Delete Failed', error.error?.message || 'Failed to delete document');
       }
     });
@@ -527,10 +364,48 @@ export class DocumentUploadComponent implements OnInit {
   /**
    * Get documents for a category
    */
-  getCategoryDocuments(category: DocumentCategory): UploadedDocument[] {
-    return this.uploadedDocuments().filter(doc => 
-      category.documentTypes.includes(doc.documentType)
+  getCategoryDocuments(category: CategoryRequirement): UploadedDocument[] {
+    const docTypes = category.documents.map(d => d.documentType);
+    return this.uploadedDocuments().filter(doc => docTypes.includes(doc.documentType));
+  }
+
+  /**
+   * Get documents for a specific document requirement
+   */
+  getDocumentFiles(document: DocumentRequirement): UploadedDocument[] {
+    return this.uploadedDocuments().filter(doc => doc.documentType === document.documentType);
+  }
+
+  /**
+   * Check if a document is currently being uploaded
+   */
+  isDocumentUploading(document: DocumentRequirement): boolean {
+    return this.uploadedDocuments().some(doc => 
+      doc.documentType === document.documentType && 
+      doc.uploading === true
     );
+  }
+
+  /**
+   * Check if a document requirement is complete (has uploaded files)
+   */
+  isDocumentComplete(document: DocumentRequirement): boolean {
+    // Only return true if there are actually uploaded files for this document type
+    // AND they are not currently uploading (upload must be complete)
+    return this.uploadedDocuments().some(doc => 
+      doc.documentType === document.documentType && 
+      !doc.uploading && 
+      !doc.error
+    );
+  }
+
+  /**
+   * Check if all required documents in a category are complete
+   */
+  isCategoryComplete(category: CategoryRequirement): boolean {
+    const requiredDocs = category.documents.filter(doc => doc.required);
+    if (requiredDocs.length === 0) return false;
+    return requiredDocs.every(doc => this.isDocumentComplete(doc));
   }
 
   /**
@@ -559,42 +434,54 @@ export class DocumentUploadComponent implements OnInit {
   }
 
   /**
-   * Submit and continue to application summary
+   * Submit documents and continue to summary or return URL
    */
   submitAndContinue(): void {
     if (!this.isComplete()) {
-      this.notificationService.warning('Incomplete', 'Please upload all required documents');
+      this.notificationService.warning('Incomplete', 'Please upload all required documents before continuing');
       return;
     }
 
-    this.notificationService.success('Success', 'All documents uploaded! Proceeding to application summary...');
+    this.notificationService.success('Success', 'Documents uploaded successfully');
     
-    // Navigate to application summary for final review
-    this.router.navigate(['/applicant/application-summary'], {
-      queryParams: {
-        applicationId: this.applicationId(),
-        employmentType: this.employmentType()
-      }
-    });
+    const returnUrl = this.returnUrl();
+    if (returnUrl) {
+      // If returnUrl is provided (coming from summary), navigate there
+      this.router.navigateByUrl(returnUrl);
+    } else {
+      // Otherwise, navigate to application summary
+      this.router.navigate(['/applicant/application-summary'], {
+        queryParams: {
+          applicationId: this.applicationId(),
+          employmentType: this.employmentType()
+        }
+      });
+    }
   }
 
   /**
    * Save and exit
    */
   saveAndExit(): void {
-    this.notificationService.info('Saved', 'Your progress has been saved');
+    this.notificationService.info('Saved', 'Your progress has been saved. You can continue later.');
     this.router.navigate(['/applicant/dashboard']);
   }
 
   /**
-   * Navigate back to previous step
+   * Navigate back to previous step or return URL
    */
   goBack(): void {
-    this.router.navigate(['/applicant/employment-details'], {
-      queryParams: {
-        applicationId: this.applicationId(),
-        employmentType: this.employmentType()
-      }
-    });
+    const returnUrl = this.returnUrl();
+    if (returnUrl) {
+      // If returnUrl is provided (coming from summary), navigate there
+      this.router.navigateByUrl(returnUrl);
+    } else {
+      // Otherwise, go to previous step (employment-details)
+      this.router.navigate(['/applicant/employment-details'], {
+        queryParams: {
+          applicationId: this.applicationId(),
+        }
+      });
+    }
   }
 }

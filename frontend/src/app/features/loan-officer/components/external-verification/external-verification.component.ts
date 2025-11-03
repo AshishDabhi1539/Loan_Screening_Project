@@ -101,12 +101,12 @@ export class ExternalVerificationComponent implements OnInit {
   }
 
   /**
-   * Navigate back to application details
+   * Navigate back to application review
    */
   viewApplicationDetails(): void {
     const appId = this.applicationId();
     if (appId) {
-      this.router.navigate(['/loan-officer/application', appId, 'details']);
+      this.router.navigate(['/loan-officer/application', appId, 'review']);
     } else {
       this.router.navigate(['/loan-officer/applications/assigned']);
     }
