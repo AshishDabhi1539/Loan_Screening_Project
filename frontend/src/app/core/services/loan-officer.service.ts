@@ -101,6 +101,7 @@ export interface CompleteApplicationDetailsResponse {
   documents: DocumentInfo[];
   financialAssessment: FinancialAssessment;
   verificationSummary: VerificationSummary;
+  externalVerification: ExternalVerificationInfo | null;
 }
 
 export interface ApplicationInfo {
@@ -319,10 +320,10 @@ export interface DocumentInfo {
 export interface ExternalVerificationInfo {
   // Credit Scoring Results
   creditScore: number | null;
-  riskType: string;              // LOW, MEDIUM, HIGH, INVALID, UNKNOWN
+  riskLevel: string;             // LOW, MEDIUM, HIGH, INVALID, UNKNOWN
   riskScoreNumeric: number;      // 0-100 numeric risk score
   riskFactors: string;           // Detailed risk factors explanation
-  creditScoreReason: string;     // Explanation for credit score
+  creditScoreReason?: string;
   redAlertFlag: boolean;         // Critical risk indicator
   
   // Financial Metrics
@@ -391,12 +392,14 @@ export interface DocumentResubmissionResponse {
 }
 
 export interface LoanDecisionRequest {
+  decisionType?: 'APPROVED' | 'REJECTED' | 'CONDITIONAL_APPROVAL';
   approvedAmount?: number;
-  approvedTenure?: number;
+  approvedTenureMonths?: number;
   approvedInterestRate?: number;
-  decisionReason: string;
-  conditions?: string[];
-  internalNotes?: string;
+  decisionReason?: string;
+  rejectionReason?: string;
+  additionalNotes?: string;
+  requiresComplianceReview?: boolean;
 }
 
 export interface LoanDecisionResponse {

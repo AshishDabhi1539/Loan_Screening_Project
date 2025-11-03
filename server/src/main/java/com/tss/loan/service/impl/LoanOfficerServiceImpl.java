@@ -23,6 +23,7 @@ import com.tss.loan.entity.applicant.ApplicantPersonalDetails;
 import com.tss.loan.entity.enums.ApplicationStatus;
 import com.tss.loan.entity.enums.Priority;
 import com.tss.loan.entity.enums.NotificationType;
+import com.tss.loan.entity.enums.RiskLevel;
 import com.tss.loan.entity.external.CreditScoreHistory;
 import com.tss.loan.entity.loan.LoanApplication;
 import com.tss.loan.entity.loan.LoanDocument;
@@ -83,6 +84,7 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
     
     @Autowired
     private OfficerProfileService officerProfileService;
+    
     
     @Override
     public OfficerDashboardResponse getDashboard(User officer) {
@@ -603,26 +605,25 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
                         aadhaar, pan, creditScore);
             }
             
-            // Store credit score results in application
-            if (creditScore != null) {
-                application.setCreditScore(creditScore);
-                log.info("Stored credit score: {}", creditScore);
-            }
+            // ✅ Store ALL external verification results in LoanApplication entity
+            application.setCreditScore(creditScore);
+            application.setRiskLevel(convertToRiskLevelEnum(riskType));  // Convert String to Enum
+            application.setFraudScore(riskTypeNumeric);
+            application.setFraudReasons(riskFactors);
+            application.setRedAlertFlag(redAlertFlag);
             
-            // Store risk score
-            if (riskTypeNumeric != null) {
-                application.setFraudScore(riskTypeNumeric);
-                log.info("Stored fraud score: {}", riskTypeNumeric);
-            }
+            // Store financial metrics
+            application.setTotalOutstanding(totalOutstanding);
+            application.setActiveLoansCount(activeLoansCount);
+            application.setTotalMissedPayments(totalMissedPayments);
+            application.setHasDefaults(hasDefaults);
+            application.setActiveFraudCases(activeFraudCases);
+            application.setExternalVerificationAt(LocalDateTime.now());
             
-            // Store risk factors
-            if (riskFactors != null) {
-                application.setFraudReasons(riskFactors);
-                log.info("Stored risk factors: {}", riskFactors);
-            }
-            
-            log.info("External credit scoring completed successfully. Credit Score: {}, Risk Score: {}", 
-                creditScore, riskType);
+            log.info("Stored complete external verification results - Credit Score: {}, Risk Level: {}, " +
+                    "Outstanding: {}, Active Loans: {}, Missed Payments: {}, Defaults: {}, Fraud Cases: {}", 
+                    creditScore, riskType, totalOutstanding, activeLoansCount, 
+                    totalMissedPayments, hasDefaults, activeFraudCases);
                 
         } catch (Exception e) {
             log.error("Failed to calculate external credit score for application: {}", applicationId, e);
@@ -633,8 +634,14 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
             redAlertFlag = true;
             riskFactors = "System error occurred during score calculation: " + e.getMessage();
             creditScoreReason = "Unable to calculate due to system error";
+            
             // Store error in application
+            application.setCreditScore(creditScore);
+            application.setRiskLevel(RiskLevel.CRITICAL);  // ERROR -> CRITICAL
+            application.setFraudScore(riskTypeNumeric);
             application.setFraudReasons(riskFactors);
+            application.setRedAlertFlag(redAlertFlag);
+            application.setExternalVerificationAt(LocalDateTime.now());
         }
         
         // Update status directly to READY_FOR_DECISION (skip PENDING_EXTERNAL_VERIFICATION)
@@ -1080,65 +1087,113 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
             return null; // No external verification data available
         }
         
-        // Determine risk score level based on numeric value
-        String riskScore = "UNKNOWN";
-        if (application.getFraudScore() != null) {
-            int fraudScore = application.getFraudScore();
-            if (fraudScore >= 75) {
-                riskScore = "HIGH";
-            } else if (fraudScore >= 50) {
-                riskScore = "MEDIUM";
-            } else if (fraudScore >= 25) {
-                riskScore = "LOW";
-            } else {
-                riskScore = "VERY_LOW";
-            }
-        }
+        // ✅ Read ALL data directly from LoanApplication entity (stored during external verification)
+        String riskLevelStr = application.getRiskLevel() != null ? application.getRiskLevel().toString() : "UNKNOWN";
+        BigDecimal totalOutstanding = application.getTotalOutstanding() != null ? application.getTotalOutstanding() : BigDecimal.ZERO;
+        Integer activeLoansCount = application.getActiveLoansCount() != null ? application.getActiveLoansCount() : 0;
+        Integer totalMissedPayments = application.getTotalMissedPayments() != null ? application.getTotalMissedPayments() : 0;
+        Boolean hasDefaults = application.getHasDefaults() != null ? application.getHasDefaults() : false;
+        Integer activeFraudCases = application.getActiveFraudCases() != null ? application.getActiveFraudCases() : 0;
+        Boolean redAlertFlag = application.getRedAlertFlag() != null ? application.getRedAlertFlag() : false;
         
         // Determine recommended action based on scores
-        String recommendedAction = "PENDING_EXTERNAL_VERIFICATION";
-        if (application.getCreditScore() != null || application.getFraudScore() != null) {
-            Integer creditScore = application.getCreditScore();
-            Integer fraudScore = application.getFraudScore();
-            
-            // High risk scenarios
-            if ((fraudScore != null && fraudScore >= 75) || (creditScore != null && creditScore < 400)) {
-                recommendedAction = "IMMEDIATE_REJECTION_RECOMMENDED";
-            } else if ((fraudScore != null && fraudScore >= 50) || (creditScore != null && creditScore < 550)) {
-                recommendedAction = "FLAG_FOR_COMPLIANCE_REVIEW";
-            } else if (creditScore != null && creditScore >= 750 && (fraudScore == null || fraudScore < 25)) {
-                recommendedAction = "APPROVAL_RECOMMENDED";
-            } else {
-                recommendedAction = "MANUAL_REVIEW_REQUIRED";
-            }
-        }
+        String recommendedAction = determineRecommendedAction(
+            application.getCreditScore(), 
+            riskLevelStr, 
+            hasDefaults, 
+            activeFraudCases
+        );
         
-        // Check if data was found (if credit score or fraud score exists, data was found)
+        // Check if data was found
         Boolean dataFound = (application.getCreditScore() != null && application.getCreditScore() > 0) ||
                            (application.getFraudScore() != null && application.getFraudScore() > 0);
-        
-        // Determine red alert flag
-        Boolean redAlertFlag = false;
-        if (application.getFraudReasons() != null && 
-            (application.getFraudReasons().contains("RED ALERT") || 
-             application.getFraudReasons().contains("fraud cases") ||
-             application.getFraudReasons().contains("Active fraud"))) {
-            redAlertFlag = true;
-        }
         
         return CompleteApplicationDetailsResponse.ExternalVerification.builder()
             .creditScore(application.getCreditScore())
             .creditScoreReason(application.getCreditScore() != null && application.getCreditScore() > 0 ? 
                 "Based on external credit history" : "Insufficient data for credit score calculation")
-            .riskScore(riskScore)
+            .riskLevel(riskLevelStr)
             .riskScoreNumeric(application.getFraudScore())
-            .fraudScore(application.getFraudScore())
             .redAlertFlag(redAlertFlag)
             .riskFactors(application.getFraudReasons() != null ? application.getFraudReasons() : "No risk factors identified")
+            // Financial Metrics
+            .totalOutstanding(totalOutstanding)
+            .activeLoansCount(activeLoansCount)
+            .totalMissedPayments(totalMissedPayments)
+            .hasDefaults(hasDefaults)
+            .activeFraudCases(activeFraudCases)
+            // Data Availability
             .dataFound(dataFound)
+            // Metadata
             .recommendedAction(recommendedAction)
-            .verifiedAt(application.getUpdatedAt()) // Use application updated time as verification time
+            .verifiedAt(application.getExternalVerificationAt() != null ? application.getExternalVerificationAt() : application.getUpdatedAt())
             .build();
+    }
+    
+    /**
+     * Convert String risk type from stored procedure to RiskLevel enum
+     */
+    private RiskLevel convertToRiskLevelEnum(String riskTypeString) {
+        if (riskTypeString == null) {
+            return RiskLevel.UNKNOWN;
+        }
+        
+        try {
+            // Handle special cases
+            if ("VERY_LOW".equals(riskTypeString)) return RiskLevel.VERY_LOW;
+            if ("VERY_HIGH".equals(riskTypeString)) return RiskLevel.VERY_HIGH;
+            
+            return RiskLevel.valueOf(riskTypeString.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            log.warn("Unknown risk type: {}, defaulting to UNKNOWN", riskTypeString);
+            return RiskLevel.UNKNOWN;
+        }
+    }
+    
+    /**
+     * Determine recommended action based on credit score and risk factors
+     */
+    private String determineRecommendedAction(Integer creditScore, String riskType, 
+                                             Boolean hasDefaults, Integer activeFraudCases) {
+        // High risk scenarios - immediate rejection
+        if (activeFraudCases > 0) {
+            return "IMMEDIATE_REJECTION_RECOMMENDED - Active fraud cases detected";
+        }
+        
+        if (hasDefaults) {
+            return "FLAG_FOR_COMPLIANCE_REVIEW - Loan default history found";
+        }
+        
+        if ("HIGH".equals(riskType)) {
+            return "IMMEDIATE_REJECTION_RECOMMENDED - High risk profile";
+        }
+        
+        // Credit score based recommendations
+        if (creditScore != null) {
+            if (creditScore < 400) {
+                return "IMMEDIATE_REJECTION_RECOMMENDED - Credit score too low";
+            } else if (creditScore < 550) {
+                return "FLAG_FOR_COMPLIANCE_REVIEW - Below minimum credit threshold";
+            } else if (creditScore >= 750 && "LOW".equals(riskType)) {
+                return "APPROVAL_RECOMMENDED - Excellent credit profile";
+            } else if (creditScore >= 650) {
+                return "MANUAL_REVIEW_REQUIRED - Good credit, verify other factors";
+            } else {
+                return "MANUAL_REVIEW_REQUIRED - Fair credit score";
+            }
+        }
+        
+        // Medium risk
+        if ("MEDIUM".equals(riskType)) {
+            return "MANUAL_REVIEW_REQUIRED - Medium risk profile";
+        }
+        
+        // Low risk or unknown
+        if ("LOW".equals(riskType) || "VERY_LOW".equals(riskType)) {
+            return "APPROVAL_RECOMMENDED - Low risk profile";
+        }
+        
+        return "MANUAL_REVIEW_REQUIRED - Insufficient data for automated decision";
     }
     
     private CompleteApplicationDetailsResponse.VerificationSummary buildVerificationSummary(

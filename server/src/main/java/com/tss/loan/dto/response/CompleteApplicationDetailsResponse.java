@@ -280,15 +280,26 @@ public class CompleteApplicationDetailsResponse {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class ExternalVerification {
+        // Credit Scoring Results
         private Integer creditScore;
         private String creditScoreReason;
-        private String riskScore;
-        private Integer riskScoreNumeric;
-        private Integer fraudScore;
-        private Boolean redAlertFlag;
-        private String riskFactors;
-        private Boolean dataFound;
-        private String recommendedAction;
+        private String riskLevel;             // LOW, MEDIUM, HIGH, INVALID, UNKNOWN
+        private Integer riskScoreNumeric;     // 0-100 numeric risk score
+        private String riskFactors;           // Detailed risk factors explanation
+        private Boolean redAlertFlag;         // Critical risk indicator
+        
+        // Financial Metrics
+        private BigDecimal totalOutstanding;      // Total outstanding loan amount
+        private Integer activeLoansCount;         // Number of active loans
+        private Integer totalMissedPayments;      // Total missed payments
+        private Boolean hasDefaults;              // Loan default history flag
+        private Integer activeFraudCases;         // Active fraud cases count
+        
+        // Data Availability
+        private Boolean dataFound;                // Whether external data was found
+        
+        // Metadata
+        private String recommendedAction;         // Recommended action based on scoring
         private LocalDateTime verifiedAt;
     }
 }

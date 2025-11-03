@@ -153,14 +153,39 @@ public class LoanApplication {
     @Column
     private Integer riskScore; // 0-1000
     
+    // EXTERNAL VERIFICATION RESULTS (from stored procedure)
     @Column
     private Integer creditScore; // External credit score from ExternalScoreService
     
+    // Note: riskLevel enum field (line 89) will be updated after external verification
+    
     @Column
-    private Integer fraudScore; // 0-100
+    private Integer fraudScore; // 0-100 (now used as riskScoreNumeric)
     
     @Column(columnDefinition = "TEXT")
-    private String fraudReasons;
+    private String fraudReasons; // Risk factors explanation
+    
+    @Column
+    private Boolean redAlertFlag; // Critical risk indicator
+    
+    // FINANCIAL METRICS (from external verification)
+    @Column(precision = 15, scale = 2)
+    private java.math.BigDecimal totalOutstanding; // Total outstanding loan amount
+    
+    @Column
+    private Integer activeLoansCount; // Number of active loans
+    
+    @Column
+    private Integer totalMissedPayments; // Total missed payments
+    
+    @Column
+    private Boolean hasDefaults; // Loan default history flag
+    
+    @Column
+    private Integer activeFraudCases; // Active fraud cases count
+    
+    @Column
+    private LocalDateTime externalVerificationAt; // When external verification was completed
     
     // ESSENTIAL RELATIONSHIPS ONLY
     // Note: ApplicantPersonalDetails is linked to User, not LoanApplication

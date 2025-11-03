@@ -1,10 +1,10 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormArray } from '@angular/forms';
 
 import { NotificationService } from '../../../../core/services/notification.service';
-import { LoanOfficerService, LoanDecisionRequest, ComplianceFlagRequest } from '../../../../core/services/loan-officer.service';
+import { LoanOfficerService, LoanDecisionRequest, ComplianceFlagRequest, CompleteApplicationDetailsResponse } from '../../../../core/services/loan-officer.service';
 
 @Component({
   selector: 'app-decision',
@@ -24,6 +24,7 @@ export class DecisionComponent implements OnInit {
   isSubmitting = signal(false);
   applicationId = signal<string | null>(null);
   decisionType = signal<'approve' | 'reject' | 'flag' | null>(null);
+  applicationDetails = signal<CompleteApplicationDetailsResponse | null>(null);
 
   approveForm: FormGroup = this.fb.group({
     approvedAmount: ['', [Validators.required, Validators.min(0)]],
@@ -46,10 +47,86 @@ export class DecisionComponent implements OnInit {
     additionalEvidence: ['']
   });
 
+  // Computed signal for EMI calculations
+  emiDetails = computed(() => {
+    const amount = this.approveForm.get('approvedAmount')?.value || 0;
+    const tenure = this.approveForm.get('approvedTenure')?.value || 0;
+    const rate = this.approveForm.get('approvedInterestRate')?.value || 0;
+    
+    if (!amount || !tenure || !rate || amount <= 0 || tenure <= 0 || rate <= 0) {
+      return null;
+    }
+    
+    // EMI Formula: P × r × (1+r)^n / ((1+r)^n - 1)
+    const monthlyRate = rate / 12 / 100;
+    const emi = (amount * monthlyRate * Math.pow(1 + monthlyRate, tenure)) / 
+                (Math.pow(1 + monthlyRate, tenure) - 1);
+    const totalInterest = (emi * tenure) - amount;
+    const totalRepayment = emi * tenure;
+    
+    // FOIR calculation
+    const monthlyIncome = this.applicationDetails()?.employmentDetails?.monthlyIncome || 0;
+    const foirRatio = monthlyIncome > 0 ? (emi / monthlyIncome) * 100 : 0;
+    
+    let foirStatus: 'EXCELLENT' | 'GOOD' | 'MODERATE' | 'HIGH_RISK';
+    if (foirRatio <= 35) foirStatus = 'EXCELLENT';
+    else if (foirRatio <= 40) foirStatus = 'GOOD';
+    else if (foirRatio <= 50) foirStatus = 'MODERATE';
+    else foirStatus = 'HIGH_RISK';
+    
+    return {
+      monthlyEmi: emi,
+      totalInterest,
+      totalRepayment,
+      foirRatio,
+      foirStatus
+    };
+  });
+
+  // Validation warnings
+  validationWarnings = computed(() => {
+    const warnings: string[] = [];
+    const appDetails = this.applicationDetails();
+    if (!appDetails) return warnings;
+    
+    const approvedAmount = this.approveForm.get('approvedAmount')?.value || 0;
+    const approvedTenure = this.approveForm.get('approvedTenure')?.value || 0;
+    const approvedRate = this.approveForm.get('approvedInterestRate')?.value || 0;
+    const recommendedRate = this.calculateRecommendedRate(appDetails);
+    
+    if (approvedAmount > appDetails.applicationInfo.loanAmount) {
+      warnings.push('⚠️ Approved amount exceeds requested amount');
+    }
+    
+    if (approvedTenure > appDetails.applicationInfo.tenureMonths) {
+      warnings.push('⚠️ Approved tenure exceeds requested tenure');
+    }
+    
+    const emi = this.emiDetails();
+    if (emi && emi.foirRatio > 40) {
+      warnings.push('⚠️ EMI exceeds 40% of income - High default risk');
+    }
+    
+    if (Math.abs(approvedRate - recommendedRate) > 2) {
+      warnings.push(`⚠️ Interest rate deviates significantly from recommended rate (${recommendedRate.toFixed(2)}%)`);
+    }
+    
+    return warnings;
+  });
+
+  constructor() {
+    // React to form changes for real-time EMI calculation
+    effect(() => {
+      // This effect will run whenever form values change
+      // The emiDetails computed signal will automatically recalculate
+    });
+  }
+
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
       this.applicationId.set(id);
+      this.loadApplicationDetails(id);
     } else {
       this.notificationService.error('Error', 'Application ID is missing');
       this.router.navigate(['/loan-officer/applications/assigned']);
@@ -57,10 +134,131 @@ export class DecisionComponent implements OnInit {
   }
 
   /**
-   * Set decision type
+   * Load application details for smart pre-fill
+   */
+  loadApplicationDetails(applicationId: string): void {
+    this.isLoading.set(true);
+    this.loanOfficerService.getCompleteApplicationDetails(applicationId).subscribe({
+      next: (data: CompleteApplicationDetailsResponse) => {
+        this.applicationDetails.set(data);
+        this.preFillApprovalForm(data);
+        this.isLoading.set(false);
+      },
+      error: (error: any) => {
+        console.error('Error loading application details:', error);
+        this.notificationService.error('Error', 'Failed to load application details');
+        this.isLoading.set(false);
+      }
+    });
+  }
+
+  /**
+   * Smart pre-fill approval form based on application data
+   */
+  preFillApprovalForm(data: CompleteApplicationDetailsResponse): void {
+    const recommendedRate = this.calculateRecommendedRate(data);
+    const decisionReason = this.generateDecisionReason(data);
+    
+    // Pre-fill with requested amount and tenure
+    this.approveForm.patchValue({
+      approvedAmount: data.applicationInfo.loanAmount,
+      approvedTenure: data.applicationInfo.tenureMonths,
+      approvedInterestRate: recommendedRate,
+      decisionReason: decisionReason
+    });
+  }
+
+  /**
+   * Calculate recommended interest rate based on credit score and risk level
+   */
+  calculateRecommendedRate(data: CompleteApplicationDetailsResponse): number {
+    const creditScore = data.externalVerification?.creditScore || 0;
+    const riskLevel = data.externalVerification?.riskLevel || 'UNKNOWN';
+    
+    // Risk-based pricing
+    if (creditScore >= 750 && riskLevel === 'LOW') return 10.5;
+    if (creditScore >= 700 && (riskLevel === 'LOW' || riskLevel === 'MEDIUM')) return 11.5;
+    if (creditScore >= 650 && riskLevel === 'MEDIUM') return 12.5;
+    if (creditScore >= 600) return 13.5;
+    if (creditScore >= 550) return 14.5;
+    if (creditScore >= 500) return 15.5;
+    return 16.5; // High risk
+  }
+
+  /**
+   * Generate decision reason based on application data
+   */
+  generateDecisionReason(data: CompleteApplicationDetailsResponse): string {
+    const creditScore = data.externalVerification?.creditScore || 0;
+    const riskLevel = data.externalVerification?.riskLevel || 'UNKNOWN';
+    const hasDefaults = data.externalVerification?.hasDefaults || false;
+    const activeFraudCases = data.externalVerification?.activeFraudCases || 0;
+    
+    if (activeFraudCases > 0) {
+      return `Application flagged due to ${activeFraudCases} active fraud case(s). Requires compliance review before approval.`;
+    }
+    
+    if (hasDefaults) {
+      return `Applicant has loan default history. Approved with caution and additional monitoring required.`;
+    }
+    
+    if (creditScore >= 750 && riskLevel === 'LOW') {
+      return `Excellent credit profile with score ${creditScore}. Strong repayment capacity. No adverse history found.`;
+    }
+    
+    if (creditScore >= 650 && (riskLevel === 'LOW' || riskLevel === 'MEDIUM')) {
+      return `Good credit score ${creditScore}. Stable employment and income verified. Approved with standard terms.`;
+    }
+    
+    if (creditScore >= 550) {
+      return `Fair credit score ${creditScore}. Approved with enhanced monitoring and risk-adjusted terms.`;
+    }
+    
+    return `Credit score ${creditScore} requires careful assessment. Additional collateral or guarantor recommended.`;
+  }
+
+  /**
+   * Add risk-based conditions
+   */
+  addRiskBasedConditions(riskLevel: string): void {
+    const conditionsArray = this.approveForm.get('conditions') as FormArray;
+    conditionsArray.clear();
+    
+    if (riskLevel === 'HIGH' || riskLevel === 'VERY_HIGH' || riskLevel === 'CRITICAL') {
+      conditionsArray.push(this.fb.control('Submit additional income proof within 7 days', Validators.required));
+      conditionsArray.push(this.fb.control('Provide co-applicant/guarantor details', Validators.required));
+      conditionsArray.push(this.fb.control('Collateral valuation required before disbursement', Validators.required));
+    } else if (riskLevel === 'MEDIUM') {
+      conditionsArray.push(this.fb.control('Salary account statements for last 6 months', Validators.required));
+      conditionsArray.push(this.fb.control('Employment verification letter from HR', Validators.required));
+    } else {
+      conditionsArray.push(this.fb.control('Standard documentation as per policy', Validators.required));
+    }
+  }
+
+  /**
+   * Set decision type and pre-fill form if approval
    */
   setDecisionType(type: 'approve' | 'reject' | 'flag'): void {
     this.decisionType.set(type);
+    
+    // Smart pre-fill for approval
+    if (type === 'approve' && this.applicationDetails()) {
+      const data = this.applicationDetails()!;
+      const recommendedRate = this.calculateRecommendedRate(data);
+      const decisionReason = this.generateDecisionReason(data);
+      
+      this.approveForm.patchValue({
+        approvedAmount: data.applicationInfo.loanAmount,
+        approvedTenure: data.applicationInfo.tenureMonths,
+        approvedInterestRate: recommendedRate,
+        decisionReason: decisionReason
+      });
+      
+      // Add risk-based conditions
+      const riskLevel = data.externalVerification?.riskLevel || 'MEDIUM';
+      this.addRiskBasedConditions(riskLevel);
+    }
   }
 
   /**
@@ -125,12 +323,13 @@ export class DecisionComponent implements OnInit {
     const formValue = this.approveForm.value;
 
     const request: LoanDecisionRequest = {
+      decisionType: 'APPROVED',
       approvedAmount: parseFloat(formValue.approvedAmount),
-      approvedTenure: parseInt(formValue.approvedTenure),
+      approvedTenureMonths: parseInt(formValue.approvedTenure),
       approvedInterestRate: parseFloat(formValue.approvedInterestRate),
       decisionReason: formValue.decisionReason,
-      conditions: formValue.conditions.filter((c: string) => c.trim().length > 0),
-      internalNotes: formValue.internalNotes || undefined
+      additionalNotes: formValue.internalNotes || undefined,
+      requiresComplianceReview: false
     };
 
     this.loanOfficerService.approveApplication(appId, request).subscribe({
@@ -139,7 +338,17 @@ export class DecisionComponent implements OnInit {
           'Application Approved',
           'The loan application has been approved successfully.'
         );
-        this.router.navigate(['/loan-officer/application', appId, 'details']);
+        // Pass approval details via route state
+        this.router.navigate(['/loan-officer/application', appId, 'approval-summary'], {
+          state: {
+            approvalData: {
+              approvedAmount: parseFloat(formValue.approvedAmount),
+              approvedTenureMonths: parseInt(formValue.approvedTenure),
+              approvedInterestRate: parseFloat(formValue.approvedInterestRate),
+              decisionReason: formValue.decisionReason
+            }
+          }
+        });
       },
       error: (error) => {
         console.error('Error approving application:', error);
@@ -168,8 +377,10 @@ export class DecisionComponent implements OnInit {
     const formValue = this.rejectForm.value;
 
     const request: LoanDecisionRequest = {
+      decisionType: 'REJECTED',
+      rejectionReason: formValue.decisionReason,
       decisionReason: formValue.decisionReason,
-      internalNotes: formValue.internalNotes || undefined
+      additionalNotes: formValue.internalNotes || undefined
     };
 
     this.loanOfficerService.rejectApplication(appId, request).subscribe({

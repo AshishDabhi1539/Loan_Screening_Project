@@ -30,8 +30,13 @@
           </p>
         </div>
         <div class="flex items-center space-x-3">
-          <!-- Show action buttons only if shouldShowActionButtons is true -->
-          @if (shouldShowActionButtons()) {
+          <!-- Show action buttons for active workflow (hide only for final statuses) -->
+          @if (shouldShowActionButtons() && 
+               app.status !== 'APPROVED' && 
+               app.status !== 'REJECTED' && 
+               app.status !== 'DISBURSED' &&
+               app.status !== 'CANCELLED' &&
+               app.status !== 'DOCUMENT_INCOMPLETE') {
             @if (getSmartActionButton()) {
               <button
                 (click)="getSmartActionButton()!.method()"
@@ -68,7 +73,11 @@
       </div>
     </div>
 
-    <!-- Progress Indicator - Enhanced Design -->
+    <!-- Progress Indicator - Enhanced Design (Show only for active workflow) -->
+    @if (app.status !== 'APPROVED' && 
+         app.status !== 'REJECTED' && 
+         app.status !== 'DISBURSED' &&
+         app.status !== 'CANCELLED') {
     <div class="bg-white shadow-lg rounded-xl p-8">
       <h3 class="text-xl font-bold text-gray-900 mb-8">Application Progress</h3>
       
@@ -163,6 +172,7 @@
         </div>
       </div>
     </div>
+    }
 
     <!-- Tabs Navigation -->
     <div class="bg-white shadow rounded-lg">
@@ -730,10 +740,10 @@
                       <div class="text-sm font-semibold text-gray-700">Risk Assessment</div>
                     </div>
                     <div class="mt-2">
-                      @if (external.riskType) {
-                        <span [ngClass]="getRiskLevelBadgeClass(external.riskType)"
+                      @if (external.riskLevel) {
+                        <span [ngClass]="getRiskLevelBadgeClass(external.riskLevel)"
                               class="px-4 py-2 text-lg font-semibold rounded-full">
-                          {{ external.riskType }}
+                          {{ external.riskLevel }}
                         </span>
                         @if (external.riskScoreNumeric !== null && external.riskScoreNumeric !== undefined) {
                           <div class="text-sm text-gray-600 mt-2">Risk Score: {{ external.riskScoreNumeric }}/100</div>

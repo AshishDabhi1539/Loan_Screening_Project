@@ -31,6 +31,11 @@ export const loanOfficerRoutes: Routes = [
         path: 'ready-for-decision',
         loadComponent: () => import('./components/applications-list/applications-list.component').then(m => m.ApplicationsListComponent),
         data: { filter: 'ready-for-decision' }
+      },
+      {
+        path: 'completed',
+        loadComponent: () => import('./components/applications-list/applications-list.component').then(m => m.ApplicationsListComponent),
+        data: { filter: 'completed' }
       }
     ]
   },
@@ -61,6 +66,10 @@ export const loanOfficerRoutes: Routes = [
       {
         path: 'decision',
         loadComponent: () => import('./components/decision/decision.component').then(m => m.DecisionComponent)
+      },
+      {
+        path: 'approval-summary',
+        loadComponent: () => import('./components/approval-summary/approval-summary.component').then(m => m.ApprovalSummaryComponent)
       }
     ]
   }

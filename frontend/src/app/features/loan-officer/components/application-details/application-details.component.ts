@@ -240,33 +240,15 @@ export class ApplicationDetailsComponent implements OnInit {
   });
   
   /**
-   * Check if we should show action buttons
-   * Logic:
-   * - UNDER_REVIEW: Always show action buttons
-   * - After UNDER_REVIEW: Hide if in view mode, show if in resume mode
+   * Determine if action buttons should be shown
+   * Show buttons for all active workflow statuses (not final statuses)
    */
   shouldShowActionButtons = computed(() => {
     const app = this.applicationDetails()?.applicationInfo;
     if (!app) return false;
     
-    // For UNDER_REVIEW status, always show action buttons (keep as is)
-    if (app.status === 'UNDER_REVIEW') {
-      return true;
-    }
-    
-    // For statuses after UNDER_REVIEW (DOCUMENT_VERIFICATION onwards)
-    // Show buttons only if NOT in view mode
-    const postReviewStatuses = [
-      'DOCUMENT_VERIFICATION', 'DOCUMENT_INCOMPLETE', 
-      'PENDING_EXTERNAL_VERIFICATION', 'EXTERNAL_VERIFICATION',
-      'FRAUD_CHECK', 'READY_FOR_DECISION'
-    ];
-    
-    if (postReviewStatuses.includes(app.status)) {
-      return !this.isViewMode(); // Hide if view mode, show if resume mode
-    }
-    
-    // For other statuses, show buttons
+    // Always show action buttons for active workflow statuses
+    // The HTML template will filter out final statuses (APPROVED, REJECTED, etc.)
     return true;
   });
 
@@ -404,37 +386,18 @@ export class ApplicationDetailsComponent implements OnInit {
   });
 
   /**
-   * Get external verification info (from financialAssessment riskAssessment for now)
+   * Get external verification info - returns real data from API if available
    */
   getExternalVerification = computed(() => {
-    const financial = this.applicationDetails()?.financialAssessment;
-    const summary = this.applicationDetails()?.verificationSummary;
+    const externalVerification = this.applicationDetails()?.externalVerification;
     
-    if (!financial?.riskAssessment && !summary) return null;
-
-    return {
-      // Credit Scoring Results
-      creditScore: null,
-      riskType: financial?.riskAssessment?.riskLevel || 'UNKNOWN',
-      riskScoreNumeric: financial?.riskAssessment?.riskScore || 0,
-      riskFactors: financial?.riskAssessment?.riskFactors?.join(', ') || 'No risk factors identified',
-      creditScoreReason: 'Based on available data',
-      redAlertFlag: (financial?.riskAssessment?.fraudScore || 0) > 70,
-      
-      // Financial Metrics
-      totalOutstanding: 0,
-      activeLoansCount: 0,
-      totalMissedPayments: 0,
-      hasDefaults: false,
-      activeFraudCases: 0,
-      
-      // Data Availability
-      dataFound: summary?.externalVerificationComplete || false,
-      
-      // Metadata
-      recommendedAction: financial?.riskAssessment?.overallAssessment || summary?.nextAction || 'Review required',
-      verifiedAt: new Date()
-    };
+    // Return real data if available
+    if (externalVerification) {
+      return externalVerification;
+    }
+    
+    // Fallback: return null if no external verification has been completed
+    return null;
   });
 
   /**

@@ -6,7 +6,9 @@ public enum RiskLevel {
     MEDIUM,
     HIGH,
     VERY_HIGH,
-    CRITICAL;
+    CRITICAL,
+    INVALID,    // For identity mismatch in external verification
+    UNKNOWN;    // When external verification data is unavailable
 
     public static RiskLevel fromScore(Integer score) {
         if (score == null) {

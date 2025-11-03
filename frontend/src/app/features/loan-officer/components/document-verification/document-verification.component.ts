@@ -480,8 +480,8 @@ export class DocumentVerificationComponent implements OnInit {
           'Document verification has been completed successfully.'
         );
         this.isSubmitting.set(false);
-        // Navigate back to Review Workflow page
-        this.router.navigate(['/loan-officer/application', appId, 'review']);
+        // Navigate back to Application Details page
+        this.router.navigate(['/loan-officer/application', appId, 'details']);
       },
       error: (error) => {
         console.error('Verification error:', error);

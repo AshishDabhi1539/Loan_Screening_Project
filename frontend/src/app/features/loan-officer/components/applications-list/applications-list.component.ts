@@ -63,6 +63,9 @@ export class ApplicationsListComponent implements OnInit {
       this.statusFilter.set('DOCUMENT_VERIFICATION');
     } else if (mode === 'ready-for-decision') {
       this.statusFilter.set('READY_FOR_DECISION');
+    } else if (mode === 'completed') {
+      // Completed mode shows APPROVED, REJECTED, DISBURSED
+      this.statusFilter.set('all'); // Will be filtered in loadApplications
     }
   }
 
@@ -83,7 +86,28 @@ export class ApplicationsListComponent implements OnInit {
 
     observable.subscribe({
       next: (apps) => {
-        this.applications.set(apps);
+        let filteredApps = apps;
+        
+        // Filter based on mode
+        if (mode === 'assigned') {
+          // Assigned: Show only active applications (exclude final statuses)
+          filteredApps = apps.filter(app => 
+            app.status !== 'APPROVED' && 
+            app.status !== 'REJECTED' && 
+            app.status !== 'DISBURSED' &&
+            app.status !== 'CANCELLED'
+          );
+        } else if (mode === 'completed') {
+          // Completed: Show only final statuses
+          filteredApps = apps.filter(app => 
+            app.status === 'APPROVED' || 
+            app.status === 'REJECTED' || 
+            app.status === 'DISBURSED' ||
+            app.status === 'CANCELLED'
+          );
+        }
+        
+        this.applications.set(filteredApps);
         this.applyFilters();
         this.isLoading.set(false);
       },
@@ -329,6 +353,8 @@ export class ApplicationsListComponent implements OnInit {
         return 'Pending Document Verification';
       case 'ready-for-decision':
         return 'Applications Ready for Decision';
+      case 'completed':
+        return 'Completed Applications';
       default:
         return 'Assigned Applications';
     }
