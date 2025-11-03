@@ -36,7 +36,7 @@
             type="text"
             id="search"
             [(ngModel)]="searchTerm"
-            placeholder="Search by applicant, email, or application ID..."
+            placeholder="Search by applicant name or loan type..."
             class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
           />
           <svg class="absolute left-3 top-2.5 h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -127,62 +127,47 @@
       </div>
     } @else {
       <!-- Applications Table -->
-      <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
+      <div class="overflow-hidden">
+        <table class="w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
             <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Applicant Name</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Loan Type</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requested Amount</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Flag Reason</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Application Number</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submitted Date</th>
-              <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+              <th class="px-3 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sr. No.</th>
+              <th class="px-3 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Applicant Name</th>
+              <th class="px-3 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Loan Type</th>
+              <th class="px-3 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              <th class="px-3 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
+              <th class="px-3 py-2.5 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
-            @for (application of paginatedApplications(); track application.id) {
+            @for (application of paginatedApplications(); track application.id; let i = $index) {
               <tr class="hover:bg-gray-50 transition-colors">
-                <td class="px-6 py-4">
-                  <div class="text-sm font-semibold text-gray-900">{{ application.applicantName || 'N/A' }}</div>
-                  <div class="text-xs text-gray-500 mt-0.5">{{ application.applicantEmail || '' }}</div>
+                <td class="px-3 py-2.5 whitespace-nowrap">
+                  <div class="text-xs font-medium text-gray-600">{{ showingFrom() + i }}</div>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm font-medium text-gray-900">{{ formatLoanType(application.loanType) }}</div>
+                <td class="px-3 py-2.5">
+                  <div class="text-xs font-semibold text-gray-900">{{ application.applicantName || 'N/A' }}</div>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm font-semibold text-gray-900">{{ formatCurrency(application.requestedAmount || 0) }}</div>
+                <td class="px-3 py-2.5 whitespace-nowrap">
+                  <div class="text-xs font-medium text-gray-900">{{ formatLoanType(application.loanType) }}</div>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <span [class]="'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ' + getStatusBadgeColor(application.status)">
+                <td class="px-3 py-2.5 whitespace-nowrap">
+                  <span [class]="'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ' + getStatusBadgeColor(application.status)">
                     {{ formatStatus(application.status) }}
                   </span>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <span [class]="'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ' + getPriorityBadgeColor(application.priority || 'NORMAL')">
+                <td class="px-3 py-2.5 whitespace-nowrap">
+                  <span [class]="'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ' + getPriorityBadgeColor(application.priority || 'NORMAL')">
                     {{ application.priority || 'NORMAL' }}
                   </span>
                 </td>
-                <td class="px-6 py-4">
-                  <div class="text-sm text-gray-700 max-w-xs truncate" [title]="application.flagReason || 'N/A'">
-                    {{ application.flagReason || 'N/A' }}
-                  </div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm text-gray-600 font-mono">{{ application.applicationNumber || application.id.substring(0, 8).toUpperCase() }}</div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {{ formatDate(application.submittedAt || application.createdAt) }}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-center">
+                <td class="px-3 py-2.5 whitespace-nowrap text-center">
                   <button
                     (click)="viewApplication(application.id)"
-                    class="inline-flex items-center px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-200"
+                    class="inline-flex items-center px-2.5 py-1.5 bg-primary-600 text-white text-xs font-medium rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-primary-500 transition-colors duration-200"
                     title="View Application Details"
                   >
-                    <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg class="w-3.5 h-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                     </svg>

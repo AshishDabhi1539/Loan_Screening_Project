@@ -1,8 +1,9 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
-import { ComplianceService, ComplianceDashboardResponse } from '../../../../core/services/compliance.service';
+import { ComplianceService, ComplianceDashboardResponse, LoanApplicationResponse } from '../../../../core/services/compliance.service';
 import { NotificationService } from '../../../../core/services/notification.service';
+import { IdEncoderService } from '../../../../core/services/id-encoder.service';
 
 @Component({
   selector: 'app-compliance-dashboard',
@@ -15,29 +16,97 @@ export class ComplianceDashboardComponent implements OnInit {
   private complianceService = inject(ComplianceService);
   private notificationService = inject(NotificationService);
   private router = inject(Router);
+  private idEncoder = inject(IdEncoderService);
 
   // State signals
   dashboard = signal<ComplianceDashboardResponse | null>(null);
+  assignedApplications = signal<LoanApplicationResponse[]>([]);
   isLoading = signal(true);
 
-  // Computed properties
-  workloadPercentage = computed(() => {
-    const data = this.dashboard();
-    if (!data) return 0;
-    const total = data.totalAssignedApplications;
-    const completed = data.completedThisWeek;
-    return total > 0 ? Math.round((completed / total) * 100) : 0;
+  // Computed properties for cards
+  totalAssigned = computed(() => this.dashboard()?.totalAssignedApplications || 0);
+  
+  inProgress = computed(() => {
+    const apps = this.assignedApplications();
+    return apps.filter(app => 
+      app.status === 'FLAGGED_FOR_COMPLIANCE' || 
+      app.status === 'COMPLIANCE_REVIEW' || 
+      app.status === 'PENDING_COMPLIANCE_DOCS'
+    ).length;
   });
 
-  priorityChartData = computed(() => {
+  completed = computed(() => {
+    const apps = this.assignedApplications();
+    return apps.filter(app => 
+      app.status === 'READY_FOR_DECISION' || 
+      app.status === 'APPROVED'
+    ).length;
+  });
+
+  rejected = computed(() => {
+    const apps = this.assignedApplications();
+    return apps.filter(app => app.status === 'REJECTED').length;
+  });
+
+  // Top 5 assigned applications
+  topApplications = computed(() => {
+    return this.assignedApplications().slice(0, 5);
+  });
+
+  // Pie chart data for performance metrics
+  performanceChartData = computed(() => {
     const data = this.dashboard();
     if (!data) return [];
+    const total = data.totalCasesResolved;
+    if (total === 0) return [];
+    
+    const cleared = data.applicationsClearedToday || 0;
+    const violations = data.complianceViolationsFound || 0;
+    const others = Math.max(0, total - cleared - violations);
+    
     return [
-      { label: 'Critical', value: data.criticalPriorityApplications, color: 'bg-red-500' },
-      { label: 'High', value: data.highPriorityApplications, color: 'bg-orange-500' },
-      { label: 'Medium', value: data.mediumPriorityApplications, color: 'bg-yellow-500' },
-      { label: 'Low', value: data.lowPriorityApplications, color: 'bg-green-500' }
-    ];
+      { label: 'Cleared', value: cleared, color: '#10b981', percentage: total > 0 ? (cleared / total * 100) : 0 },
+      { label: 'Violations', value: violations, color: '#ef4444', percentage: total > 0 ? (violations / total * 100) : 0 },
+      { label: 'Others', value: others, color: '#6b7280', percentage: total > 0 ? (others / total * 100) : 0 }
+    ].filter(item => item.value > 0);
+  });
+
+  // Todo list - pending tasks
+  todoList = computed(() => {
+    const apps = this.assignedApplications();
+    const todos: Array<{id: string, task: string, priority: string, status: string, applicantName: string}> = [];
+    
+    apps.forEach(app => {
+      if (app.status === 'FLAGGED_FOR_COMPLIANCE') {
+        todos.push({
+          id: app.id,
+          task: `Start investigation for ${app.applicantName}`,
+          priority: app.priority || 'MEDIUM',
+          status: app.status,
+          applicantName: app.applicantName
+        });
+      } else if (app.status === 'PENDING_COMPLIANCE_DOCS') {
+        todos.push({
+          id: app.id,
+          task: `Review documents for ${app.applicantName}`,
+          priority: app.priority || 'MEDIUM',
+          status: app.status,
+          applicantName: app.applicantName
+        });
+      } else if (app.status === 'COMPLIANCE_REVIEW') {
+        todos.push({
+          id: app.id,
+          task: `Complete investigation for ${app.applicantName}`,
+          priority: app.priority || 'MEDIUM',
+          status: app.status,
+          applicantName: app.applicantName
+        });
+      }
+    });
+    
+    // Sort by priority: CRITICAL > HIGH > MEDIUM > LOW
+    const priorityOrder: {[key: string]: number} = { 'CRITICAL': 0, 'HIGH': 1, 'MEDIUM': 2, 'LOW': 3 };
+    return todos.sort((a, b) => (priorityOrder[a.priority] || 99) - (priorityOrder[b.priority] || 99));
   });
 
   ngOnInit(): void {
@@ -49,17 +118,42 @@ export class ComplianceDashboardComponent implements OnInit {
    */
   loadDashboard(): void {
     this.isLoading.set(true);
+    let dashboardLoaded = false;
+    let applicationsLoaded = false;
     
+    const checkComplete = () => {
+      if (dashboardLoaded && applicationsLoaded) {
+        this.isLoading.set(false);
+      }
+    };
+    
+    // Load both dashboard stats and assigned applications
     this.complianceService.getDashboard().subscribe({
       next: (data) => {
         this.dashboard.set(data);
-        this.isLoading.set(false);
-        console.log('✅ Dashboard loaded:', data);
+        dashboardLoaded = true;
+        checkComplete();
       },
       error: (error) => {
         console.error('❌ Error loading dashboard:', error);
         this.notificationService.error('Error', 'Failed to load dashboard data');
-        this.isLoading.set(false);
+        dashboardLoaded = true;
+        checkComplete();
+      }
+    });
+
+    // Load assigned applications for top 5 and todos
+    this.complianceService.getAssignedApplications().subscribe({
+      next: (apps) => {
+        this.assignedApplications.set(apps);
+        applicationsLoaded = true;
+        console.log('✅ Applications loaded:', apps.length);
+        checkComplete();
+      },
+      error: (error) => {
+        console.error('❌ Error loading applications:', error);
+        applicationsLoaded = true;
+        checkComplete();
       }
     });
   }
@@ -72,26 +166,6 @@ export class ComplianceDashboardComponent implements OnInit {
     this.loadDashboard();
   }
 
-  /**
-   * Navigate to flagged applications
-   */
-  viewFlaggedApplications(): void {
-    this.router.navigate(['/compliance/flagged-applications']);
-  }
-
-  /**
-   * Navigate to under review applications
-   */
-  viewUnderReview(): void {
-    this.router.navigate(['/compliance/under-review']);
-  }
-
-  /**
-   * Navigate to pending documents
-   */
-  viewPendingDocuments(): void {
-    this.router.navigate(['/compliance/pending-documents']);
-  }
 
   /**
    * Get status badge color
@@ -142,9 +216,50 @@ export class ComplianceDashboardComponent implements OnInit {
   }
 
   /**
+   * Format loan type
+   */
+  formatLoanType(loanType: string | null | undefined): string {
+    if (!loanType) return 'N/A';
+    return loanType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  }
+
+  /**
    * Navigate to application details
    */
   viewApplication(applicationId: string): void {
-    this.router.navigate(['/compliance/applications', applicationId]);
+    // Encode the ID for secure URL and pass as query parameter
+    const encodedId = this.idEncoder.encodeId(applicationId);
+    this.router.navigate(['/compliance-officer/applications/review'], {
+      queryParams: { ref: encodedId }
+    });
+  }
+
+  /**
+   * Get pie chart SVG path data
+   */
+  getPieChartPath(data: Array<{percentage: number}>, index: number): string {
+    let startAngle = 0;
+    for (let i = 0; i < index; i++) {
+      startAngle += data[i].percentage;
+    }
+    
+    const angle = data[index].percentage;
+    const start = this.angleToPoint(startAngle);
+    const end = this.angleToPoint(startAngle + angle);
+    const largeArcFlag = angle > 50 ? 1 : 0;
+    
+    return `M 50,50 L ${start.x},${start.y} A 40,40 0 ${largeArcFlag},1 ${end.x},${end.y} Z`;
+  }
+
+  /**
+   * Convert percentage angle to SVG point
+   */
+  private angleToPoint(percentage: number): {x: number, y: number} {
+    const angle = (percentage / 100) * 360 - 90; // Start from top
+    const rad = (angle * Math.PI) / 180;
+    return {
+      x: 50 + 40 * Math.cos(rad),
+      y: 50 + 40 * Math.sin(rad)
+    };
   }
 }

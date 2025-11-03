@@ -1,8 +1,9 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { ComplianceService, LoanApplicationResponse } from '../../../../core/services/compliance.service';
+import { ComplianceService, LoanApplicationResponse, ComplianceInvestigationResponse } from '../../../../core/services/compliance.service';
 import { NotificationService } from '../../../../core/services/notification.service';
+import { IdEncoderService } from '../../../../core/services/id-encoder.service';
 
 @Component({
   selector: 'app-application-details',
@@ -16,19 +17,41 @@ export class ApplicationDetailsComponent implements OnInit {
   private router = inject(Router);
   private complianceService = inject(ComplianceService);
   private notificationService = inject(NotificationService);
+  private idEncoder = inject(IdEncoderService);
 
   // State signals
   application = signal<any | null>(null);
   isLoading = signal(true);
   applicationId = signal<string>('');
+  activeTab = signal<'information' | 'verification' | 'investigation'>('information');
+  investigationResults = signal<ComplianceInvestigationResponse | null>(null);
+  isRunningInvestigation = signal(false);
+
+  // Computed properties for easier access
+  applicationInfo = computed(() => this.application()?.applicationInfo);
+  applicantIdentity = computed(() => this.application()?.applicantIdentity);
+  employmentDetails = computed(() => this.application()?.employmentDetails);
+  documents = computed(() => this.application()?.documents || []);
+  financialAssessment = computed(() => this.application()?.financialAssessment);
+  verificationSummary = computed(() => this.application()?.verificationSummary);
 
   ngOnInit(): void {
-    // Get application ID from route
-    this.route.params.subscribe(params => {
-      const id = params['id'];
-      if (id) {
-        this.applicationId.set(id);
-        this.loadApplicationDetails(id);
+    // Get application ID from query parameters and decode it
+    this.route.queryParams.subscribe(params => {
+      const encodedId = params['ref'];
+      if (encodedId) {
+        // Decode the encoded ID from query parameter
+        const decodedId = this.idEncoder.decodeId(encodedId);
+        if (decodedId) {
+          this.applicationId.set(decodedId);
+          this.loadApplicationDetails(decodedId);
+        } else {
+          this.notificationService.error('Error', 'Invalid application reference');
+          this.goBack();
+        }
+      } else {
+        this.notificationService.error('Error', 'Application reference not found');
+        this.goBack();
       }
     });
   }
@@ -74,6 +97,7 @@ export class ApplicationDetailsComponent implements OnInit {
     const statusColors: { [key: string]: string } = {
       'FLAGGED_FOR_COMPLIANCE': 'bg-red-100 text-red-800',
       'COMPLIANCE_REVIEW': 'bg-yellow-100 text-yellow-800',
+      'UNDER_INVESTIGATION': 'bg-purple-100 text-purple-800',
       'PENDING_COMPLIANCE_DOCS': 'bg-orange-100 text-orange-800',
       'READY_FOR_DECISION': 'bg-green-100 text-green-800',
       'REJECTED': 'bg-red-100 text-red-800',
@@ -130,6 +154,69 @@ export class ApplicationDetailsComponent implements OnInit {
   }
 
   /**
+   * Switch active tab
+   */
+  setActiveTab(tab: 'information' | 'verification' | 'investigation'): void {
+    this.activeTab.set(tab);
+  }
+
+  /**
+   * Check if investigation has been performed
+   */
+  hasInvestigationResults(): boolean {
+    return this.investigationResults() !== null;
+  }
+
+  /**
+   * Perform comprehensive compliance investigation
+   */
+  performInvestigation(): void {
+    const id = this.applicationId();
+    if (!id) {
+      this.notificationService.error('Error', 'Application ID not found');
+      return;
+    }
+
+    this.isRunningInvestigation.set(true);
+
+    this.complianceService.performComprehensiveInvestigation(id).subscribe({
+      next: (response) => {
+        console.log('✅ Investigation completed:', response);
+        this.investigationResults.set(response);
+        this.isRunningInvestigation.set(false);
+        this.activeTab.set('investigation'); // Switch to investigation tab
+        
+        // Reload application details to get updated status
+        setTimeout(() => {
+          this.loadApplicationDetails(id);
+        }, 500);
+        
+        this.notificationService.success(
+          'Investigation Completed',
+          'Comprehensive compliance investigation has been completed successfully. Application status updated to Under Investigation. Review the results in the Investigation tab.'
+        );
+      },
+      error: (error) => {
+        console.error('❌ Error performing investigation:', error);
+        this.isRunningInvestigation.set(false);
+        
+        let errorMessage = 'Failed to perform investigation. Please try again.';
+        if (error?.error) {
+          if (typeof error.error === 'string') {
+            errorMessage = error.error;
+          } else if (error.error.message) {
+            errorMessage = error.error.message;
+          }
+        } else if (error?.message) {
+          errorMessage = error.message;
+        }
+        
+        this.notificationService.error('Error', errorMessage);
+      }
+    });
+  }
+
+  /**
    * Get document icon based on type
    */
   getDocumentIcon(documentType: string): string {
@@ -139,5 +226,184 @@ export class ApplicationDetailsComponent implements OnInit {
       'DOCUMENT': 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'
     };
     return icons[documentType] || icons['DOCUMENT'];
+  }
+
+  /**
+   * Get verification status badge color
+   */
+  getVerificationStatusColor(status: string): string {
+    const colors: { [key: string]: string } = {
+      'VERIFIED': 'bg-green-100 text-green-800',
+      'PENDING': 'bg-yellow-100 text-yellow-800',
+      'REJECTED': 'bg-red-100 text-red-800',
+      'NOT_VERIFIED': 'bg-gray-100 text-gray-800'
+    };
+    return colors[status] || 'bg-gray-100 text-gray-800';
+  }
+
+  /**
+   * Get risk level badge color
+   */
+  getRiskLevelColor(riskLevel: string): string {
+    const colors: { [key: string]: string } = {
+      'CRITICAL': 'bg-red-100 text-red-800',
+      'VERY_HIGH': 'bg-red-100 text-red-800',
+      'HIGH': 'bg-orange-100 text-orange-800',
+      'MEDIUM': 'bg-yellow-100 text-yellow-800',
+      'LOW': 'bg-green-100 text-green-800',
+      'VERY_LOW': 'bg-green-100 text-green-800'
+    };
+    return colors[riskLevel] || 'bg-gray-100 text-gray-800';
+  }
+
+  /**
+   * Format loan type
+   */
+  formatLoanType(loanType: string | null | undefined): string {
+    if (!loanType) return 'N/A';
+    return loanType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  }
+
+  /**
+   * Format file size
+   */
+  formatFileSize(bytes: number | null | undefined): string {
+    if (!bytes) return 'N/A';
+    const kb = bytes / 1024;
+    const mb = kb / 1024;
+    if (mb >= 1) return `${mb.toFixed(2)} MB`;
+    return `${kb.toFixed(2)} KB`;
+  }
+
+  /**
+   * Format JSON for display
+   */
+  formatJSON(obj: any): string {
+    if (!obj) return 'N/A';
+    try {
+      return JSON.stringify(obj, null, 2);
+    } catch (e) {
+      return String(obj);
+    }
+  }
+
+  /**
+   * Get band color based on risk band
+   */
+  getBandColor(band: string): string {
+    const bandColors: { [key: string]: string } = {
+      'EXCELLENT': 'bg-green-100 text-green-800',
+      'GOOD': 'bg-blue-100 text-blue-800',
+      'FAIR': 'bg-yellow-100 text-yellow-800',
+      'POOR': 'bg-orange-100 text-orange-800',
+      'CRITICAL': 'bg-red-100 text-red-800'
+    };
+    return bandColors[band?.toUpperCase()] || 'bg-gray-100 text-gray-800';
+  }
+
+  /**
+   * Format compliance decision for display
+   */
+  formatComplianceDecision(decision: string): string {
+    if (!decision) return 'N/A';
+    return decision.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  }
+
+  /**
+   * Get compliance decision color
+   */
+  getComplianceDecisionColor(decision: string): string {
+    if (!decision) return 'bg-gray-100 text-gray-800';
+    const upperDecision = decision.toUpperCase();
+    if (upperDecision.includes('PROCEED') || upperDecision.includes('APPROVED')) {
+      return 'bg-green-100 text-green-800';
+    } else if (upperDecision.includes('REJECT') || upperDecision.includes('IMMEDIATE')) {
+      return 'bg-red-100 text-red-800';
+    } else if (upperDecision.includes('CONDITIONAL') || upperDecision.includes('ENHANCED')) {
+      return 'bg-orange-100 text-orange-800';
+    }
+    return 'bg-gray-100 text-gray-800';
+  }
+
+  /**
+   * Check if value is an array
+   */
+  isArray(value: any): boolean {
+    return Array.isArray(value);
+  }
+
+  /**
+   * Check if application can start investigation (status is FLAGGED_FOR_COMPLIANCE)
+   */
+  canStartInvestigation(): boolean {
+    const status = this.applicationInfo()?.status;
+    return status === 'FLAGGED_FOR_COMPLIANCE';
+  }
+
+  /**
+   * Check if application is under compliance review
+   */
+  isUnderComplianceReview(): boolean {
+    const status = this.applicationInfo()?.status;
+    return status === 'COMPLIANCE_REVIEW' || status === 'PENDING_COMPLIANCE_DOCS' || status === 'UNDER_INVESTIGATION';
+  }
+
+  /**
+   * Start compliance investigation
+   */
+  startInvestigation(): void {
+    const id = this.applicationId();
+    if (!id) {
+      this.notificationService.error('Error', 'Application ID not found');
+      return;
+    }
+
+    // Show loading state
+    this.isLoading.set(true);
+    
+    // Call the backend API
+    this.complianceService.startInvestigation(id).subscribe({
+      next: (response) => {
+        console.log('✅ Investigation started:', response);
+        
+        // Show success notification
+        this.notificationService.success(
+          'Investigation Started',
+          'Compliance investigation has been initiated successfully. The application status has been updated to Compliance Review.'
+        );
+        
+        // Small delay before reloading to ensure backend has processed the status change
+        setTimeout(() => {
+          // Reload application details to get updated status
+          this.loadApplicationDetails(id);
+        }, 500);
+      },
+      error: (error) => {
+        console.error('❌ Error starting investigation:', error);
+        this.isLoading.set(false);
+        
+        // Extract error message properly
+        let errorMessage = 'Failed to start investigation. Please try again.';
+        
+        if (error?.error) {
+          // If error.error is a string (text response)
+          if (typeof error.error === 'string') {
+            errorMessage = error.error;
+          } 
+          // If error.error is an object with message
+          else if (error.error.message) {
+            errorMessage = error.error.message;
+          }
+          // If error.error is an object, try to stringify
+          else if (typeof error.error === 'object') {
+            errorMessage = JSON.stringify(error.error);
+          }
+        } else if (error?.message) {
+          errorMessage = error.message;
+        }
+        
+        this.notificationService.error('Error', errorMessage);
+      }
+    });
   }
 }

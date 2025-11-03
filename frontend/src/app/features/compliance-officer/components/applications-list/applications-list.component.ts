@@ -4,6 +4,7 @@ import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ComplianceService, LoanApplicationResponse } from '../../../../core/services/compliance.service';
 import { NotificationService } from '../../../../core/services/notification.service';
+import { IdEncoderService } from '../../../../core/services/id-encoder.service';
 
 @Component({
   selector: 'app-applications-list',
@@ -16,6 +17,7 @@ export class ApplicationsListComponent implements OnInit {
   private complianceService = inject(ComplianceService);
   private notificationService = inject(NotificationService);
   private router = inject(Router);
+  private idEncoder = inject(IdEncoderService);
 
   // State signals
   applications = signal<LoanApplicationResponse[]>([]);
@@ -58,8 +60,6 @@ export class ApplicationsListComponent implements OnInit {
     if (search) {
       filtered = filtered.filter(app =>
         app.applicantName?.toLowerCase().includes(search) ||
-        app.applicantEmail?.toLowerCase().includes(search) ||
-        app.applicationNumber?.toLowerCase().includes(search) ||
         app.loanType?.toLowerCase().includes(search)
       );
     }
@@ -194,7 +194,11 @@ export class ApplicationsListComponent implements OnInit {
    * View application details
    */
   viewApplication(applicationId: string): void {
-    this.router.navigate(['/compliance-officer/applications', applicationId]);
+    // Encode the ID for secure URL and pass as query parameter
+    const encodedId = this.idEncoder.encodeId(applicationId);
+    this.router.navigate(['/compliance-officer/applications/review'], {
+      queryParams: { ref: encodedId }
+    });
   }
 
   /**
