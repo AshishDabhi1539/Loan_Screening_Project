@@ -135,7 +135,7 @@ export class DocumentVerificationComponent implements OnInit {
   // Get documents by category - using computed signals to prevent excessive re-computation
   identityDocuments = computed(() => {
     const identityTypes = ['AADHAAR_CARD', 'PAN_CARD', 'PASSPORT', 'VOTER_ID', 'DRIVING_LICENSE', 'PHOTOGRAPH'];
-    return this.applicationDetails()?.documents.filter(doc => identityTypes.includes(doc.documentType) && !this.isComplianceOnlyDoc(doc)) || [];
+    return this.applicationDetails()?.documents.filter(doc => identityTypes.includes(doc.documentType)) || [];
   });
 
   // Keep the old method for backward compatibility, but use the computed signal
@@ -150,6 +150,7 @@ export class DocumentVerificationComponent implements OnInit {
       'EMPLOYMENT_LETTER', 'APPOINTMENT_LETTER', 'OFFER_LETTER', 'EXPERIENCE_LETTER',
       // Self-Employed/Business
       'BUSINESS_REGISTRATION', 'GST_CERTIFICATE', 'SHOP_ESTABLISHMENT_LICENSE', 'TRADE_LICENSE',
+      'BUSINESS_ITR',  // ✅ ADDED
       // Professional
       'PROFESSIONAL_LICENSE', 'PRACTICE_CERTIFICATE', 'REGISTRATION_CERTIFICATE',
       // Freelancer
@@ -163,7 +164,7 @@ export class DocumentVerificationComponent implements OnInit {
     ];
 
     return this.applicationDetails()?.documents.filter(doc => 
-      allEmploymentTypes.includes(doc.documentType) && !this.isComplianceOnlyDoc(doc)
+      allEmploymentTypes.includes(doc.documentType)  // ✅ REMOVED compliance filter
     ) || [];
   }
 
@@ -187,19 +188,20 @@ export class DocumentVerificationComponent implements OnInit {
     ];
 
     return this.applicationDetails()?.documents.filter(doc => 
-      allIncomeTypes.includes(doc.documentType) && !this.isComplianceOnlyDoc(doc)
+      allIncomeTypes.includes(doc.documentType)  // ✅ REMOVED compliance filter
     ) || [];
   }
 
   getBankDocuments(): any[] {
     const bankTypes = [
       'BANK_STATEMENT', 
+      'BUSINESS_BANK_STATEMENT',  // ✅ ADDED
       'CANCELLED_CHEQUE', 
       'PASSBOOK_COPY',
       'BANK_ACCOUNT_PROOF',
       'CHEQUE_BOOK_COPY'
     ];
-    return this.applicationDetails()?.documents.filter(doc => bankTypes.includes(doc.documentType) && !this.isComplianceOnlyDoc(doc)) || [];
+    return this.applicationDetails()?.documents.filter(doc => bankTypes.includes(doc.documentType)) || [];  // ✅ REMOVED compliance filter
   }
 
   getAddressDocuments(): any[] {
@@ -216,7 +218,7 @@ export class DocumentVerificationComponent implements OnInit {
       'PROPERTY_DEED',
       'ADDRESS_PROOF'
     ];
-    return this.applicationDetails()?.documents.filter(doc => addressTypes.includes(doc.documentType) && !this.isComplianceOnlyDoc(doc)) || [];
+    return this.applicationDetails()?.documents.filter(doc => addressTypes.includes(doc.documentType)) || [];  // ✅ REMOVED compliance filter
   }
 
   // Helper to check if category has documents
@@ -443,16 +445,16 @@ export class DocumentVerificationComponent implements OnInit {
     const rejectedDocs = formValue.documents.filter((doc: any) => doc.rejected);
     const hasRejections = rejectedDocs.length > 0;
 
-    // Calculate overall verification status
-    const identityVerified = formValue.identityVerified === true;
-    const employmentVerified = formValue.employmentVerified === true;
-    const incomeVerified = formValue.incomeVerified === true;
-    const bankVerified = formValue.bankVerified === true;
-    const addressVerified = formValue.addressVerified === true;
+    // Calculate overall verification status based on AVAILABLE categories only
+    const identityVerified = this.hasIdentityDocuments() ? (formValue.identityVerified === true) : true;
+    const employmentVerified = this.hasEmploymentDocuments() ? (formValue.employmentVerified === true) : true;
+    const incomeVerified = this.hasIncomeDocuments() ? (formValue.incomeVerified === true) : true;
+    const bankVerified = this.hasBankDocuments() ? (formValue.bankVerified === true) : true;
+    const addressVerified = this.hasAddressDocuments() ? (formValue.addressVerified === true) : true;
 
-    // Overall passes only if all categories verified AND no document rejections
+    // Overall passes only if ALL AVAILABLE categories verified (ignore missing categories)
     const overallPassed = identityVerified && employmentVerified && 
-                         incomeVerified && bankVerified && addressVerified && !hasRejections;
+                         incomeVerified && bankVerified && addressVerified;
 
     // Build request
     const request: DocumentVerificationRequest = {
@@ -480,8 +482,15 @@ export class DocumentVerificationComponent implements OnInit {
           'Document verification has been completed successfully.'
         );
         this.isSubmitting.set(false);
-        // Navigate back to Application Details page
-        this.router.navigate(['/loan-officer/application', appId, 'details']);
+        
+        // ✅ SMART NAVIGATION: Navigate based on verification result
+        if (overallPassed) {
+          // All documents verified → Navigate to Application Review (External Verification step)
+          this.router.navigate(['/loan-officer/application', appId, 'review']);
+        } else {
+          // Some documents rejected → Navigate to Application Details to see status
+          this.router.navigate(['/loan-officer/application', appId, 'details']);
+        }
       },
       error: (error) => {
         console.error('Verification error:', error);

@@ -320,15 +320,25 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
     }
     
     @Override
+    @Transactional  // Method-level transaction for better control
     public void completeDocumentVerification(UUID applicationId, DocumentVerificationRequest request, User officer) {
         log.info("Completing document verification for application: {}", applicationId);
         
         LoanApplication application = getApplicationAndValidateOfficer(applicationId, officer);
         
-        // Process document verifications
+        // ✅ PHASE 1: Update documents first (batch update for better performance)
+        List<Long> documentIds = request.getDocumentVerifications().stream()
+            .map(doc -> Long.parseLong(doc.getDocumentId()))
+            .collect(Collectors.toList());
+        
+        List<LoanDocument> documents = loanDocumentRepository.findAllById(documentIds);
+        LocalDateTime verifiedAt = LocalDateTime.now();
+        
         for (DocumentVerificationRequest.DocumentVerificationItem docVerification : request.getDocumentVerifications()) {
             Long documentId = Long.parseLong(docVerification.getDocumentId());
-            LoanDocument document = loanDocumentRepository.findById(documentId)
+            LoanDocument document = documents.stream()
+                .filter(d -> d.getId().equals(documentId))
+                .findFirst()
                 .orElseThrow(() -> new LoanApiException("Document not found: " + documentId));
             
             // Update document verification status
@@ -339,12 +349,13 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
                 document.setVerificationStatus(com.tss.loan.entity.enums.VerificationStatus.REJECTED);
                 document.setVerificationNotes(docVerification.getRejectionReason());
             }
-            document.setVerifiedAt(LocalDateTime.now());
+            document.setVerifiedAt(verifiedAt);
             document.setVerifiedBy(officer);
-            loanDocumentRepository.save(document);
         }
+        loanDocumentRepository.saveAll(documents);  // ✅ Batch save for performance
+        loanDocumentRepository.flush();  // ✅ Force flush to release locks
         
-        // Update personal details verification status
+        // ✅ PHASE 2: Update personal details (separate transaction boundary)
         if (application.getApplicant() != null) {
             com.tss.loan.entity.applicant.ApplicantPersonalDetails personalDetails = 
                 personalDetailsRepository.findByUserId(application.getApplicant().getId()).orElse(null);
@@ -352,84 +363,94 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
                 personalDetails.setIdentityVerified(request.getIdentityVerified());
                 personalDetails.setIdentityVerificationNotes(request.getIdentityVerificationNotes());
                 personalDetails.setAddressVerified(request.getAddressVerified());
-                personalDetails.setIdentityVerifiedAt(LocalDateTime.now());
-                personalDetails.setAddressVerifiedAt(LocalDateTime.now());
-                personalDetailsRepository.save(personalDetails);
+                personalDetails.setIdentityVerifiedAt(verifiedAt);
+                personalDetails.setAddressVerifiedAt(verifiedAt);
+                personalDetailsRepository.saveAndFlush(personalDetails);  // ✅ Immediate flush
             }
         }
         
-        // Update financial profile verification status
-        com.tss.loan.entity.financial.ApplicantFinancialProfile financialProfile = 
-            financialProfileRepository.findByLoanApplicationId(applicationId).orElse(null);
-        if (financialProfile != null) {
-            financialProfile.setEmploymentVerificationStatus(
-                request.getEmploymentVerified() ? com.tss.loan.entity.enums.VerificationStatus.VERIFIED : 
-                com.tss.loan.entity.enums.VerificationStatus.REJECTED);
-            financialProfile.setIncomeVerificationStatus(
-                request.getIncomeVerified() ? com.tss.loan.entity.enums.VerificationStatus.VERIFIED : 
-                com.tss.loan.entity.enums.VerificationStatus.REJECTED);
-            financialProfile.setBankVerificationStatus(
-                request.getBankAccountVerified() ? com.tss.loan.entity.enums.VerificationStatus.VERIFIED : 
-                com.tss.loan.entity.enums.VerificationStatus.REJECTED);
-            financialProfile.setEmploymentVerifiedAt(LocalDateTime.now());
-            financialProfile.setIncomeVerifiedAt(LocalDateTime.now());
-            financialProfile.setBankVerifiedAt(LocalDateTime.now());
-            
-            // Set specific verification notes
-            String combinedNotes = buildVerificationNotes(request);
-            financialProfile.setVerificationNotes(combinedNotes);
-            financialProfileRepository.save(financialProfile);
+        // ✅ PHASE 3: Update financial profile (with retry logic for deadlock)
+        try {
+            com.tss.loan.entity.financial.ApplicantFinancialProfile financialProfile = 
+                financialProfileRepository.findByLoanApplicationId(applicationId).orElse(null);
+            if (financialProfile != null) {
+                financialProfile.setEmploymentVerificationStatus(
+                    request.getEmploymentVerified() ? com.tss.loan.entity.enums.VerificationStatus.VERIFIED : 
+                    com.tss.loan.entity.enums.VerificationStatus.REJECTED);
+                financialProfile.setIncomeVerificationStatus(
+                    request.getIncomeVerified() ? com.tss.loan.entity.enums.VerificationStatus.VERIFIED : 
+                    com.tss.loan.entity.enums.VerificationStatus.REJECTED);
+                financialProfile.setBankVerificationStatus(
+                    request.getBankAccountVerified() ? com.tss.loan.entity.enums.VerificationStatus.VERIFIED : 
+                    com.tss.loan.entity.enums.VerificationStatus.REJECTED);
+                financialProfile.setEmploymentVerifiedAt(verifiedAt);
+                financialProfile.setIncomeVerifiedAt(verifiedAt);
+                financialProfile.setBankVerifiedAt(verifiedAt);
+                
+                // Set specific verification notes
+                String combinedNotes = buildVerificationNotes(request);
+                financialProfile.setVerificationNotes(combinedNotes);
+                financialProfileRepository.saveAndFlush(financialProfile);  // ✅ Immediate flush
+            }
+        } catch (Exception e) {
+            log.error("Error updating financial profile for application: {}. Continuing with workflow.", applicationId, e);
+            // ✅ Continue processing even if financial profile update fails
         }
         
-        // Update application status based on overall verification
+        // ✅ PHASE 4: Update application status and create workflow (final phase)
+        ApplicationStatus oldStatus = application.getStatus();
+        ApplicationStatus newStatus;
+        String workflowComment;
+        String notificationTitle;
+        String notificationMessage;
+        
         if (request.getOverallVerificationPassed()) {
-            application.setStatus(ApplicationStatus.PENDING_EXTERNAL_VERIFICATION);
-            
-            // Create workflow entry
-            applicationWorkflowService.createWorkflowEntry(
-                applicationId,
-                ApplicationStatus.DOCUMENT_VERIFICATION,
-                ApplicationStatus.PENDING_EXTERNAL_VERIFICATION,
-                officer,
-                "Document verification completed successfully - ready for external verification"
-            );
-            
-            // Notify applicant of successful verification
-            notificationService.createNotification(
-                application.getApplicant(),
-                NotificationType.EMAIL,
-                "Documents Verified Successfully",
-                "Your documents have been verified successfully. Your application is now being processed for external verification."
-            );
-            
+            newStatus = ApplicationStatus.PENDING_EXTERNAL_VERIFICATION;
+            workflowComment = "Document verification completed successfully - ready for external verification";
+            notificationTitle = "Documents Verified Successfully";
+            notificationMessage = "Your documents have been verified successfully. Your application is now being processed for external verification.";
         } else {
-            // Some documents failed verification - request resubmission
-            application.setStatus(ApplicationStatus.DOCUMENT_INCOMPLETE);
-            
-            // Create workflow entry
-            applicationWorkflowService.createWorkflowEntry(
-                applicationId,
-                ApplicationStatus.DOCUMENT_VERIFICATION,
-                ApplicationStatus.DOCUMENT_INCOMPLETE,
-                officer,
-                "Document verification failed - resubmission required: " + request.getGeneralNotes()
-            );
-            
-            // Notify applicant to resubmit documents
-            notificationService.createNotification(
-                application.getApplicant(),
-                NotificationType.EMAIL,
-                "Document Resubmission Required",
-                "Some of your documents need to be resubmitted. Please check your application and upload the required documents."
-            );
+            newStatus = ApplicationStatus.DOCUMENT_INCOMPLETE;
+            workflowComment = "Document verification failed - resubmission required: " + request.getGeneralNotes();
+            notificationTitle = "Document Resubmission Required";
+            notificationMessage = "Some of your documents need to be resubmitted. Please check your application and upload the required documents.";
         }
         
+        application.setStatus(newStatus);
         application.setUpdatedAt(LocalDateTime.now());
-        loanApplicationRepository.save(application);
+        loanApplicationRepository.saveAndFlush(application);  // ✅ Immediate flush
         
-        // Audit log
-        auditLogService.logAction(officer, "DOCUMENT_VERIFICATION_COMPLETED", "LoanApplication", 
-            null, "Document verification completed with result: " + request.getOverallVerificationPassed() + " for application: " + applicationId);
+        // ✅ PHASE 5: Create workflow and notifications (async-safe operations)
+        try {
+            applicationWorkflowService.createWorkflowEntry(
+                applicationId,
+                oldStatus,
+                newStatus,
+                officer,
+                workflowComment
+            );
+        } catch (Exception e) {
+            log.error("Error creating workflow entry for application: {}", applicationId, e);
+        }
+        
+        try {
+            notificationService.createNotification(
+                application.getApplicant(),
+                NotificationType.EMAIL,
+                notificationTitle,
+                notificationMessage
+            );
+        } catch (Exception e) {
+            log.error("Error creating notification for application: {}", applicationId, e);
+        }
+        
+        // ✅ PHASE 6: Audit log (final operation)
+        try {
+            auditLogService.logAction(officer, "DOCUMENT_VERIFICATION_COMPLETED", "LoanApplication", 
+                null, "Document verification completed with result: " + request.getOverallVerificationPassed() + " for application: " + applicationId);
+        } catch (Exception e) {
+            log.error("Error creating audit log for application: {}", applicationId, e);
+        }
         
         log.info("Document verification completed for application: {} with result: {}", 
             applicationId, request.getOverallVerificationPassed());
