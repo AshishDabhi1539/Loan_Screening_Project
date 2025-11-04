@@ -83,6 +83,9 @@ public class LoanDocument {
     @JoinColumn(name = "verified_by_id")
     private com.tss.loan.entity.user.User verifiedBy;
     
+    @Column
+    private LocalDateTime viewedByComplianceAt; // Track when compliance viewed this document
+    
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
     

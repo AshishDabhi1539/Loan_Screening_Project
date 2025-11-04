@@ -50,5 +50,9 @@ export const applicantRoutes: Routes = [
   {
     path: 'document-resubmission/:id',
     loadComponent: () => import('./components/document-resubmission/document-resubmission.component').then(m => m.DocumentResubmissionComponent)
+  },
+  {
+    path: 'compliance-document-resubmission/:id',
+    loadComponent: () => import('./components/compliance-document-resubmission/compliance-document-resubmission.component').then(m => m.ComplianceDocumentResubmissionComponent)
   }
 ];

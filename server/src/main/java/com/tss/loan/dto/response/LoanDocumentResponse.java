@@ -31,6 +31,7 @@ public class LoanDocumentResponse {
     private VerificationStatus verificationStatus;
     private String verificationNotes;
     private LocalDateTime verifiedAt;
+    private LocalDateTime viewedByComplianceAt; // Track when compliance viewed this document
     private LocalDateTime uploadedAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

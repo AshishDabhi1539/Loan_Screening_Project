@@ -66,6 +66,7 @@ public class DatabaseConfig {
                     "com.tss.loan.entity.system",
                     "com.tss.loan.entity.workflow",
                     "com.tss.loan.entity.officer",
+                    "com.tss.loan.entity.compliance",
                     "com.tss.loan.entity.enums"
                 )
                 .persistenceUnit("primary")

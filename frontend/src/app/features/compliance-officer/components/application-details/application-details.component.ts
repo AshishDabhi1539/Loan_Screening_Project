@@ -39,6 +39,25 @@ export class ApplicationDetailsComponent implements OnInit {
   requestDocsMandatory = signal(false);
   requestDocsCategory = signal('COMPLIANCE_EXTRA');
 
+  // Compliance document request details
+  complianceDocumentRequest = signal<{
+    requiredDocumentTypes: string[];
+    status?: string;
+  } | null>(null);
+
+  // Verification modal state
+  showVerificationModal = signal(false);
+  verificationDocumentId = signal<number | null>(null);
+  verificationDocumentType = signal<string>('');
+  verificationDocumentFileName = signal<string>('');
+  verificationDecision = signal<'approve' | 'reject' | null>(null);
+  verificationNotes = signal('');
+  verificationRejectionReason = signal('');
+
+  // Trigger Decision modal state
+  showTriggerDecisionModal = signal(false);
+  triggerDecisionSummaryNotes = signal('');
+
   // Computed properties for easier access
   applicationInfo = computed(() => this.application()?.applicationInfo);
   applicantIdentity = computed(() => this.application()?.applicantIdentity);
@@ -86,11 +105,37 @@ export class ApplicationDetailsComponent implements OnInit {
         if (data?.applicationInfo?.status === 'UNDER_INVESTIGATION') {
           this.restoreInvestigationResults(id);
         }
+        
+        // Load compliance document request details to identify requested document types
+        this.loadComplianceDocumentRequestDetails(id);
       },
       error: (error) => {
         console.error('❌ Error loading application details:', error);
         this.notificationService.error('Error', 'Failed to load application details');
         this.isLoading.set(false);
+      }
+    });
+  }
+
+  /**
+   * Load compliance document request details to identify which document types were requested
+   */
+  loadComplianceDocumentRequestDetails(applicationId: string): void {
+    this.complianceService.getComplianceDocumentRequestDetails(applicationId).subscribe({
+      next: (data: any) => {
+        this.complianceDocumentRequest.set({
+          requiredDocumentTypes: data.requiredDocumentTypes || [],
+          status: data.status
+        });
+        console.log('✅ Compliance document request details loaded:', data);
+      },
+      error: (error: any) => {
+        console.error('❌ Error loading compliance document request details:', error);
+        // Don't show error to user, just set empty list
+        this.complianceDocumentRequest.set({
+          requiredDocumentTypes: [],
+          status: 'NONE'
+        });
       }
     });
   }
@@ -564,16 +609,244 @@ export class ApplicationDetailsComponent implements OnInit {
     });
   }
 
-  private isComplianceOnlyDoc(doc: any): boolean {
+  isComplianceOnlyDoc(doc: any): boolean {
     try {
       if (!doc) return false;
-      if (doc.tags && Array.isArray(doc.tags) && doc.tags.includes('COMPLIANCE_ONLY')) return true;
-      if (doc.meta && (doc.meta.requestedBy === 'COMPLIANCE' || doc.meta.visibility === 'COMPLIANCE_ONLY')) return true;
-      if (typeof doc.additionalInstructions === 'string' && doc.additionalInstructions.includes('[COMPLIANCE_ONLY]')) return true;
-      if (typeof doc.notes === 'string' && doc.notes.includes('[COMPLIANCE_ONLY]')) return true;
+      
+      // Method 1: Check if document type matches any requested document types from ComplianceDocumentRequest
+      const requestDetails = this.complianceDocumentRequest();
+      if (requestDetails && requestDetails.requiredDocumentTypes && requestDetails.requiredDocumentTypes.length > 0) {
+        const docType = doc.documentType?.toString().toUpperCase();
+        const isRequested = requestDetails.requiredDocumentTypes.some(
+          (requestedType: string) => requestedType.toUpperCase() === docType
+        );
+        if (isRequested) {
+          return true;
+        }
+      }
+      
+      // Method 2: Fallback - check verificationNotes for [COMPLIANCE_ONLY] tag
+      // This handles cases where documents were uploaded during PENDING_COMPLIANCE_DOCS status
+      if (typeof doc.verificationNotes === 'string' && doc.verificationNotes.includes('[COMPLIANCE_ONLY]')) {
+        return true;
+      }
+      
       return false;
-    } catch {
+    } catch (error) {
+      console.error('Error checking compliance document:', error, doc);
       return false;
+    }
+  }
+
+  /**
+   * Check if there are pending compliance documents that need verification
+   */
+  hasPendingComplianceDocuments(): boolean {
+    const complianceDocs = this.complianceOnlyDocuments();
+    return complianceDocs.some((doc: any) => 
+      doc.verificationStatus === 'PENDING' || !doc.verificationStatus
+    );
+  }
+
+  /**
+   * Check if compliance documents have been received and are pending verification
+   * Button should only show when documents are received but not yet verified/rejected
+   */
+  hasReceivedComplianceDocuments(): boolean {
+    const complianceDocs = this.complianceOnlyDocuments();
+    // Only show button if there are compliance documents that are still pending verification
+    const hasPendingDocs = complianceDocs.some((doc: any) => 
+      doc.verificationStatus === 'PENDING' || !doc.verificationStatus
+    );
+    // Button should show when:
+    // 1. Status is PENDING_COMPLIANCE_DOCS (documents requested)
+    // 2. AND there are compliance documents that are pending verification
+    return hasPendingDocs && (this.applicationInfo()?.status === 'PENDING_COMPLIANCE_DOCS' || 
+                               this.applicationInfo()?.status === 'UNDER_INVESTIGATION');
+  }
+
+  /**
+   * Track document view when compliance officer opens document
+   */
+  onDocumentView(documentId: number): void {
+    const doc = this.complianceOnlyDocuments().find((d: any) => d.documentId === documentId);
+    if (!doc || !this.isComplianceOnlyDoc(doc)) {
+      return; // Not a compliance document, don't track
+    }
+
+    // Track the view
+    this.complianceService.trackDocumentView(documentId).subscribe({
+      next: () => {
+        // Reload application details to get updated view tracking
+        this.loadApplicationDetails(this.applicationId());
+      },
+      error: (err) => {
+        console.error('Error tracking document view:', err);
+        // Don't show error, just continue
+      }
+    });
+  }
+
+  /**
+   * Open verification modal for a document
+   */
+  openVerificationModal(documentId: number): void {
+    const doc = this.complianceOnlyDocuments().find((d: any) => d.documentId === documentId);
+    if (!doc || !this.isComplianceOnlyDoc(doc)) {
+      this.notificationService.error('Error', 'Document not found or not a compliance document');
+      return;
+    }
+
+    this.verificationDocumentId.set(documentId);
+    this.verificationDocumentType.set(doc.documentType || 'Unknown');
+    this.verificationDocumentFileName.set(doc.fileName || 'Unknown');
+    this.verificationDecision.set(null);
+    this.verificationNotes.set('');
+    this.verificationRejectionReason.set('');
+    this.showVerificationModal.set(true);
+  }
+
+  /**
+   * Close verification modal
+   */
+  closeVerificationModal(): void {
+    this.showVerificationModal.set(false);
+    this.verificationDocumentId.set(null);
+    this.verificationDocumentType.set('');
+    this.verificationDocumentFileName.set('');
+    this.verificationDecision.set(null);
+    this.verificationNotes.set('');
+    this.verificationRejectionReason.set('');
+  }
+
+  /**
+   * Submit document verification
+   */
+  submitDocumentVerification(): void {
+    const documentId = this.verificationDocumentId();
+    if (!documentId) {
+      this.notificationService.error('Error', 'Document ID is missing');
+      return;
+    }
+
+    const decision = this.verificationDecision();
+    if (!decision) {
+      this.notificationService.error('Validation', 'Please select Approve or Reject');
+      return;
+    }
+
+    const verified = decision === 'approve';
+    const notes = verified ? this.verificationNotes() : '';
+    const rejectionReason = !verified ? this.verificationRejectionReason() : '';
+
+    if (!verified && (!rejectionReason || rejectionReason.trim().length === 0)) {
+      this.notificationService.error('Validation', 'Rejection reason is required');
+      return;
+    }
+
+    // Close modal immediately for better UX
+    this.closeVerificationModal();
+
+    this.complianceService.verifySingleComplianceDocument(documentId, verified, notes, rejectionReason).subscribe({
+      next: () => {
+        this.notificationService.success(
+          verified ? 'Document Verified' : 'Document Rejected',
+          verified ? 'Document has been verified successfully. Applicant has been notified.' : 'Document has been rejected. Applicant has been notified.'
+        );
+        // Reload application details to get latest status from server
+        // Status will only update after server confirms the change
+        this.loadApplicationDetails(this.applicationId());
+      },
+      error: (err: any) => {
+        console.error('Error verifying document:', err);
+        this.notificationService.error(
+          'Error',
+          err.error?.message || 'Failed to verify document'
+        );
+        // Reload to get correct status from server
+        this.loadApplicationDetails(this.applicationId());
+      }
+    });
+  }
+
+  /**
+   * Verify a single compliance document (kept for backward compatibility, but opens modal now)
+   */
+  verifyComplianceDocument(documentId: number, verified: boolean): void {
+    // Open modal instead of direct verification
+    this.openVerificationModal(documentId);
+    // Pre-select the decision
+    this.verificationDecision.set(verified ? 'approve' : 'reject');
+  }
+
+  /**
+   * Check if request documents button should be disabled
+   */
+  canRequestDocuments(): boolean {
+    // Don't allow if there are pending compliance documents
+    if (this.hasPendingComplianceDocuments()) {
+      return false;
+    }
+    // Also check the status
+    return !this.isBlockedByPendingDocs();
+  }
+
+  /**
+   * Check if trigger decision button should be shown
+   */
+  canTriggerDecision(): boolean {
+    const status = this.applicationInfo()?.status;
+    // Can trigger decision when in UNDER_INVESTIGATION status and no pending documents
+    return status === 'UNDER_INVESTIGATION' && !this.hasPendingComplianceDocuments();
+  }
+
+  /**
+   * Open trigger decision modal
+   */
+  openTriggerDecisionModal(): void {
+    this.triggerDecisionSummaryNotes.set('');
+    this.showTriggerDecisionModal.set(true);
+  }
+
+  /**
+   * Close trigger decision modal
+   */
+  closeTriggerDecisionModal(): void {
+    this.showTriggerDecisionModal.set(false);
+    this.triggerDecisionSummaryNotes.set('');
+  }
+
+  /**
+   * Submit trigger decision
+   */
+  submitTriggerDecision(): void {
+    const summaryNotes = this.triggerDecisionSummaryNotes().trim();
+    if (!summaryNotes) {
+      this.notificationService.error('Validation', 'Summary notes are required');
+      return;
+    }
+
+    this.complianceService.triggerDecision(this.applicationId(), { summaryNotes }).subscribe({
+      next: () => {
+        this.notificationService.success('Success', 'Decision process triggered successfully');
+        this.closeTriggerDecisionModal();
+        // Navigate to decision page
+        this.router.navigate(['/compliance-officer/decision']);
+      },
+      error: (err: any) => {
+        console.error('Error triggering decision:', err);
+        this.notificationService.error('Error', err.error?.message || 'Failed to trigger decision');
+      }
+    });
+  }
+
+  /**
+   * Scroll to documents section
+   */
+  scrollToDocuments(): void {
+    const element = document.getElementById('documents-section');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }
 

@@ -265,6 +265,23 @@ public class LoanApplicationController {
     }
     
     /**
+     * Get compliance document requirements for applicant
+     */
+    @GetMapping("/{applicationId}/compliance-document-requirements")
+    public ResponseEntity<com.tss.loan.dto.response.ApplicantResubmissionRequirementsResponse> getComplianceDocumentRequirements(
+            @PathVariable UUID applicationId,
+            Authentication authentication) {
+        
+        log.info("Getting compliance document requirements for application: {}", applicationId);
+        
+        User user = getCurrentUser(authentication);
+        com.tss.loan.dto.response.ApplicantResubmissionRequirementsResponse requirements = 
+            loanApplicationService.getComplianceDocumentRequirements(applicationId, user);
+        
+        return ResponseEntity.ok(requirements);
+    }
+    
+    /**
      * Mark documents as resubmitted - changes status to DOCUMENT_REVERIFICATION
      */
     @PostMapping("/{applicationId}/mark-resubmitted")

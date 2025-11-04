@@ -60,4 +60,11 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
     @Transactional
     @Query("DELETE FROM AuditLog a WHERE a.timestamp < :cutoffDate")
     int deleteOldLogs(@Param("cutoffDate") LocalDateTime cutoffDate);
+    
+    // Find audit logs by action and entity type
+    @Query("SELECT a FROM AuditLog a WHERE a.action = :action AND a.entityType = :entityType ORDER BY a.timestamp DESC")
+    List<AuditLog> findByActionAndEntityTypeOrderByTimestampDesc(
+        @Param("action") String action,
+        @Param("entityType") String entityType
+    );
 }

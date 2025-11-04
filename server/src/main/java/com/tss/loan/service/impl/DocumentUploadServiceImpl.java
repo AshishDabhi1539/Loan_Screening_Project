@@ -120,8 +120,21 @@ public class DocumentUploadServiceImpl implements DocumentUploadService {
             document.setUploadedBy(uploadedBy);
             document.setVerificationStatus(com.tss.loan.entity.enums.VerificationStatus.PENDING);
             
+            // Tag as compliance-only if application is in PENDING_COMPLIANCE_DOCS status
+            if (loanApplication.getStatus() == com.tss.loan.entity.enums.ApplicationStatus.PENDING_COMPLIANCE_DOCS) {
+                document.setVerificationNotes("[COMPLIANCE_ONLY] Document requested by compliance officer");
+            }
+            
             // Save to database
             LoanDocument savedDocument = documentRepository.save(document);
+            
+            // If this is a compliance document upload, update application status if needed
+            if (loanApplication.getStatus() == com.tss.loan.entity.enums.ApplicationStatus.PENDING_COMPLIANCE_DOCS) {
+                // Status will remain PENDING_COMPLIANCE_DOCS until compliance officer reviews
+                // This ensures alert stays until documents are reviewed
+                loanApplication.setUpdatedAt(java.time.LocalDateTime.now());
+                loanApplicationRepository.save(loanApplication);
+            }
             
             // Audit log
             auditLogService.logAction(uploadedBy, "DOCUMENT_UPLOADED", "LoanDocument", null,

@@ -192,6 +192,7 @@ public class CompleteApplicationDetailsResponse {
         private Boolean isRequired;
         private Boolean isResubmitted;
         private LocalDateTime verifiedAt;
+        private LocalDateTime viewedByComplianceAt; // Track when compliance viewed this document
         private String verifiedByName;
         private Long fileSizeBytes;
         private String fileType;

@@ -1015,6 +1015,7 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
                     .isRequired(true) // TODO: Implement required document logic
                     .isResubmitted(false) // TODO: Implement resubmission tracking
                     .verifiedAt(doc.getVerifiedAt())
+                    .viewedByComplianceAt(doc.getViewedByComplianceAt())
                     .verifiedByName(doc.getVerifiedBy() != null ? 
                         userDisplayService.getDisplayName(doc.getVerifiedBy()) : null)
                     .fileSizeBytes(doc.getFileSize())
