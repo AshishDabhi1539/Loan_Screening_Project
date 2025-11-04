@@ -141,7 +141,12 @@ export class ApplicationDetailsComponent implements OnInit {
    * Go back to applications list
    */
   goBack(): void {
-    this.router.navigate(['/compliance-officer/applications']);
+    const from = this.route.snapshot.queryParamMap.get('from');
+    if (from === 'history') {
+      this.router.navigate(['/compliance-officer/history']);
+    } else {
+      this.router.navigate(['/compliance-officer/applications']);
+    }
   }
 
   /**
@@ -153,6 +158,11 @@ export class ApplicationDetailsComponent implements OnInit {
 
   /** Open/close Request Documents modal */
   openRequestDocsModal(): void {
+    // Don't allow opening modal in read-only mode
+    if (this.isReadOnlyMode()) {
+      this.notificationService.warning?.('Read Only', 'This application is in read-only mode. No actions can be performed.');
+      return;
+    }
     // Ensure at least one row exists
     if (this.requestDocsItems().length === 0) {
       this.requestDocsItems.set([{ documentType: '', reason: '' }]);
@@ -795,6 +805,17 @@ export class ApplicationDetailsComponent implements OnInit {
     const status = this.applicationInfo()?.status;
     // Can trigger decision when in UNDER_INVESTIGATION status and no pending documents
     return status === 'UNDER_INVESTIGATION' && !this.hasPendingComplianceDocuments();
+  }
+
+  /**
+   * Check if application is in read-only mode
+   * Applications in READY_FOR_DECISION or AWAITING_COMPLIANCE_DECISION are read-only
+   * (compliance has already submitted decision, no actions allowed)
+   */
+  isReadOnlyMode(): boolean {
+    const status = this.applicationInfo()?.status;
+    return status === 'READY_FOR_DECISION' || status === 'AWAITING_COMPLIANCE_DECISION' || 
+           status === 'APPROVED' || status === 'REJECTED';
   }
 
   /**

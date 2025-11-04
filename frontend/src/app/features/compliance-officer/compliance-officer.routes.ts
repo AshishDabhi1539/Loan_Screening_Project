@@ -23,6 +23,10 @@ export const complianceOfficerRoutes: Routes = [
     loadComponent: () => import('./components/decision/decision.component').then(m => m.DecisionComponent)
   },
   {
+    path: 'profile',
+    loadComponent: () => import('./components/profile/profile.component').then(m => m.ProfileComponent)
+  },
+  {
     path: 'history',
     loadComponent: () => import('./components/application-history/application-history.component').then(m => m.ApplicationHistoryComponent)
   },

@@ -75,4 +75,7 @@ public class LoanApplicationResponse {
     
     // Employment type for routing
     private String employmentType;
+    
+    // Compliance notes (contains compliance decision information)
+    private String complianceNotes;
 }

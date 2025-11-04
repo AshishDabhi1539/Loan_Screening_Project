@@ -78,6 +78,9 @@ public class LoanApplicationMapper {
                 
                 // Employment type (safely handle lazy loading)
                 .employmentType(safeGetEmploymentType(entity))
+                
+                // Compliance notes
+                .complianceNotes(entity.getComplianceNotes())
                 .build();
     }
     

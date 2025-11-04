@@ -20,43 +20,54 @@
         Back
         </button>
       <div class="flex items-center space-x-3">
-        <!-- Review Documents Button (show when compliance documents are received) -->
-        @if (hasReceivedComplianceDocuments()) {
+        @if (!isReadOnlyMode()) {
+          <!-- Review Documents Button (show when compliance documents are received) -->
+          @if (hasReceivedComplianceDocuments()) {
+            <button
+              (click)="scrollToDocuments()"
+              class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-orange-600 border border-orange-600 rounded-lg hover:bg-orange-700 transition-colors duration-200"
+              title="Review Received Documents"
+            >
+              <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Review Documents
+            </button>
+          }
+          <!-- Request Additional Documents Button -->
           <button
-            (click)="scrollToDocuments()"
-            class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-orange-600 border border-orange-600 rounded-lg hover:bg-orange-700 transition-colors duration-200"
-            title="Review Received Documents"
+            (click)="openRequestDocsModal()"
+            [disabled]="!canRequestDocuments()"
+            class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-primary-600 border border-primary-600 rounded-lg hover:bg-primary-700 transition-colors duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:hover:bg-gray-400"
+            [title]="!canRequestDocuments() ? 'Applicant action required: awaiting requested documents. Actions are locked until submission.' : 'Request Additional Documents'"
           >
             <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
             </svg>
-            Review Documents
+            Request Documents
           </button>
-        }
-        <!-- Request Additional Documents Button -->
-        <button
-          (click)="openRequestDocsModal()"
-          [disabled]="!canRequestDocuments()"
-          class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-primary-600 border border-primary-600 rounded-lg hover:bg-primary-700 transition-colors duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:hover:bg-gray-400"
-          [title]="!canRequestDocuments() ? 'Applicant action required: awaiting requested documents. Actions are locked until submission.' : 'Request Additional Documents'"
-        >
-          <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-          </svg>
-          Request Documents
-        </button>
-        <!-- Trigger Decision Button -->
-        @if (canTriggerDecision()) {
-          <button
-            (click)="triggerDecision()"
-            class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-purple-600 border border-purple-600 rounded-lg hover:bg-purple-700 transition-colors duration-200"
-            title="Trigger Decision Process"
-          >
+          <!-- Trigger Decision Button -->
+          @if (canTriggerDecision()) {
+            <button
+              (click)="triggerDecision()"
+              class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-purple-600 border border-purple-600 rounded-lg hover:bg-purple-700 transition-colors duration-200"
+              title="Trigger Decision Process"
+            >
+              <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Trigger Decision
+            </button>
+          }
+        } @else {
+          <!-- Read-only mode indicator -->
+          <!-- <div class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 border border-gray-300 rounded-lg">
             <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
             </svg>
-            Trigger Decision
-          </button>
+            View Only - Decision Submitted
+          </div> -->
         }
       </div>
     </div>
@@ -252,7 +263,7 @@
     }
 
     <!-- Action Buttons Section -->
-    @if (canStartInvestigation()) {
+    @if (canStartInvestigation() && !isReadOnlyMode()) {
       <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <div class="flex items-center justify-between">
           <div>
@@ -273,7 +284,7 @@
       </div>
     }
 
-    @if ((applicationInfo()?.status === 'COMPLIANCE_REVIEW') && !hasInvestigationResults()) {
+    @if ((applicationInfo()?.status === 'COMPLIANCE_REVIEW') && !hasInvestigationResults() && !isReadOnlyMode()) {
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <div class="flex items-center justify-between">
           <div>
@@ -725,8 +736,8 @@
                         <!-- View Document Button -->
                     @if (document.fileUrl) {
                           <div class="mt-4 pt-3 border-t border-gray-200 space-y-2">
-                      <!-- Verify Button (only show for pending compliance documents) -->
-                      @if (isComplianceOnlyDoc(document) && (document.verificationStatus === 'PENDING' || !document.verificationStatus)) {
+                      <!-- Verify Button (only show for pending compliance documents and not in read-only mode) -->
+                      @if (isComplianceOnlyDoc(document) && (document.verificationStatus === 'PENDING' || !document.verificationStatus) && !isReadOnlyMode()) {
                         <div class="flex space-x-2 mb-2">
                           <button
                             (click)="openVerificationModal(document.documentId)"
