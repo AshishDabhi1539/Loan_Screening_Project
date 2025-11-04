@@ -36,6 +36,10 @@ export const loanOfficerRoutes: Routes = [
         path: 'completed',
         loadComponent: () => import('./components/applications-list/applications-list.component').then(m => m.ApplicationsListComponent),
         data: { filter: 'completed' }
+      },
+      {
+        path: 'post-compliance',
+        loadComponent: () => import('./components/post-compliance-list/post-compliance-list.component').then(m => m.PostComplianceListComponent)
       }
     ]
   },

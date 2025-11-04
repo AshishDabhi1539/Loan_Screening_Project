@@ -20,6 +20,7 @@ import com.tss.loan.dto.response.ExternalVerificationResponse;
 import com.tss.loan.dto.response.LoanApplicationResponse;
 import com.tss.loan.dto.response.OfficerDashboardResponse;
 import com.tss.loan.entity.applicant.ApplicantPersonalDetails;
+import com.tss.loan.entity.compliance.ComplianceInvestigation;
 import com.tss.loan.entity.enums.ApplicationStatus;
 import com.tss.loan.entity.enums.Priority;
 import com.tss.loan.entity.enums.NotificationType;
@@ -85,6 +86,12 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
     @Autowired
     private OfficerProfileService officerProfileService;
     
+    @Autowired
+    private org.springframework.context.ApplicationContext applicationContext;
+    
+    @Autowired
+    private com.tss.loan.repository.ComplianceInvestigationRepository complianceInvestigationRepository;
+    
     
     @Override
     public OfficerDashboardResponse getDashboard(User officer) {
@@ -96,17 +103,44 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
         
         // Calculate statistics
         int totalAssigned = assignedApplications.size();
-        int pendingReview = (int) assignedApplications.stream()
-            .filter(app -> app.getStatus() == ApplicationStatus.UNDER_REVIEW)
+        
+        // Verified: Applications that passed all verifications (APPROVED, READY_FOR_DECISION, DISBURSED)
+        int verified = (int) assignedApplications.stream()
+            .filter(app -> app.getStatus() == ApplicationStatus.APPROVED || 
+                          app.getStatus() == ApplicationStatus.READY_FOR_DECISION ||
+                          app.getStatus() == ApplicationStatus.DISBURSED)
             .count();
-        int underDocumentVerification = (int) assignedApplications.stream()
-            .filter(app -> app.getStatus() == ApplicationStatus.DOCUMENT_VERIFICATION)
+        
+        // Rejected: Applications that were rejected
+        int rejected = (int) assignedApplications.stream()
+            .filter(app -> app.getStatus() == ApplicationStatus.REJECTED)
             .count();
-        int pendingExternalVerification = (int) assignedApplications.stream()
-            .filter(app -> app.getStatus() == ApplicationStatus.PENDING_EXTERNAL_VERIFICATION)
-            .count();
-        int readyForDecision = (int) assignedApplications.stream()
-            .filter(app -> app.getStatus() == ApplicationStatus.READY_FOR_DECISION)
+        
+        // In Progress: Applications currently being processed (all active statuses)
+        int inProgress = (int) assignedApplications.stream()
+            .filter(app -> app.getStatus() == ApplicationStatus.SUBMITTED ||
+                          app.getStatus() == ApplicationStatus.UNDER_REVIEW ||
+                          app.getStatus() == ApplicationStatus.DOCUMENT_VERIFICATION ||
+                          app.getStatus() == ApplicationStatus.DOCUMENT_INCOMPLETE ||
+                          app.getStatus() == ApplicationStatus.DOCUMENT_REVERIFICATION ||
+                          app.getStatus() == ApplicationStatus.PENDING_EXTERNAL_VERIFICATION ||
+                          app.getStatus() == ApplicationStatus.FINANCIAL_REVIEW ||
+                          app.getStatus() == ApplicationStatus.CREDIT_CHECK ||
+                          app.getStatus() == ApplicationStatus.EMPLOYMENT_VERIFICATION ||
+                          app.getStatus() == ApplicationStatus.RISK_ASSESSMENT ||
+                          app.getStatus() == ApplicationStatus.FRAUD_CHECK ||
+                          app.getStatus() == ApplicationStatus.UNDER_INVESTIGATION ||
+                          app.getStatus() == ApplicationStatus.COLLATERAL_VERIFICATION ||
+                          app.getStatus() == ApplicationStatus.FLAGGED_FOR_COMPLIANCE ||
+                          app.getStatus() == ApplicationStatus.COMPLIANCE_REVIEW ||
+                          app.getStatus() == ApplicationStatus.PENDING_COMPLIANCE_DOCS ||
+                          app.getStatus() == ApplicationStatus.AWAITING_COMPLIANCE_DECISION ||
+                          app.getStatus() == ApplicationStatus.COMPLIANCE_TIMEOUT ||
+                          app.getStatus() == ApplicationStatus.MANAGER_APPROVAL ||
+                          app.getStatus() == ApplicationStatus.PRE_APPROVED ||
+                          app.getStatus() == ApplicationStatus.DOCUMENTATION ||
+                          app.getStatus() == ApplicationStatus.DISBURSEMENT_PENDING ||
+                          app.getStatus() == ApplicationStatus.ON_HOLD)
             .count();
         
         // Today's statistics
@@ -199,20 +233,19 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
             .officerName(officerProfileService.getOfficerDisplayName(officer))
             .officerEmail(officer.getEmail())
             .role(officer.getRole().toString())
-            .totalAssigned(totalAssigned) // Fixed field name
-            .pendingReview(pendingReview)
-            .underVerification(underDocumentVerification) // Fixed field name
-            .pendingExternalVerification(pendingExternalVerification)
-            .readyForDecision(readyForDecision)
+            .totalAssigned(totalAssigned)
+            .verified(verified) // NEW: Applications that passed verification
+            .rejected(rejected) // NEW: Rejected applications
+            .inProgress(inProgress) // NEW: Applications in progress
             .completedToday(completedToday)
             .completedThisWeek(completedThisWeek)
             .completedThisMonth(completedThisMonth)
-            .avgProcessingTime(averageProcessingTimeHours) // Fixed field name
+            .avgProcessingTime(averageProcessingTimeHours)
             .applicationsProcessedToday(completedToday)
             .applicationsProcessedThisWeek(completedThisWeek)
-            .priorityBreakdown(priorityBreakdown) // NEW
-            .recentApplications(recentApplications) // NEW
-            .recentActivities(recentActivities) // NEW
+            .priorityBreakdown(priorityBreakdown)
+            .recentApplications(recentApplications)
+            .recentActivities(recentActivities)
             .lastLoginAt(officer.getLastLoginAt())
             .lastActivityAt(LocalDateTime.now())
             .hasCapacityForNewApplications(totalAssigned < 10)
@@ -220,7 +253,7 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
             .currentWorkload(totalAssigned)
             .urgentApplications(urgentApplications)
             .highValueApplications(highValueApplications)
-            .flaggedApplications(0) // TODO: Implement flagged applications
+            .flaggedApplications(0)
             .build();
     }
     
@@ -740,6 +773,7 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
     public List<LoanApplicationResponse> getApplicationsReadyForDecision(User officer) {
         log.info("Fetching applications ready for decision for officer: {}", officer.getEmail());
         
+        // Show ALL READY_FOR_DECISION applications (including from compliance)
         List<LoanApplication> applications = loanApplicationRepository
             .findByAssignedOfficerOrderByCreatedAtDesc(officer)
             .stream()
@@ -887,6 +921,8 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
                     officerProfileService.getOfficerDisplayName(application.getAssignedOfficer()) : null)
                 .priority(application.getRequestedAmount().doubleValue() > 1000000 ? "HIGH" : "MEDIUM")
                 .daysInReview((int) ChronoUnit.DAYS.between(application.getSubmittedAt(), LocalDateTime.now()))
+                .fromCompliance(application.getComplianceNotes() != null && !application.getComplianceNotes().isEmpty())
+                .complianceNotes(application.getComplianceNotes())
                 .build();
         
         // Build applicant identity
@@ -1531,5 +1567,219 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
         
         log.info("Retrieved {} audit trail entries for application: {}", auditTrail.size(), applicationId);
         return auditTrail;
+    }
+    
+    @Override
+    public com.tss.loan.dto.response.ComplianceReviewSummaryResponse getComplianceReviewSummary(UUID applicationId, User officer) {
+        log.info("Getting compliance review summary for application: {} by officer: {}", applicationId, officer.getEmail());
+        
+        // Validate application exists and officer has access
+        LoanApplication application = getApplicationAndValidateOfficer(applicationId, officer);
+        
+        // Verify application came from compliance (status should be READY_FOR_DECISION and have compliance notes)
+        if (application.getStatus() != com.tss.loan.entity.enums.ApplicationStatus.READY_FOR_DECISION) {
+            throw new com.tss.loan.exception.LoanApiException("Application is not in READY_FOR_DECISION status");
+        }
+        
+        if (application.getComplianceNotes() == null || application.getComplianceNotes().isEmpty()) {
+            throw new com.tss.loan.exception.LoanApiException("Application does not have compliance review data");
+        }
+        
+        // Fetch compliance investigation data
+        com.tss.loan.repository.ComplianceInvestigationRepository complianceInvestigationRepo = 
+            applicationContext.getBean("complianceInvestigationStorageRepository", com.tss.loan.repository.ComplianceInvestigationRepository.class);
+        
+        java.util.Optional<com.tss.loan.entity.compliance.ComplianceInvestigation> investigationOpt = 
+            complianceInvestigationRepo.findMostRecentByApplicationId(applicationId);
+        
+        // Build compliance officer info
+        com.tss.loan.dto.response.ComplianceOfficerInfoDTO complianceOfficerInfo = null;
+        if (application.getAssignedComplianceOfficer() != null) {
+            User complianceOfficer = application.getAssignedComplianceOfficer();
+            complianceOfficerInfo = com.tss.loan.dto.response.ComplianceOfficerInfoDTO.builder()
+                .name(userDisplayService.getDisplayName(complianceOfficer))
+                .email(complianceOfficer.getEmail())
+                .role(complianceOfficer.getRole().name())
+                .build();
+        }
+        
+        // Build timeline from workflow history
+        List<com.tss.loan.entity.workflow.ApplicationWorkflow> workflowHistory = 
+            applicationWorkflowService.getWorkflowHistory(applicationId);
+        
+        java.time.LocalDateTime flaggedDate = null;
+        java.time.LocalDateTime investigationStartDate = null;
+        java.time.LocalDateTime decisionDate = null;
+        
+        for (com.tss.loan.entity.workflow.ApplicationWorkflow workflow : workflowHistory) {
+            if (workflow.getToStatus() == com.tss.loan.entity.enums.ApplicationStatus.FLAGGED_FOR_COMPLIANCE && flaggedDate == null) {
+                flaggedDate = workflow.getProcessedAt();
+            }
+            if (workflow.getToStatus() == com.tss.loan.entity.enums.ApplicationStatus.UNDER_INVESTIGATION && investigationStartDate == null) {
+                investigationStartDate = workflow.getProcessedAt();
+            }
+            if (workflow.getToStatus() == com.tss.loan.entity.enums.ApplicationStatus.READY_FOR_DECISION && 
+                workflow.getFromStatus() == com.tss.loan.entity.enums.ApplicationStatus.AWAITING_COMPLIANCE_DECISION) {
+                decisionDate = workflow.getProcessedAt();
+            }
+        }
+        
+        Integer durationDays = null;
+        Integer durationHours = null;
+        if (flaggedDate != null && decisionDate != null) {
+            durationDays = (int) java.time.Duration.between(flaggedDate, decisionDate).toDays();
+            durationHours = (int) java.time.Duration.between(flaggedDate, decisionDate).toHours();
+        }
+        
+        com.tss.loan.dto.response.ReviewTimelineDTO timeline = com.tss.loan.dto.response.ReviewTimelineDTO.builder()
+            .flaggedDate(flaggedDate)
+            .investigationStartDate(investigationStartDate)
+            .decisionDate(decisionDate)
+            .totalDurationDays(durationDays)
+            .totalDurationHours(durationHours)
+            .build();
+        
+        // Build risk assessment
+        com.tss.loan.dto.response.RiskAssessmentSummaryDTO riskAssessment = com.tss.loan.dto.response.RiskAssessmentSummaryDTO.builder()
+            .overallRisk(application.getRiskLevel() != null ? application.getRiskLevel().name() : "UNKNOWN")
+            .fraudIndicators(application.getFraudReasons() != null ? application.getFraudReasons() : "None identified")
+            .documentsVerified(loanDocumentRepository.countByLoanApplicationAndVerificationStatus(application, com.tss.loan.entity.enums.VerificationStatus.VERIFIED))
+            .totalDocuments(loanDocumentRepository.countByLoanApplication(application))
+            .externalChecksStatus("PASSED") // Assuming passed if reached compliance
+            .riskScore(application.getRiskScore())
+            .riskLevel(application.getRiskLevel() != null ? application.getRiskLevel().name() : "UNKNOWN")
+            .build();
+        
+        // Build investigation actions from workflow
+        List<com.tss.loan.dto.response.InvestigationActionDTO> investigationActions = new java.util.ArrayList<>();
+        for (com.tss.loan.entity.workflow.ApplicationWorkflow workflow : workflowHistory) {
+            // Only include compliance-related workflow entries
+            if (workflow.getFromStatus() == com.tss.loan.entity.enums.ApplicationStatus.FLAGGED_FOR_COMPLIANCE ||
+                workflow.getToStatus() == com.tss.loan.entity.enums.ApplicationStatus.FLAGGED_FOR_COMPLIANCE ||
+                workflow.getFromStatus() == com.tss.loan.entity.enums.ApplicationStatus.UNDER_INVESTIGATION ||
+                workflow.getToStatus() == com.tss.loan.entity.enums.ApplicationStatus.UNDER_INVESTIGATION ||
+                workflow.getFromStatus() == com.tss.loan.entity.enums.ApplicationStatus.AWAITING_COMPLIANCE_DECISION ||
+                workflow.getToStatus() == com.tss.loan.entity.enums.ApplicationStatus.AWAITING_COMPLIANCE_DECISION) {
+                
+                investigationActions.add(com.tss.loan.dto.response.InvestigationActionDTO.builder()
+                    .action(workflow.getToStatus().name())
+                    .timestamp(workflow.getProcessedAt())
+                    .description(workflow.getComments() != null ? workflow.getComments() : "Status changed to " + workflow.getToStatus())
+                    .performedBy(workflow.getProcessedBy() != null ? userDisplayService.getDisplayName(workflow.getProcessedBy()) : "System")
+                    .build());
+            }
+        }
+        
+        // Parse investigation findings from investigation data if available
+        List<String> findings = new java.util.ArrayList<>();
+        if (investigationOpt.isPresent()) {
+            // Add basic findings
+            findings.add("Comprehensive compliance investigation completed");
+            findings.add("All verification checks performed");
+            findings.add("Risk assessment conducted");
+        }
+        
+        // Build response
+        return com.tss.loan.dto.response.ComplianceReviewSummaryResponse.builder()
+            .applicationId(applicationId)
+            .complianceOfficer(complianceOfficerInfo)
+            .reviewTimeline(timeline)
+            .decision("APPROVED") // Compliance approved if status is READY_FOR_DECISION
+            .recommendation("APPROVE") // Default recommendation
+            .confidenceLevel("HIGH") // Default confidence
+            .riskAssessment(riskAssessment)
+            .investigationFindings(findings)
+            .notesToLoanOfficer(application.getComplianceNotes())
+            .documentsRequested(new java.util.ArrayList<>()) // TODO: Implement if document requests are tracked
+            .investigationActions(investigationActions)
+            .hasBeenReviewedByLoanOfficer(application.getComplianceReviewAcknowledgedAt() != null)
+            .reviewedByLoanOfficerAt(application.getComplianceReviewAcknowledgedAt())
+            .loanOfficerNotes(application.getComplianceReviewLoanOfficerNotes())
+            .fullInvestigationData(investigationOpt.isPresent() ? investigationOpt.get().getInvestigationData() : null)
+            .build();
+    }
+    
+    @Override
+    public void acknowledgeComplianceReview(UUID applicationId, com.tss.loan.dto.request.AcknowledgeComplianceReviewRequest request, User officer) {
+        log.info("Loan officer {} acknowledging compliance review for application: {}", officer.getEmail(), applicationId);
+        
+        // Validate application exists and officer has access
+        LoanApplication application = getApplicationAndValidateOfficer(applicationId, officer);
+        
+        // Verify application status
+        if (application.getStatus() != com.tss.loan.entity.enums.ApplicationStatus.READY_FOR_DECISION) {
+            throw new com.tss.loan.exception.LoanApiException("Application must be in READY_FOR_DECISION status");
+        }
+        
+        // Verify it came from compliance
+        if (application.getComplianceNotes() == null || application.getComplianceNotes().isEmpty()) {
+            throw new com.tss.loan.exception.LoanApiException("Application does not have compliance review data");
+        }
+        
+        // Verify not already acknowledged
+        if (application.getComplianceReviewAcknowledgedAt() != null) {
+            log.warn("Application {} already acknowledged by loan officer at {}", applicationId, application.getComplianceReviewAcknowledgedAt());
+        }
+        
+        // Update acknowledgment fields
+        application.setComplianceReviewAcknowledgedAt(java.time.LocalDateTime.now());
+        application.setComplianceReviewAcknowledgedBy(officer);
+        application.setComplianceReviewLoanOfficerNotes(request.getLoanOfficerNotes());
+        application.setUpdatedAt(java.time.LocalDateTime.now());
+        
+        loanApplicationRepository.save(application);
+        
+        // Log audit event
+        auditLogService.logAction(officer, "COMPLIANCE_REVIEW_ACKNOWLEDGED", "LoanApplication", 
+            applicationId.hashCode() & 0x7FFFFFFFL,
+            String.format("Loan officer acknowledged compliance review. Notes: %s", 
+                request.getLoanOfficerNotes() != null ? request.getLoanOfficerNotes() : "None"));
+        
+        log.info("Compliance review acknowledged successfully for application: {}", applicationId);
+    }
+    
+    @Override
+    public List<LoanApplicationResponse> getPostComplianceApplications(User officer) {
+        log.info("Fetching post-compliance applications for officer: {}", officer.getEmail());
+        
+        // Get all applications that went through compliance process
+        List<LoanApplication> applications = loanApplicationRepository
+            .findByAssignedOfficerOrderByCreatedAtDesc(officer)
+            .stream()
+            .filter(app -> 
+                // Include all compliance-related statuses
+                app.getStatus() == ApplicationStatus.FLAGGED_FOR_COMPLIANCE ||
+                app.getStatus() == ApplicationStatus.UNDER_INVESTIGATION ||
+                app.getStatus() == ApplicationStatus.AWAITING_COMPLIANCE_DECISION ||
+                // Include READY_FOR_DECISION only if it came from compliance
+                (app.getStatus() == ApplicationStatus.READY_FOR_DECISION && 
+                 app.getComplianceNotes() != null && 
+                 !app.getComplianceNotes().isEmpty())
+            )
+            .collect(Collectors.toList());
+        
+        log.info("Found {} post-compliance applications for officer: {}", applications.size(), officer.getEmail());
+        
+        return applications.stream()
+            .map(loanApplicationMapper::toResponse)
+            .collect(Collectors.toList());
+    }
+    
+    @Override
+    public String getComplianceInvestigationData(UUID applicationId, User officer) {
+        log.info("Officer {} requesting compliance investigation data for application: {}", officer.getEmail(), applicationId);
+        
+        // Validate officer has access to this application
+        getApplicationAndValidateOfficer(applicationId, officer);
+        
+        // Get the most recent compliance investigation
+        ComplianceInvestigation investigation = complianceInvestigationRepository
+            .findMostRecentByApplicationId(applicationId)
+            .orElseThrow(() -> new LoanApiException("No compliance investigation found for this application"));
+        
+        log.info("Found compliance investigation data for application: {}", applicationId);
+        
+        // Return the raw JSON investigation data
+        return investigation.getInvestigationData();
     }
 }

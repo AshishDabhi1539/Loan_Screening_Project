@@ -46,8 +46,8 @@ export class DashboardComponent implements OnInit {
     low: 0
   });
 
-  hasPendingReview = computed(() => (this.dashboardData()?.pendingReview || 0) > 0);
-  hasReadyForDecision = computed(() => (this.dashboardData()?.readyForDecision || 0) > 0);
+  hasPendingReview = computed(() => (this.dashboardData()?.inProgress || 0) > 0);
+  hasReadyForDecision = computed(() => (this.dashboardData()?.verified || 0) > 0);
 
   ngOnInit(): void {
     this.loadDashboard();

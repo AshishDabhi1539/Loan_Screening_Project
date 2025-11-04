@@ -34,8 +34,15 @@ export class ApplicationDetailsComponent implements OnInit {
    * Uses service method for consistency across all components
    */
   displayStatus = computed(() => {
-    const actualStatus = this.applicationDetails()?.applicationInfo?.status;
-    return this.loanOfficerService.getDisplayStatus(actualStatus || '');
+    const app = this.applicationDetails()?.applicationInfo;
+    if (!app) return '';
+    
+    // Special handling for compliance applications
+    if (app.status === 'READY_FOR_DECISION' && app.fromCompliance === true) {
+      return '✅ Reviewed by Compliance';
+    }
+    
+    return this.loanOfficerService.getDisplayStatus(app.status || '');
   });
 
   ngOnInit(): void {
@@ -266,7 +273,7 @@ export class ApplicationDetailsComponent implements OnInit {
   }
 
   /**
-   * Navigate to decision
+   * Navigate to decision page
    */
   makeDecision(): void {
     const appId = this.applicationDetails()?.applicationInfo?.id;
@@ -325,13 +332,17 @@ export class ApplicationDetailsComponent implements OnInit {
    */
   goBack(): void {
     const fromReview = this.route.snapshot.queryParams['from'] === 'review';
+    const returnUrl = this.route.snapshot.queryParams['returnUrl'];
     const appId = this.applicationDetails()?.applicationInfo?.id;
     
     if (fromReview && appId) {
       // Navigate back to review page
       this.router.navigate(['/loan-officer/application', appId, 'review']);
+    } else if (returnUrl) {
+      // Navigate back to the specified return URL
+      this.router.navigateByUrl(returnUrl);
     } else {
-      // Navigate back to applications list
+      // Default: Navigate back to assigned applications list
       this.router.navigate(['/loan-officer/applications/assigned']);
     }
   }
@@ -666,6 +677,15 @@ export class ApplicationDetailsComponent implements OnInit {
         steps[3].current = true;
         steps[3].name = 'Compliance Review';
         break;
+      case '✅ Reviewed by Compliance':
+        // Compliance review completed, ready for final decision
+        steps[1].status = 'completed';
+        steps[2].status = 'completed';
+        steps[3].status = 'completed';
+        steps[3].name = 'Review Process';
+        steps[4].status = 'current';
+        steps[4].current = true;
+        break;
       case 'READY_FOR_DECISION':
         steps[1].status = 'completed';
         steps[2].status = 'completed';
@@ -714,6 +734,10 @@ export class ApplicationDetailsComponent implements OnInit {
    * Get status badge class
    */
   getStatusBadgeClass(status: string): string {
+    // Special handling for compliance reviewed status
+    if (status === '✅ Reviewed by Compliance') {
+      return 'bg-green-100 text-green-800';
+    }
     return this.loanOfficerService.getStatusBadgeClass(status);
   }
 

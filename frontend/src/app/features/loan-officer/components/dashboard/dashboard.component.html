@@ -63,7 +63,50 @@
         </div>
       </div>
 
-      <!-- Pending Review -->
+      <!-- Verified -->
+      <div class="bg-white overflow-hidden shadow rounded-lg stats-card cursor-pointer"
+           (click)="navigateToApplications()">
+        <div class="p-5">
+          <div class="flex items-center">
+            <div class="flex-shrink-0">
+              <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center stats-icon">
+                <svg class="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+            <div class="ml-5 w-0 flex-1">
+              <dl>
+                <dt class="text-sm font-medium text-gray-500">Verified</dt>
+                <dd class="text-lg font-semibold text-gray-900">{{ dashboardData()!.verified }}</dd>
+              </dl>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rejected -->
+      <div class="bg-white overflow-hidden shadow rounded-lg stats-card">
+        <div class="p-5">
+          <div class="flex items-center">
+            <div class="flex-shrink-0">
+              <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center stats-icon">
+                <svg class="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+            <div class="ml-5 w-0 flex-1">
+              <dl>
+                <dt class="text-sm font-medium text-gray-500">Rejected</dt>
+                <dd class="text-lg font-semibold text-gray-900">{{ dashboardData()!.rejected }}</dd>
+              </dl>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- In Progress -->
       <div class="bg-white overflow-hidden shadow rounded-lg stats-card cursor-pointer"
            (click)="navigateToApplications()">
         <div class="p-5">
@@ -77,51 +120,8 @@
             </div>
             <div class="ml-5 w-0 flex-1">
               <dl>
-                <dt class="text-sm font-medium text-gray-500">Pending Review</dt>
-                <dd class="text-lg font-semibold text-gray-900">{{ dashboardData()!.pendingReview }}</dd>
-              </dl>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Under Verification -->
-      <div class="bg-white overflow-hidden shadow rounded-lg stats-card">
-        <div class="p-5">
-          <div class="flex items-center">
-            <div class="flex-shrink-0">
-              <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center stats-icon">
-                <svg class="w-6 h-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-              </div>
-            </div>
-            <div class="ml-5 w-0 flex-1">
-              <dl>
-                <dt class="text-sm font-medium text-gray-500">Under Verification</dt>
-                <dd class="text-lg font-semibold text-gray-900">{{ dashboardData()!.underVerification }}</dd>
-              </dl>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Ready for Decision -->
-      <div class="bg-white overflow-hidden shadow rounded-lg stats-card cursor-pointer"
-           (click)="navigateToApplications('ready-for-decision')">
-        <div class="p-5">
-          <div class="flex items-center">
-            <div class="flex-shrink-0">
-              <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center stats-icon">
-                <svg class="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-            </div>
-            <div class="ml-5 w-0 flex-1">
-              <dl>
-                <dt class="text-sm font-medium text-gray-500">Ready for Decision</dt>
-                <dd class="text-lg font-semibold text-gray-900">{{ dashboardData()!.readyForDecision }}</dd>
+                <dt class="text-sm font-medium text-gray-500">In Progress</dt>
+                <dd class="text-lg font-semibold text-gray-900">{{ dashboardData()!.inProgress }}</dd>
               </dl>
             </div>
           </div>
@@ -223,13 +223,13 @@
               </button>
             }
             <button
-              (click)="navigateToApplications('completed')"
-              class="w-full text-left px-4 py-2 text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors flex items-center"
+              (click)="navigateToApplications('pending-documents')"
+              class="w-full text-left px-4 py-2 text-sm font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors flex items-center"
             >
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
               </svg>
-              Completed Applications History
+              Pending Documents
             </button>
           </div>
         </div>

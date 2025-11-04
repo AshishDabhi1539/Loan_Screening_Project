@@ -22,6 +22,7 @@ export class ApplicationReviewComponent implements OnInit {
   applicationDetails = signal<CompleteApplicationDetailsResponse | null>(null);
   currentStep = signal(1);
   totalSteps = 5;
+  isFromCompliance = signal(false);
 
   steps = signal([
     { number: 1, title: 'Overview', completed: false },
@@ -59,6 +60,9 @@ export class ApplicationReviewComponent implements OnInit {
       next: (details) => {
         this.applicationDetails.set(details);
         this.updateSteps(details);
+        
+        // Check if application is from compliance
+        this.isFromCompliance.set(details.applicationInfo.fromCompliance === true);
         
         // Only auto-set step if not specified in query params
         const stepParam = this.route.snapshot.queryParamMap.get('step');
@@ -302,6 +306,16 @@ export class ApplicationReviewComponent implements OnInit {
     const appId = this.applicationDetails()?.applicationInfo?.id;
     if (appId) {
       this.router.navigate(['/loan-officer/application', appId, 'decision']);
+    }
+  }
+
+  /**
+   * Flag application for compliance review
+   */
+  flagForCompliance(): void {
+    const appId = this.applicationDetails()?.applicationInfo?.id;
+    if (appId) {
+      this.router.navigate(['/loan-officer/application', appId, 'flag-compliance']);
     }
   }
 

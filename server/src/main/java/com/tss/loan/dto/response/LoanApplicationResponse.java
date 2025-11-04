@@ -75,4 +75,9 @@ public class LoanApplicationResponse {
     
     // Employment type for routing
     private String employmentType;
+    
+    // Compliance review flags
+    private Boolean fromCompliance; // True if application came from compliance
+    private Boolean complianceReviewAcknowledged; // True if loan officer has reviewed compliance findings
+    private LocalDateTime complianceReviewAcknowledgedAt;
 }

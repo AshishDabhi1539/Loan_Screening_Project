@@ -43,7 +43,6 @@ import com.tss.loan.repository.LoanDocumentRepository;
 import com.tss.loan.repository.ProfessionalEmploymentDetailsRepository;
 import com.tss.loan.repository.RetiredEmploymentDetailsRepository;
 import com.tss.loan.repository.StudentEmploymentDetailsRepository;
-import com.tss.loan.repository.AuditLogRepository;
 import com.tss.loan.repository.ComplianceDocumentRequestRepository;
 import com.tss.loan.dto.response.CompleteApplicationDetailsResponse;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -89,9 +88,6 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
     
     @Autowired
     private AuditLogService auditLogService;
-    
-    @Autowired
-    private AuditLogRepository auditLogRepository;
     
     @Autowired
     private ComplianceDocumentRequestRepository complianceDocumentRequestRepository;

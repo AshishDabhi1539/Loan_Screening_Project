@@ -143,6 +143,17 @@ public class LoanApplication {
     @Column(columnDefinition = "TEXT")
     private String complianceNotes;
     
+    // COMPLIANCE REVIEW ACKNOWLEDGMENT FIELDS
+    @Column(name = "compliance_review_acknowledged_at")
+    private LocalDateTime complianceReviewAcknowledgedAt;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "compliance_review_acknowledged_by")
+    private User complianceReviewAcknowledgedBy;
+    
+    @Column(name = "compliance_review_loan_officer_notes", columnDefinition = "TEXT")
+    private String complianceReviewLoanOfficerNotes;
+    
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "decided_by")
     private User decidedBy;

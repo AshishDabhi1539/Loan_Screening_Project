@@ -25,6 +25,9 @@ export class DecisionComponent implements OnInit {
   applicationId = signal<string | null>(null);
   decisionType = signal<'approve' | 'reject' | 'flag' | null>(null);
   applicationDetails = signal<CompleteApplicationDetailsResponse | null>(null);
+  isFromCompliance = signal<boolean>(false);
+  complianceInvestigationData = signal<any>(null);
+  showInvestigationDetails = signal<boolean>(false);
 
   approveForm: FormGroup = this.fb.group({
     approvedAmount: ['', [Validators.required, Validators.min(0)]],
@@ -141,6 +144,17 @@ export class DecisionComponent implements OnInit {
     this.loanOfficerService.getCompleteApplicationDetails(applicationId).subscribe({
       next: (data: CompleteApplicationDetailsResponse) => {
         this.applicationDetails.set(data);
+        // Check if application is from compliance
+        const isFromComp = data.applicationInfo.fromCompliance === true;
+        this.isFromCompliance.set(isFromComp);
+        console.log('Decision page - fromCompliance:', isFromComp);
+        console.log('Decision page - complianceNotes:', data.applicationInfo.complianceNotes);
+        
+        // If from compliance, try to load the detailed investigation data
+        if (isFromComp) {
+          this.loadComplianceInvestigationData(applicationId);
+        }
+        
         this.preFillApprovalForm(data);
         this.isLoading.set(false);
       },
@@ -148,6 +162,64 @@ export class DecisionComponent implements OnInit {
         console.error('Error loading application details:', error);
         this.notificationService.error('Error', 'Failed to load application details');
         this.isLoading.set(false);
+      }
+    });
+  }
+
+  loadComplianceInvestigationData(applicationId: string): void {
+    this.loanOfficerService.getComplianceInvestigationData(applicationId).subscribe({
+      next: (data: any) => {
+        console.log('✅ Compliance investigation data loaded successfully!');
+        console.log('Raw Investigation Data:', data);
+        
+        // Deep parse - handle nested JSON strings
+        let parsedData = typeof data === 'string' ? JSON.parse(data) : data;
+        
+        // Parse nested JSON strings if they exist
+        if (parsedData.bank_details && typeof parsedData.bank_details === 'string') {
+          try {
+            parsedData.bank_details = JSON.parse(parsedData.bank_details);
+          } catch (e) {
+            console.warn('Could not parse bank_details');
+          }
+        }
+        
+        if (parsedData.fraud_records && typeof parsedData.fraud_records === 'string') {
+          try {
+            parsedData.fraud_records = JSON.parse(parsedData.fraud_records);
+          } catch (e) {
+            console.warn('Could not parse fraud_records');
+          }
+        }
+        
+        if (parsedData.loan_history && typeof parsedData.loan_history === 'string') {
+          try {
+            parsedData.loan_history = JSON.parse(parsedData.loan_history);
+          } catch (e) {
+            console.warn('Could not parse loan_history');
+          }
+        }
+        
+        if (parsedData.applicantProfile && typeof parsedData.applicantProfile === 'string') {
+          try {
+            parsedData.applicantProfile = JSON.parse(parsedData.applicantProfile);
+          } catch (e) {
+            console.warn('Could not parse applicantProfile');
+          }
+        }
+        
+        this.complianceInvestigationData.set(parsedData);
+        console.log('✅ Fully Parsed Investigation Data:', JSON.stringify(parsedData, null, 2));
+        console.log('Bank Details:', JSON.stringify(parsedData.bank_details, null, 2));
+        console.log('Fraud Records:', JSON.stringify(parsedData.fraud_records, null, 2));
+        console.log('Loan History:', JSON.stringify(parsedData.loan_history, null, 2));
+        console.log('Overall Assessment:', parsedData.overallAssessment);
+        console.log('Consolidated Findings:', parsedData.consolidatedFindings);
+      },
+      error: (error: any) => {
+        console.warn('⚠️ No compliance investigation data found (this is okay if compliance only added notes)');
+        console.log('Error details:', error);
+        // Don't show error to user, just log it - fallback to complianceNotes
       }
     });
   }
@@ -441,6 +513,41 @@ export class DecisionComponent implements OnInit {
         this.isSubmitting.set(false);
       }
     });
+  }
+
+  /**
+   * Toggle investigation details visibility
+   */
+  toggleInvestigationDetails(): void {
+    this.showInvestigationDetails.set(!this.showInvestigationDetails());
+  }
+
+  /**
+   * Safely get nested property value
+   */
+  getNestedValue(obj: any, path: string): any {
+    if (!obj) return null;
+    const value = path.split('.').reduce((acc, part) => acc && acc[part], obj);
+    return value !== undefined && value !== null ? value : null;
+  }
+
+  /**
+   * Format value for display
+   */
+  formatValue(value: any): string {
+    if (value === null || value === undefined) return 'N/A';
+    if (typeof value === 'object') return JSON.stringify(value);
+    return String(value);
+  }
+
+  /**
+   * View full compliance review
+   */
+  viewFullComplianceReview(): void {
+    const appId = this.applicationId();
+    if (appId) {
+      this.router.navigate(['/loan-officer/application', appId, 'details']);
+    }
   }
 
   /**

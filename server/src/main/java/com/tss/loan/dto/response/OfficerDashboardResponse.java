@@ -22,10 +22,9 @@ public class OfficerDashboardResponse {
     
     // Application Statistics (matching frontend field names)
     private int totalAssigned; // Frontend expects this name
-    private int pendingReview;
-    private int underVerification; // Frontend expects this name
-    private int pendingExternalVerification;
-    private int readyForDecision;
+    private int verified; // Applications that passed verification
+    private int rejected; // Applications that were rejected
+    private int inProgress; // Applications currently being processed
     private int completedToday;
     private int completedThisWeek;
     private int completedThisMonth;

@@ -53,6 +53,8 @@ public class CompleteApplicationDetailsResponse {
         private String assignedOfficerName;
         private String priority;
         private Integer daysInReview;
+        private Boolean fromCompliance;
+        private String complianceNotes;
     }
     
     @Data

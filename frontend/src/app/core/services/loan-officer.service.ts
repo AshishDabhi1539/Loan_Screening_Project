@@ -13,10 +13,9 @@ export interface OfficerDashboardResponse {
   
   // Application Statistics
   totalAssigned: number;
-  pendingReview: number;
-  underVerification: number;
-  pendingExternalVerification?: number;
-  readyForDecision: number;
+  verified: number; // Applications that passed verification
+  rejected: number; // Applications that were rejected
+  inProgress: number; // Applications currently being processed
   completedToday: number;
   completedThisWeek?: number;
   completedThisMonth?: number;
@@ -92,6 +91,10 @@ export interface LoanApplicationResponse {
   documentsCount: number;
   verifiedDocumentsCount: number;
   fraudCheckResultsCount: number;
+  // Compliance review flags
+  fromCompliance?: boolean;
+  complianceReviewAcknowledged?: boolean;
+  complianceReviewAcknowledgedAt?: Date;
 }
 
 export interface CompleteApplicationDetailsResponse {
@@ -116,6 +119,8 @@ export interface ApplicationInfo {
   assignedOfficerName?: string;
   priority: string;
   daysInReview?: number;
+  fromCompliance?: boolean;
+  complianceNotes?: string;
 }
 
 export interface ApplicantIdentity {
@@ -536,10 +541,26 @@ export class LoanOfficerService {
   }
 
   /**
-   * Get applications ready for final decision
+   * Get applications ready for final decision (EXCLUDES compliance applications)
    */
   getApplicationsReadyForDecision(): Observable<LoanApplicationResponse[]> {
     return this.http.get<LoanApplicationResponse[]>(`${this.apiUrl}/ready-for-decision`);
+  }
+
+  /**
+   * Get all post-compliance applications
+   * Includes: FLAGGED_FOR_COMPLIANCE, UNDER_INVESTIGATION, AWAITING_COMPLIANCE_DECISION, READY_FOR_DECISION (from compliance)
+   */
+  getPostComplianceApplications(): Observable<LoanApplicationResponse[]> {
+    return this.http.get<LoanApplicationResponse[]>(`${this.apiUrl}/applications/post-compliance`);
+  }
+
+  /**
+   * Get compliance investigation data for an application
+   * Returns the detailed JSON investigation data from compliance team
+   */
+  getComplianceInvestigationData(applicationId: string): Observable<any> {
+    return this.http.get(`${this.apiUrl}/applications/${applicationId}/compliance-investigation`);
   }
 
   /**

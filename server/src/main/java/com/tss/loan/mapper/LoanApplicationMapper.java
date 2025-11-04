@@ -78,6 +78,11 @@ public class LoanApplicationMapper {
                 
                 // Employment type (safely handle lazy loading)
                 .employmentType(safeGetEmploymentType(entity))
+                
+                // Compliance review flags
+                .fromCompliance(entity.getComplianceNotes() != null && !entity.getComplianceNotes().isEmpty())
+                .complianceReviewAcknowledged(entity.getComplianceReviewAcknowledgedAt() != null)
+                .complianceReviewAcknowledgedAt(entity.getComplianceReviewAcknowledgedAt())
                 .build();
     }
     

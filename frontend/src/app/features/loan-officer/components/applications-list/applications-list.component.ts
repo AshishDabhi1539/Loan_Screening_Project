@@ -91,17 +91,30 @@ export class ApplicationsListComponent implements OnInit {
 
     observable.subscribe({
       next: (apps) => {
+        console.log(`[${mode}] Received ${apps.length} applications from backend:`, apps);
         let filteredApps = apps;
         
         // Filter based on mode
         if (mode === 'assigned') {
-          // Assigned: Show only active applications (exclude final statuses)
+          // Assigned: Show only active applications (exclude final statuses AND compliance statuses)
           filteredApps = apps.filter(app => 
             app.status !== 'APPROVED' && 
             app.status !== 'REJECTED' && 
             app.status !== 'DISBURSED' &&
-            app.status !== 'CANCELLED'
+            app.status !== 'CANCELLED' &&
+            // EXCLUDE all compliance-related statuses
+            app.status !== 'FLAGGED_FOR_COMPLIANCE' &&
+            app.status !== 'UNDER_INVESTIGATION' &&
+            app.status !== 'AWAITING_COMPLIANCE_DECISION' &&
+            // EXCLUDE READY_FOR_DECISION if it came from compliance
+            !(app.status === 'READY_FOR_DECISION' && app.fromCompliance === true)
           );
+        } else if (mode === 'ready-for-decision') {
+          // Ready for Decision: Show ALL READY_FOR_DECISION applications (including from compliance)
+          filteredApps = apps.filter(app => 
+            app.status === 'READY_FOR_DECISION'
+          );
+          console.log(`[${mode}] After filtering, ${filteredApps.length} applications remain:`, filteredApps);
         } else if (mode === 'completed') {
           // Completed: Show only final statuses
           filteredApps = apps.filter(app => 
@@ -232,8 +245,20 @@ export class ApplicationsListComponent implements OnInit {
    * This will hide action buttons for post-UNDER_REVIEW statuses
    */
   viewApplication(applicationId: string): void {
+    const mode = this.filterMode();
+    let returnUrl = '/loan-officer/applications/assigned';
+    
+    // Set return URL based on current filter mode
+    if (mode === 'ready-for-decision') {
+      returnUrl = '/loan-officer/applications/ready-for-decision';
+    } else if (mode === 'pending-documents') {
+      returnUrl = '/loan-officer/applications/pending-documents';
+    } else if (mode === 'completed') {
+      returnUrl = '/loan-officer/applications/completed';
+    }
+    
     this.router.navigate(['/loan-officer/application', applicationId, 'details'], {
-      queryParams: { mode: 'view' }
+      queryParams: { mode: 'view', returnUrl: returnUrl }
     });
   }
 
@@ -266,6 +291,35 @@ export class ApplicationsListComponent implements OnInit {
    */
   getDisplayStatus(status: string): string {
     return this.loanOfficerService.getDisplayStatus(status);
+  }
+
+  /**
+   * Get status badge with compliance indicator
+   */
+  getStatusBadge(app: LoanApplicationResponse): { text: string; class: string; icon: string } {
+    // Check if application came from compliance
+    if (app.status === 'READY_FOR_DECISION' && app.fromCompliance === true) {
+      if (!app.complianceReviewAcknowledged) {
+        return {
+          text: 'Reviewed by Compliance',
+          class: 'bg-green-100 text-green-800',
+          icon: '✅'
+        };
+      } else {
+        return {
+          text: 'Ready for Your Decision',
+          class: 'bg-emerald-100 text-emerald-800',
+          icon: '🎯'
+        };
+      }
+    }
+    
+    // Default status display
+    return {
+      text: this.getDisplayStatus(app.status).replace('_', ' '),
+      class: this.getStatusBadgeClass(app.status),
+      icon: ''
+    };
   }
 
   /**

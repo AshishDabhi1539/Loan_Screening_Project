@@ -18,4 +18,12 @@ public interface LoanDocumentRepository extends JpaRepository<LoanDocument, Long
     long countByLoanApplicationId(UUID loanApplicationId);
     
     List<LoanDocument> findByUploadedBy(com.tss.loan.entity.user.User uploadedBy);
+    
+    // Count methods for compliance review summary
+    int countByLoanApplication(com.tss.loan.entity.loan.LoanApplication loanApplication);
+    
+    int countByLoanApplicationAndVerificationStatus(
+        com.tss.loan.entity.loan.LoanApplication loanApplication, 
+        com.tss.loan.entity.enums.VerificationStatus verificationStatus
+    );
 }

@@ -278,6 +278,81 @@ public class LoanOfficerController {
         return ResponseEntity.ok(auditTrail);
     }
     
+    /**
+     * Get compliance review summary for loan officer
+     * Returns complete compliance investigation data, notes, and timeline
+     */
+    @GetMapping("/applications/{applicationId}/compliance-review-summary")
+    public ResponseEntity<com.tss.loan.dto.response.ComplianceReviewSummaryResponse> getComplianceReviewSummary(
+            @PathVariable UUID applicationId,
+            Authentication authentication) {
+        
+        log.info("Officer {} requesting compliance review summary for application: {}", authentication.getName(), applicationId);
+        
+        User officer = getCurrentUser(authentication);
+        com.tss.loan.dto.response.ComplianceReviewSummaryResponse summary = 
+            loanOfficerService.getComplianceReviewSummary(applicationId, officer);
+        
+        return ResponseEntity.ok(summary);
+    }
+    
+    /**
+     * Acknowledge compliance review by loan officer
+     * Tracks that loan officer has reviewed compliance findings before making decision
+     */
+    @PostMapping("/applications/{applicationId}/acknowledge-compliance-review")
+    public ResponseEntity<java.util.Map<String, String>> acknowledgeComplianceReview(
+            @PathVariable UUID applicationId,
+            @Valid @RequestBody com.tss.loan.dto.request.AcknowledgeComplianceReviewRequest request,
+            Authentication authentication) {
+        
+        log.info("Officer {} acknowledging compliance review for application: {}", authentication.getName(), applicationId);
+        
+        User officer = getCurrentUser(authentication);
+        loanOfficerService.acknowledgeComplianceReview(applicationId, request, officer);
+        
+        return ResponseEntity.ok(java.util.Map.of(
+            "message", "Compliance review acknowledged successfully",
+            "status", "success"
+        ));
+    }
+    
+    /**
+     * Get all post-compliance applications for loan officer
+     * Returns applications that went through compliance process (all statuses)
+     */
+    @GetMapping("/applications/post-compliance")
+    public ResponseEntity<List<LoanApplicationResponse>> getPostComplianceApplications(
+            Authentication authentication) {
+        
+        log.info("Officer {} requesting post-compliance applications", authentication.getName());
+        
+        User officer = getCurrentUser(authentication);
+        List<LoanApplicationResponse> applications = loanOfficerService.getPostComplianceApplications(officer);
+        
+        return ResponseEntity.ok(applications);
+    }
+    
+    /**
+     * Get compliance investigation data for an application
+     * Returns the detailed JSON investigation data from compliance team
+     */
+    @GetMapping("/applications/{applicationId}/compliance-investigation")
+    public ResponseEntity<String> getComplianceInvestigationData(
+            @PathVariable UUID applicationId,
+            Authentication authentication) {
+        
+        log.info("Officer {} requesting compliance investigation data for application: {}", 
+            authentication.getName(), applicationId);
+        
+        User officer = getCurrentUser(authentication);
+        String investigationData = loanOfficerService.getComplianceInvestigationData(applicationId, officer);
+        
+        return ResponseEntity.ok()
+            .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+            .body(investigationData);
+    }
+    
     private User getCurrentUser(Authentication authentication) {
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
         return userService.findByEmail(userDetails.getUsername());
