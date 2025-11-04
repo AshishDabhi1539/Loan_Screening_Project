@@ -26,7 +26,6 @@ import com.tss.loan.exception.LoanApiException;
 import com.tss.loan.mapper.LoanApplicationMapper;
 import com.tss.loan.repository.ApplicantPersonalDetailsRepository;
 import com.tss.loan.repository.ComplianceDocumentRequestRepository;
-import com.tss.loan.repository.external.ComplianceInvestigationRepository;
 import com.tss.loan.repository.LoanApplicationRepository;
 import com.tss.loan.repository.LoanDocumentRepository;
 import com.tss.loan.service.ApplicationAssignmentService;
@@ -58,7 +57,11 @@ public class ComplianceOfficerServiceImpl implements ComplianceOfficerService {
     private AuditLogService auditLogService;
     
     @Autowired
-    private ComplianceInvestigationRepository complianceInvestigationRepository;
+    private com.tss.loan.repository.external.ComplianceInvestigationRepository externalComplianceInvestigationRepository;
+    
+    @Autowired
+    @org.springframework.beans.factory.annotation.Qualifier("complianceInvestigationStorageRepository")
+    private com.tss.loan.repository.ComplianceInvestigationRepository complianceInvestigationRepository;
     
     @Autowired
     private ApplicantPersonalDetailsRepository personalDetailsRepository;
@@ -153,8 +156,13 @@ public class ComplianceOfficerServiceImpl implements ComplianceOfficerService {
     public List<LoanApplicationResponse> getAssignedApplications(User complianceOfficer) {
         log.info("Fetching assigned applications for compliance officer: {}", complianceOfficer.getEmail());
         
+        // Get all assigned applications, but exclude READY_FOR_DECISION status
+        // (compliance can't do anything after submitting decision)
         List<LoanApplication> applications = loanApplicationRepository
-            .findByAssignedComplianceOfficerOrderByCreatedAtDesc(complianceOfficer);
+            .findByAssignedComplianceOfficerOrderByCreatedAtDesc(complianceOfficer)
+            .stream()
+            .filter(app -> app.getStatus() != ApplicationStatus.READY_FOR_DECISION)
+            .collect(Collectors.toList());
         
         return applications.stream()
             .map(loanApplicationMapper::toResponse)
@@ -562,12 +570,31 @@ public class ComplianceOfficerServiceImpl implements ComplianceOfficerService {
                 complianceOfficer, "Comprehensive compliance investigation started");
             
             // Execute the comprehensive compliance investigation stored procedure
-            String investigationResultJson = complianceInvestigationRepository
+            String investigationResultJson = externalComplianceInvestigationRepository
                 .executeComprehensiveInvestigation(aadhaarNumber, panNumber);
             
             // Parse the JSON response from stored procedure using global ObjectMapper
             ComplianceInvestigationResponse response = objectMapper.readValue(
                 investigationResultJson, ComplianceInvestigationResponse.class);
+            
+            // Save investigation results to database for later retrieval
+            try {
+                com.tss.loan.entity.compliance.ComplianceInvestigation investigationEntity = 
+                    new com.tss.loan.entity.compliance.ComplianceInvestigation();
+                investigationEntity.setLoanApplication(application);
+                investigationEntity.setInvestigatedBy(complianceOfficer);
+                investigationEntity.setInvestigationId(response.getInvestigationId());
+                investigationEntity.setInvestigationData(investigationResultJson); // Store full JSON
+                investigationEntity.setInvestigationDate(response.getInvestigationDate());
+                
+                complianceInvestigationRepository.save(investigationEntity);
+                log.info("Investigation results saved to database with ID: {} for application: {}", 
+                    investigationEntity.getId(), applicationId);
+            } catch (Exception e) {
+                log.error("Failed to save investigation results to database for application {}: {}", 
+                    applicationId, e.getMessage());
+                // Don't fail the investigation if database save fails
+            }
             
             // Log the investigation
             auditLogService.logAction(complianceOfficer, "COMPLIANCE_INVESTIGATION_PERFORMED", 
@@ -1179,14 +1206,29 @@ public class ComplianceOfficerServiceImpl implements ComplianceOfficerService {
         workflowService.createWorkflowEntry(applicationId, oldStatus, ApplicationStatus.READY_FOR_DECISION, 
             complianceOfficer, "Compliance decision submitted: " + request.getDecision() + ". Notes: " + request.getNotesToLoanOfficer());
         
-        // Notify loan officer about compliance decision
+        // Retrieve investigation results to include in decision response
+        String investigationData = null;
+        try {
+            var investigationOpt = complianceInvestigationRepository.findMostRecentByApplicationId(applicationId);
+            if (investigationOpt.isPresent()) {
+                investigationData = investigationOpt.get().getInvestigationData();
+                log.info("Retrieved investigation data for application: {}", applicationId);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to retrieve investigation data for application {}: {}", applicationId, e.getMessage());
+        }
+        
+        // Notify loan officer about compliance decision (with investigation data reference)
+        String notificationMessage = String.format(
+            "Compliance officer has submitted %s decision for application %s. Notes: %s", 
+            request.getDecision(), applicationId, request.getNotesToLoanOfficer());
+        
         if (application.getAssignedOfficer() != null) {
             notificationService.createNotification(
                 application.getAssignedOfficer(),
                 com.tss.loan.entity.enums.NotificationType.IN_APP,
                 "Compliance Decision Submitted",
-                String.format("Compliance officer has submitted %s decision for application %s. Notes: %s", 
-                    request.getDecision(), applicationId, request.getNotesToLoanOfficer())
+                notificationMessage
             );
             
             notificationService.createNotification(
@@ -1218,6 +1260,7 @@ public class ComplianceOfficerServiceImpl implements ComplianceOfficerService {
             .additionalNotes(request.getNotesToLoanOfficer())
             .previousStatus(oldStatus)
             .nextSteps("Loan officer will review compliance decision and make final approval/rejection")
+            .investigationData(investigationData) // Include investigation data for loan officer
             .build();
     }
     
@@ -1240,5 +1283,28 @@ public class ComplianceOfficerServiceImpl implements ComplianceOfficerService {
                 
                 return isComplianceDoc && isPending;
             });
+    }
+    
+    @Override
+    public List<LoanApplicationResponse> getCompletedApplications(User complianceOfficer) {
+        log.info("Fetching completed applications for compliance officer: {}", complianceOfficer.getEmail());
+        
+        // Get applications that compliance has finished processing
+        // These are applications in READY_FOR_DECISION, APPROVED, or REJECTED status
+        List<LoanApplication> applications = loanApplicationRepository
+            .findByAssignedComplianceOfficerOrderByCreatedAtDesc(complianceOfficer)
+            .stream()
+            .filter(app -> {
+                ApplicationStatus status = app.getStatus();
+                return status == ApplicationStatus.READY_FOR_DECISION ||
+                       status == ApplicationStatus.APPROVED ||
+                       status == ApplicationStatus.REJECTED ||
+                       status == ApplicationStatus.AWAITING_COMPLIANCE_DECISION; // Include this as it's after compliance submitted decision
+            })
+            .collect(Collectors.toList());
+        
+        return applications.stream()
+            .map(loanApplicationMapper::toResponse)
+            .collect(Collectors.toList());
     }
 }

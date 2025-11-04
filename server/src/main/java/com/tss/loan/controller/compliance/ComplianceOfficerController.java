@@ -150,6 +150,20 @@ public class ComplianceOfficerController {
     }
     
     /**
+     * Get completed applications (applications that compliance has finished processing)
+     */
+    @GetMapping("/applications/completed")
+    public ResponseEntity<List<LoanApplicationResponse>> getCompletedApplications(Authentication authentication) {
+        
+        log.info("Compliance officer {} requesting completed applications", authentication.getName());
+        
+        User complianceOfficer = getCurrentUser(authentication);
+        List<LoanApplicationResponse> applications = complianceOfficerService.getCompletedApplications(complianceOfficer);
+        
+        return ResponseEntity.ok(applications);
+    }
+    
+    /**
      * Submit compliance decision (approve/reject) with notes to loan officer
      */
     @PostMapping("/applications/{applicationId}/submit-decision")
