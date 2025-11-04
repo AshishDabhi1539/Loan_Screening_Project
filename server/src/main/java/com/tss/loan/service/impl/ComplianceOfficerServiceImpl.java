@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tss.loan.dto.request.ComplianceDecisionRequest;
 import com.tss.loan.dto.request.ComplianceDocumentRequest;
@@ -24,13 +25,16 @@ import com.tss.loan.entity.user.User;
 import com.tss.loan.exception.LoanApiException;
 import com.tss.loan.mapper.LoanApplicationMapper;
 import com.tss.loan.repository.ApplicantPersonalDetailsRepository;
+import com.tss.loan.repository.ComplianceDocumentRequestRepository;
 import com.tss.loan.repository.external.ComplianceInvestigationRepository;
 import com.tss.loan.repository.LoanApplicationRepository;
+import com.tss.loan.repository.LoanDocumentRepository;
 import com.tss.loan.service.ApplicationAssignmentService;
 import com.tss.loan.service.ApplicationWorkflowService;
 import com.tss.loan.service.AuditLogService;
 import com.tss.loan.service.ComplianceOfficerService;
 import com.tss.loan.service.LoanOfficerService;
+import com.tss.loan.service.NotificationService;
 import com.tss.loan.service.OfficerProfileService;
 import com.tss.loan.service.ProfileCompletionService;
 
@@ -74,6 +78,15 @@ public class ComplianceOfficerServiceImpl implements ComplianceOfficerService {
     
     @Autowired
     private ProfileCompletionService profileCompletionService;
+    
+    @Autowired
+    private ComplianceDocumentRequestRepository complianceDocumentRequestRepository;
+    
+    @Autowired
+    private LoanDocumentRepository loanDocumentRepository;
+    
+    @Autowired
+    private NotificationService notificationService;
     
     @Override
     public ComplianceDashboardResponse getDashboard(User complianceOfficer) {
@@ -261,6 +274,23 @@ public class ComplianceOfficerServiceImpl implements ComplianceOfficerService {
             throw new LoanApiException("You do not have authority to request documents for this application");
         }
         
+        // Check if there are pending compliance documents that haven't been verified/rejected
+        List<com.tss.loan.entity.compliance.ComplianceDocumentRequest> pendingRequests = 
+            complianceDocumentRequestRepository.findPendingRequestsByApplicationId(applicationId);
+        
+        if (!pendingRequests.isEmpty()) {
+            // Check if there are any unverified compliance-only documents
+            List<com.tss.loan.entity.loan.LoanDocument> complianceDocs = 
+                application.getDocuments() != null ? application.getDocuments().stream()
+                    .filter(doc -> doc.getVerificationNotes() != null && doc.getVerificationNotes().contains("[COMPLIANCE_ONLY]"))
+                    .filter(doc -> doc.getVerificationStatus() == com.tss.loan.entity.enums.VerificationStatus.PENDING)
+                    .collect(java.util.stream.Collectors.toList()) : java.util.Collections.emptyList();
+            
+            if (!complianceDocs.isEmpty()) {
+                throw new LoanApiException("Cannot request new documents. Please verify or reject pending compliance documents first.");
+            }
+        }
+        
         // Update status
         ApplicationStatus previousStatus = application.getStatus();
         application.setStatus(ApplicationStatus.PENDING_COMPLIANCE_DOCS);
@@ -268,6 +298,35 @@ public class ComplianceOfficerServiceImpl implements ComplianceOfficerService {
         application.setUpdatedAt(LocalDateTime.now());
         
         loanApplicationRepository.save(application);
+        
+        // Save compliance document request to database
+        try {
+            com.tss.loan.entity.compliance.ComplianceDocumentRequest complianceRequestEntity = 
+                new com.tss.loan.entity.compliance.ComplianceDocumentRequest();
+            complianceRequestEntity.setLoanApplication(application);
+            complianceRequestEntity.setRequestedBy(complianceOfficer);
+            
+            // Convert document types list to JSON string
+            String documentTypesJson = objectMapper.writeValueAsString(request.getRequiredDocumentTypes());
+            complianceRequestEntity.setRequiredDocumentTypes(documentTypesJson);
+            
+            complianceRequestEntity.setRequestReason(request.getRequestReason());
+            complianceRequestEntity.setAdditionalInstructions(request.getAdditionalInstructions());
+            complianceRequestEntity.setDeadlineDays(request.getDeadlineDays());
+            complianceRequestEntity.setPriorityLevel(request.getPriorityLevel());
+            complianceRequestEntity.setIsMandatory(request.isMandatory());
+            complianceRequestEntity.setComplianceCategory(request.getComplianceCategory());
+            complianceRequestEntity.setStatus("PENDING");
+            
+            complianceDocumentRequestRepository.save(complianceRequestEntity);
+            log.info("Compliance document request saved to database with ID: {}", complianceRequestEntity.getId());
+        } catch (JsonProcessingException e) {
+            log.error("Failed to serialize document types to JSON: {}", e.getMessage(), e);
+            throw new LoanApiException("Failed to save compliance document request: " + e.getMessage());
+        } catch (Exception e) {
+            log.error("Failed to save compliance document request to database: {}", e.getMessage(), e);
+            throw new LoanApiException("Failed to save compliance document request: " + e.getMessage());
+        }
         
         // Log workflow transition
         workflowService.createWorkflowEntry(applicationId, previousStatus, ApplicationStatus.PENDING_COMPLIANCE_DOCS, 
@@ -492,6 +551,16 @@ public class ComplianceOfficerServiceImpl implements ComplianceOfficerService {
         }
         
         try {
+            // Update application status to UNDER_INVESTIGATION
+            ApplicationStatus previousStatus = application.getStatus();
+            application.setStatus(ApplicationStatus.UNDER_INVESTIGATION);
+            application.setUpdatedAt(LocalDateTime.now());
+            loanApplicationRepository.save(application);
+            
+            // Log workflow transition
+            workflowService.createWorkflowEntry(applicationId, previousStatus, ApplicationStatus.UNDER_INVESTIGATION, 
+                complianceOfficer, "Comprehensive compliance investigation started");
+            
             // Execute the comprehensive compliance investigation stored procedure
             String investigationResultJson = complianceInvestigationRepository
                 .executeComprehensiveInvestigation(aadhaarNumber, panNumber);
@@ -638,16 +707,16 @@ public class ComplianceOfficerServiceImpl implements ComplianceOfficerService {
             throw new LoanApiException("Application must be in PENDING_COMPLIANCE_DOCS status. Current status: " + application.getStatus());
         }
         
-        // Update application status back to COMPLIANCE_REVIEW
+        // Update application status to UNDER_INVESTIGATION when compliance receives documents
         ApplicationStatus oldStatus = application.getStatus();
-        application.setStatus(ApplicationStatus.COMPLIANCE_REVIEW);
+        application.setStatus(ApplicationStatus.UNDER_INVESTIGATION);
         application.setUpdatedAt(LocalDateTime.now());
         
         LoanApplication savedApplication = loanApplicationRepository.save(application);
         
         // Record workflow transition
-        workflowService.createWorkflowEntry(savedApplication.getId(), oldStatus, ApplicationStatus.COMPLIANCE_REVIEW, 
-            complianceOfficer, "Documents received - returning to compliance review");
+        workflowService.createWorkflowEntry(savedApplication.getId(), oldStatus, ApplicationStatus.UNDER_INVESTIGATION, 
+            complianceOfficer, "Documents received from applicant - moving to investigation");
         
         // Audit log
         auditLogService.logAction(complianceOfficer, "COMPLIANCE_DOCUMENTS_RECEIVED", "LoanApplication", savedApplication.getId().hashCode() & 0x7FFFFFFFL,
@@ -697,5 +766,479 @@ public class ComplianceOfficerServiceImpl implements ComplianceOfficerService {
             String.format("Compliance timeout processed for application %s - no response within 7 days", applicationId));
         
         log.info("Compliance timeout processed for application {} by officer: {}", applicationId, complianceOfficer.getEmail());
+    }
+    
+    @Override
+    public void trackDocumentView(Long documentId, User complianceOfficer) {
+        log.info("Compliance officer {} viewing document: {}", complianceOfficer.getEmail(), documentId);
+        
+        com.tss.loan.entity.loan.LoanDocument document = loanDocumentRepository.findById(documentId)
+            .orElseThrow(() -> new LoanApiException("Document not found: " + documentId));
+        
+        // Verify this is a compliance-only document
+        if (document.getVerificationNotes() == null || !document.getVerificationNotes().contains("[COMPLIANCE_ONLY]")) {
+            throw new LoanApiException("This document is not a compliance-requested document");
+        }
+        
+        // Track the view
+        document.setViewedByComplianceAt(LocalDateTime.now());
+        loanDocumentRepository.save(document);
+        
+        log.info("Document view tracked for document: {} by officer: {}", documentId, complianceOfficer.getEmail());
+    }
+    
+    @Override
+    public void verifyComplianceDocument(Long documentId, boolean verified, String notes, String rejectionReason, User complianceOfficer) {
+        log.info("Compliance officer {} verifying document: {} as {}", complianceOfficer.getEmail(), documentId, verified ? "VERIFIED" : "REJECTED");
+        
+        com.tss.loan.entity.loan.LoanDocument document = loanDocumentRepository.findById(documentId)
+            .orElseThrow(() -> new LoanApiException("Document not found: " + documentId));
+        
+        // Verify this is a compliance-only document by checking if document type matches requested types
+        // Get the compliance document request to check if this document type was requested
+        UUID applicationId = document.getLoanApplication().getId();
+        java.util.Optional<com.tss.loan.entity.compliance.ComplianceDocumentRequest> requestOpt = 
+            complianceDocumentRequestRepository.findMostRecentPendingRequest(applicationId);
+        
+        boolean isComplianceDoc = false;
+        if (requestOpt.isPresent()) {
+            com.tss.loan.entity.compliance.ComplianceDocumentRequest request = requestOpt.get();
+            try {
+                List<String> requestedTypes = objectMapper.readValue(
+                    request.getRequiredDocumentTypes(),
+                    new com.fasterxml.jackson.core.type.TypeReference<List<String>>() {}
+                );
+                String docType = document.getDocumentType().toString();
+                isComplianceDoc = requestedTypes.contains(docType);
+            } catch (Exception e) {
+                log.warn("Failed to parse requested document types for validation: {}", e.getMessage());
+            }
+        }
+        
+        // Fallback: check verificationNotes for [COMPLIANCE_ONLY] tag
+        if (!isComplianceDoc && (document.getVerificationNotes() == null || !document.getVerificationNotes().contains("[COMPLIANCE_ONLY]"))) {
+            throw new LoanApiException("This document is not a compliance-requested document");
+        }
+        
+        // Update verification status
+        // Preserve [COMPLIANCE_ONLY] tag in verificationNotes to maintain compliance document identification
+        String originalNotes = document.getVerificationNotes();
+        boolean hasComplianceTag = originalNotes != null && originalNotes.contains("[COMPLIANCE_ONLY]");
+        
+        if (verified) {
+            document.setVerificationStatus(com.tss.loan.entity.enums.VerificationStatus.VERIFIED);
+            String newNotes = notes != null ? notes : "Verified by compliance officer";
+            // Preserve [COMPLIANCE_ONLY] tag if it existed
+            if (hasComplianceTag && !newNotes.contains("[COMPLIANCE_ONLY]")) {
+                document.setVerificationNotes("[COMPLIANCE_ONLY] " + newNotes);
+            } else {
+                document.setVerificationNotes(newNotes);
+            }
+        } else {
+            document.setVerificationStatus(com.tss.loan.entity.enums.VerificationStatus.REJECTED);
+            if (rejectionReason == null || rejectionReason.trim().isEmpty()) {
+                throw new LoanApiException("Rejection reason is required when rejecting a document");
+            }
+            // Preserve [COMPLIANCE_ONLY] tag if it existed
+            if (hasComplianceTag && !rejectionReason.contains("[COMPLIANCE_ONLY]")) {
+                document.setVerificationNotes("[COMPLIANCE_ONLY] " + rejectionReason);
+            } else {
+                document.setVerificationNotes(rejectionReason);
+            }
+        }
+        
+        document.setVerifiedAt(LocalDateTime.now());
+        document.setVerifiedBy(complianceOfficer);
+        loanDocumentRepository.save(document);
+        
+        // Get application for status updates and notifications
+        LoanApplication application = document.getLoanApplication();
+        
+        // Send notifications to applicant (both EMAIL and IN_APP)
+        if (verified) {
+            String notificationMessage = String.format("Your %s document has been verified by the compliance officer. %s", 
+                document.getDocumentType().toString(),
+                notes != null && !notes.trim().isEmpty() ? "Notes: " + notes : "");
+            
+            // Send email notification
+            notificationService.createNotification(
+                application.getApplicant(),
+                com.tss.loan.entity.enums.NotificationType.EMAIL,
+                "Document Verified",
+                notificationMessage
+            );
+            
+            // Send in-app notification
+            notificationService.createNotification(
+                application.getApplicant(),
+                com.tss.loan.entity.enums.NotificationType.IN_APP,
+                "Document Verified",
+                notificationMessage
+            );
+        } else {
+            String notificationMessage = String.format("Your %s document has been rejected by the compliance officer. Reason: %s. Please resubmit the document.", 
+                document.getDocumentType().toString(),
+                rejectionReason);
+            
+            // Send email notification
+            notificationService.createNotification(
+                application.getApplicant(),
+                com.tss.loan.entity.enums.NotificationType.EMAIL,
+                "Document Rejected",
+                notificationMessage
+            );
+            
+            // Send in-app notification
+            notificationService.createNotification(
+                application.getApplicant(),
+                com.tss.loan.entity.enums.NotificationType.IN_APP,
+                "Document Rejected",
+                notificationMessage
+            );
+            
+            // If document is rejected, change application status back to PENDING_COMPLIANCE_DOCS
+            // This allows compliance to request the same document again or different documents
+            if (application.getStatus() == ApplicationStatus.UNDER_INVESTIGATION) {
+                ApplicationStatus oldStatus = application.getStatus();
+                application.setStatus(ApplicationStatus.PENDING_COMPLIANCE_DOCS);
+                application.setUpdatedAt(LocalDateTime.now());
+                loanApplicationRepository.save(application);
+                
+                // Log workflow
+                workflowService.createWorkflowEntry(applicationId, oldStatus, ApplicationStatus.PENDING_COMPLIANCE_DOCS, 
+                    complianceOfficer, "Document rejected - applicant can resubmit documents");
+                
+                log.info("Application status changed from {} to {} due to document rejection", oldStatus, ApplicationStatus.PENDING_COMPLIANCE_DOCS);
+            }
+        }
+        
+        // Check if all compliance documents for this application are verified/rejected
+        // Use the same applicationId variable from earlier in the method
+        List<com.tss.loan.entity.loan.LoanDocument> allComplianceDocs = loanDocumentRepository.findByLoanApplicationId(applicationId)
+            .stream()
+            .filter(doc -> {
+                // Check if document type matches requested types OR has [COMPLIANCE_ONLY] tag
+                if (doc.getVerificationNotes() != null && doc.getVerificationNotes().contains("[COMPLIANCE_ONLY]")) {
+                    return true;
+                }
+                // Check against requested document types
+                if (requestOpt.isPresent()) {
+                    try {
+                        com.tss.loan.entity.compliance.ComplianceDocumentRequest req = requestOpt.get();
+                        List<String> requestedTypes = objectMapper.readValue(
+                            req.getRequiredDocumentTypes(),
+                            new com.fasterxml.jackson.core.type.TypeReference<List<String>>() {}
+                        );
+                        return requestedTypes.contains(doc.getDocumentType().toString());
+                    } catch (Exception e) {
+                        // Fallback to tag check
+                        return false;
+                    }
+                }
+                return false;
+            })
+            .collect(java.util.stream.Collectors.toList());
+        
+        boolean allProcessed = allComplianceDocs.stream()
+            .allMatch(doc -> doc.getVerificationStatus() == com.tss.loan.entity.enums.VerificationStatus.VERIFIED 
+                || doc.getVerificationStatus() == com.tss.loan.entity.enums.VerificationStatus.REJECTED);
+        
+        if (allProcessed) {
+            // Update compliance request status to RECEIVED if all documents processed
+            if (requestOpt.isPresent()) {
+                com.tss.loan.entity.compliance.ComplianceDocumentRequest pendingRequest = requestOpt.get();
+                pendingRequest.setStatus("RECEIVED");
+                pendingRequest.setFulfilledAt(LocalDateTime.now());
+                complianceDocumentRequestRepository.save(pendingRequest);
+                
+                // Update application status to UNDER_INVESTIGATION when all compliance documents are processed
+                // Use the application variable already defined above
+                if (application.getStatus() == ApplicationStatus.PENDING_COMPLIANCE_DOCS) {
+                    ApplicationStatus oldStatusForTransition = application.getStatus();
+                    application.setStatus(ApplicationStatus.UNDER_INVESTIGATION);
+                    application.setUpdatedAt(LocalDateTime.now());
+                    loanApplicationRepository.save(application);
+                    
+                    // Log workflow
+                    workflowService.createWorkflowEntry(applicationId, oldStatusForTransition, 
+                        ApplicationStatus.UNDER_INVESTIGATION, complianceOfficer, "All compliance documents processed - moving to investigation");
+                }
+            }
+        }
+        
+        // Audit log
+        auditLogService.logAction(complianceOfficer, verified ? "COMPLIANCE_DOCUMENT_VERIFIED" : "COMPLIANCE_DOCUMENT_REJECTED", 
+            "LoanDocument", documentId.hashCode() & 0x7FFFFFFFL,
+            String.format("Document %s %s by compliance officer. %s", documentId, verified ? "verified" : "rejected", 
+                verified ? (notes != null ? notes : "") : rejectionReason));
+        
+        log.info("Document {} {} by officer: {}", documentId, verified ? "verified" : "rejected", complianceOfficer.getEmail());
+    }
+    
+    @Override
+    public com.tss.loan.dto.response.ComplianceDocumentRequestDetailsResponse getComplianceDocumentRequestDetails(UUID applicationId, User complianceOfficer) {
+        log.info("Compliance officer {} requesting compliance document request details for application: {}", complianceOfficer.getEmail(), applicationId);
+        
+        // Verify authority
+        if (!hasComplianceAuthority(applicationId, complianceOfficer)) {
+            throw new LoanApiException("You do not have authority to view this application");
+        }
+        
+        // Find the most recent compliance document request (pending or received)
+        // Try to find any request first (not just PENDING) to get all data
+        List<com.tss.loan.entity.compliance.ComplianceDocumentRequest> allRequests = 
+            complianceDocumentRequestRepository.findByLoanApplicationIdOrderByRequestedAtDesc(applicationId);
+        
+        java.util.Optional<com.tss.loan.entity.compliance.ComplianceDocumentRequest> requestOpt = java.util.Optional.empty();
+        
+        if (!allRequests.isEmpty()) {
+            // Get the most recent request (prefer PENDING, but take any if available)
+            requestOpt = allRequests.stream()
+                .filter(req -> "PENDING".equals(req.getStatus()) || "RECEIVED".equals(req.getStatus()))
+                .findFirst();
+            
+            // If no PENDING/RECEIVED, just take the most recent one
+            if (!requestOpt.isPresent()) {
+                requestOpt = java.util.Optional.of(allRequests.get(0));
+            }
+        }
+        
+        if (!requestOpt.isPresent()) {
+            // No compliance document request found - return empty response
+            log.warn("No compliance document request found for application: {}", applicationId);
+            return com.tss.loan.dto.response.ComplianceDocumentRequestDetailsResponse.builder()
+                .requiredDocumentTypes(java.util.Collections.emptyList())
+                .status("NONE")
+                .build();
+        }
+        
+        com.tss.loan.entity.compliance.ComplianceDocumentRequest request = requestOpt.get();
+        
+        // Re-fetch by ID to ensure we get fresh data from database (handles potential caching issues)
+        Long requestId = request.getId();
+        com.tss.loan.entity.compliance.ComplianceDocumentRequest freshRequest = 
+            complianceDocumentRequestRepository.findById(requestId)
+                .orElse(request); // Fallback to original if not found
+        
+        // Try to get requiredDocumentTypes directly from database using native query
+        // This bypasses any potential JPA mapping issues with JSON columns
+        String requiredDocumentTypesJson = freshRequest.getRequiredDocumentTypes();
+        if (requiredDocumentTypesJson == null || requiredDocumentTypesJson.trim().isEmpty()) {
+            // Try native query as fallback
+            try {
+                String nativeResult = complianceDocumentRequestRepository.getRequiredDocumentTypesById(requestId);
+                if (nativeResult != null && !nativeResult.trim().isEmpty()) {
+                    requiredDocumentTypesJson = nativeResult;
+                    log.info("Retrieved requiredDocumentTypes via native query: '{}'", requiredDocumentTypesJson);
+                }
+            } catch (Exception e) {
+                log.warn("Failed to fetch requiredDocumentTypes via native query: {}", e.getMessage());
+            }
+        }
+        
+        // Log the raw data from database for debugging
+        log.info("Retrieved compliance document request - ID: {}, Status: {}, RequiredDocumentTypes (raw): '{}'", 
+            freshRequest.getId(), freshRequest.getStatus(), requiredDocumentTypesJson);
+        
+        // Use the fresh request
+        request = freshRequest;
+        
+        // Parse document types from JSON
+        List<String> documentTypes = java.util.Collections.emptyList();
+        
+        if (requiredDocumentTypesJson != null && !requiredDocumentTypesJson.trim().isEmpty()) {
+            try {
+                List<String> parsed = objectMapper.readValue(
+                    requiredDocumentTypesJson,
+                    new com.fasterxml.jackson.core.type.TypeReference<List<String>>() {}
+                );
+                // Ensure parsed result is not null
+                documentTypes = (parsed != null) ? parsed : java.util.Collections.emptyList();
+                log.info("Successfully parsed {} document types: {}", documentTypes.size(), documentTypes);
+            } catch (Exception e) {
+                log.error("Failed to parse document types JSON: '{}'. Error: {}", requiredDocumentTypesJson, e.getMessage(), e);
+                documentTypes = java.util.Collections.emptyList();
+            }
+        } else {
+            log.warn("RequiredDocumentTypes is null or empty for request ID: {}. Raw value: '{}'", 
+                request.getId(), requiredDocumentTypesJson);
+        }
+        
+        // Ensure documentTypes is never null
+        if (documentTypes == null) {
+            documentTypes = java.util.Collections.emptyList();
+        }
+        
+        return com.tss.loan.dto.response.ComplianceDocumentRequestDetailsResponse.builder()
+            .requestId(request.getId())
+            .requiredDocumentTypes(documentTypes)
+            .requestReason(request.getRequestReason())
+            .additionalInstructions(request.getAdditionalInstructions())
+            .requestedAt(request.getRequestedAt())
+            .status(request.getStatus())
+            .deadlineDays(request.getDeadlineDays())
+            .priorityLevel(request.getPriorityLevel())
+            .isMandatory(request.getIsMandatory())
+            .complianceCategory(request.getComplianceCategory())
+            .build();
+    }
+    
+    @Override
+    public void triggerDecision(UUID applicationId, com.tss.loan.dto.request.ComplianceTriggerDecisionRequest request, User complianceOfficer) {
+        log.info("Compliance officer {} triggering decision for application: {}", complianceOfficer.getEmail(), applicationId);
+        
+        // Verify authority
+        if (!hasComplianceAuthority(applicationId, complianceOfficer)) {
+            throw new LoanApiException("You do not have authority to trigger decision for this application");
+        }
+        
+        LoanApplication application = loanApplicationRepository.findById(applicationId)
+            .orElseThrow(() -> new LoanApiException("Application not found: " + applicationId));
+        
+        // Only allow triggering decision from UNDER_INVESTIGATION status
+        if (application.getStatus() != ApplicationStatus.UNDER_INVESTIGATION) {
+            throw new LoanApiException("Application must be in UNDER_INVESTIGATION status to trigger decision. Current status: " + application.getStatus());
+        }
+        
+        // Check if there are pending compliance documents that need verification
+        if (hasPendingComplianceDocuments(applicationId)) {
+            throw new LoanApiException("Cannot trigger decision. Please verify or reject all pending compliance documents first.");
+        }
+        
+        // Update status to AWAITING_COMPLIANCE_DECISION
+        ApplicationStatus oldStatus = application.getStatus();
+        application.setStatus(ApplicationStatus.AWAITING_COMPLIANCE_DECISION);
+        application.setComplianceNotes((application.getComplianceNotes() != null ? application.getComplianceNotes() + " | " : "") + 
+            "Decision Triggered: " + request.getSummaryNotes());
+        application.setUpdatedAt(LocalDateTime.now());
+        loanApplicationRepository.save(application);
+        
+        // Log workflow
+        workflowService.createWorkflowEntry(applicationId, oldStatus, ApplicationStatus.AWAITING_COMPLIANCE_DECISION, 
+            complianceOfficer, "Compliance decision triggered: " + request.getSummaryNotes());
+        
+        // Audit log
+        auditLogService.logAction(complianceOfficer, "COMPLIANCE_DECISION_TRIGGERED", "LoanApplication", 
+            applicationId.hashCode() & 0x7FFFFFFFL,
+            "Compliance decision triggered for application: " + applicationId + ". Summary: " + request.getSummaryNotes());
+        
+        log.info("Decision triggered for application: {} by compliance officer: {}", applicationId, complianceOfficer.getEmail());
+    }
+    
+    @Override
+    public List<LoanApplicationResponse> getApplicationsAwaitingDecision(User complianceOfficer) {
+        log.info("Getting applications awaiting compliance decision for officer: {}", complianceOfficer.getEmail());
+        
+        // Get applications in AWAITING_COMPLIANCE_DECISION status assigned to this compliance officer
+        List<LoanApplication> applications = loanApplicationRepository
+            .findByAssignedComplianceOfficerAndStatus(complianceOfficer, ApplicationStatus.AWAITING_COMPLIANCE_DECISION);
+        
+        return applications.stream()
+            .map(loanApplicationMapper::toResponse)
+            .collect(java.util.stream.Collectors.toList());
+    }
+    
+    @Override
+    public com.tss.loan.dto.response.ComplianceDecisionResponse submitComplianceDecision(UUID applicationId, 
+            com.tss.loan.dto.request.ComplianceSubmitDecisionRequest request, User complianceOfficer) {
+        log.info("Compliance officer {} submitting decision for application: {} - Decision: {}", 
+            complianceOfficer.getEmail(), applicationId, request.getDecision());
+        
+        // Verify authority
+        if (!hasComplianceAuthority(applicationId, complianceOfficer)) {
+            throw new LoanApiException("You do not have authority to submit decision for this application");
+        }
+        
+        LoanApplication application = loanApplicationRepository.findById(applicationId)
+            .orElseThrow(() -> new LoanApiException("Application not found: " + applicationId));
+        
+        // Only allow from AWAITING_COMPLIANCE_DECISION status
+        if (application.getStatus() != ApplicationStatus.AWAITING_COMPLIANCE_DECISION) {
+            throw new LoanApiException("Application must be in AWAITING_COMPLIANCE_DECISION status. Current status: " + application.getStatus());
+        }
+        
+        // Validate decision
+        if (!"APPROVE".equalsIgnoreCase(request.getDecision()) && !"REJECT".equalsIgnoreCase(request.getDecision())) {
+            throw new LoanApiException("Decision must be either 'APPROVE' or 'REJECT'");
+        }
+        
+        boolean isApproved = "APPROVE".equalsIgnoreCase(request.getDecision());
+        ApplicationStatus oldStatus = application.getStatus();
+        
+        // Update application with compliance decision notes (these go to loan officer)
+        application.setComplianceNotes((application.getComplianceNotes() != null ? application.getComplianceNotes() + " | " : "") + 
+            "Compliance Decision: " + request.getDecision() + " - Notes to Loan Officer: " + request.getNotesToLoanOfficer());
+        application.setUpdatedAt(LocalDateTime.now());
+        loanApplicationRepository.save(application);
+        
+        // Status changes to READY_FOR_DECISION so loan officer can make final decision
+        application.setStatus(ApplicationStatus.READY_FOR_DECISION);
+        loanApplicationRepository.save(application);
+        
+        // Log workflow
+        workflowService.createWorkflowEntry(applicationId, oldStatus, ApplicationStatus.READY_FOR_DECISION, 
+            complianceOfficer, "Compliance decision submitted: " + request.getDecision() + ". Notes: " + request.getNotesToLoanOfficer());
+        
+        // Notify loan officer about compliance decision
+        if (application.getAssignedOfficer() != null) {
+            notificationService.createNotification(
+                application.getAssignedOfficer(),
+                com.tss.loan.entity.enums.NotificationType.IN_APP,
+                "Compliance Decision Submitted",
+                String.format("Compliance officer has submitted %s decision for application %s. Notes: %s", 
+                    request.getDecision(), applicationId, request.getNotesToLoanOfficer())
+            );
+            
+            notificationService.createNotification(
+                application.getAssignedOfficer(),
+                com.tss.loan.entity.enums.NotificationType.EMAIL,
+                "Compliance Decision Submitted",
+                String.format("Compliance officer has submitted %s decision for application %s. Please review and make final decision. Notes: %s", 
+                    request.getDecision(), applicationId, request.getNotesToLoanOfficer())
+            );
+        }
+        
+        // Audit log
+        auditLogService.logAction(complianceOfficer, "COMPLIANCE_DECISION_SUBMITTED", "LoanApplication", 
+            applicationId.hashCode() & 0x7FFFFFFFL,
+            String.format("Compliance decision submitted: %s for application: %s. Notes: %s", 
+                request.getDecision(), applicationId, request.getNotesToLoanOfficer()));
+        
+        log.info("Compliance decision submitted for application: {} - Decision: {}", applicationId, request.getDecision());
+        
+        return com.tss.loan.dto.response.ComplianceDecisionResponse.builder()
+            .applicationId(applicationId)
+            .complianceOfficerId(complianceOfficer.getId())
+            .complianceOfficerName(officerProfileService.getOfficerDisplayName(complianceOfficer))
+            .decisionType(isApproved ? com.tss.loan.dto.request.ComplianceDecisionRequest.ComplianceDecisionType.CLEARED : 
+                com.tss.loan.dto.request.ComplianceDecisionRequest.ComplianceDecisionType.REJECTED)
+            .newStatus(ApplicationStatus.READY_FOR_DECISION)
+            .decisionNotes(request.getNotesToLoanOfficer())
+            .processedAt(LocalDateTime.now())
+            .additionalNotes(request.getNotesToLoanOfficer())
+            .previousStatus(oldStatus)
+            .nextSteps("Loan officer will review compliance decision and make final approval/rejection")
+            .build();
+    }
+    
+    /**
+     * Helper method to check if there are pending compliance documents
+     */
+    private boolean hasPendingComplianceDocuments(UUID applicationId) {
+        List<com.tss.loan.entity.loan.LoanDocument> allDocs = loanDocumentRepository.findByLoanApplicationId(applicationId);
+        
+        // Check if there are any compliance documents that are still pending
+        return allDocs.stream()
+            .anyMatch(doc -> {
+                // Check if it's a compliance document
+                boolean isComplianceDoc = doc.getVerificationNotes() != null && 
+                    doc.getVerificationNotes().contains("[COMPLIANCE_ONLY]");
+                
+                // Check if it's pending
+                boolean isPending = doc.getVerificationStatus() == null || 
+                    doc.getVerificationStatus() == com.tss.loan.entity.enums.VerificationStatus.PENDING;
+                
+                return isComplianceDoc && isPending;
+            });
     }
 }

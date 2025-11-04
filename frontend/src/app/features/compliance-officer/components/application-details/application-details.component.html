@@ -20,17 +20,44 @@
         Back
         </button>
       <div class="flex items-center space-x-3">
+        <!-- Review Documents Button (show when compliance documents are received) -->
+        @if (hasReceivedComplianceDocuments()) {
+          <button
+            (click)="scrollToDocuments()"
+            class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-orange-600 border border-orange-600 rounded-lg hover:bg-orange-700 transition-colors duration-200"
+            title="Review Received Documents"
+          >
+            <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Review Documents
+          </button>
+        }
         <!-- Request Additional Documents Button -->
         <button
           (click)="openRequestDocsModal()"
-          class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-primary-600 border border-primary-600 rounded-lg hover:bg-primary-700 transition-colors duration-200"
-          title="Request Additional Documents"
+          [disabled]="!canRequestDocuments()"
+          class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-primary-600 border border-primary-600 rounded-lg hover:bg-primary-700 transition-colors duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:hover:bg-gray-400"
+          [title]="!canRequestDocuments() ? 'Applicant action required: awaiting requested documents. Actions are locked until submission.' : 'Request Additional Documents'"
         >
           <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
           </svg>
           Request Documents
         </button>
+        <!-- Trigger Decision Button -->
+        @if (canTriggerDecision()) {
+          <button
+            (click)="openTriggerDecisionModal()"
+            class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-purple-600 border border-purple-600 rounded-lg hover:bg-purple-700 transition-colors duration-200"
+            title="Trigger Decision Process"
+          >
+            <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Trigger Decision
+          </button>
+        }
       </div>
     </div>
 
@@ -100,10 +127,186 @@
     </div>
   }
 
-    @if (applicationInfo()?.status === 'PENDING_COMPLIANCE_DOCS') {
-      <div class="bg-orange-50 border border-orange-200 text-orange-800 rounded-lg px-4 py-3">
-        Applicant action required: awaiting requested documents. Actions are locked until submission.
+  <!-- Document Verification Modal -->
+  @if (showVerificationModal()) {
+    <div class="fixed inset-0 z-40 flex items-center justify-center">
+      <div class="absolute inset-0 bg-gray-900 bg-opacity-50" (click)="closeVerificationModal()"></div>
+      <div class="relative bg-white rounded-lg shadow-lg w-full max-w-2xl z-50 max-h-[90vh] overflow-y-auto">
+        <div class="px-5 py-4 border-b border-gray-200 flex items-center justify-between">
+          <h3 class="text-lg font-semibold text-gray-900">Document Verification</h3>
+          <button (click)="closeVerificationModal()" class="text-gray-500 hover:text-gray-700">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        
+        <div class="p-5 space-y-4">
+          <!-- Document Info -->
+          <div class="bg-gray-50 rounded-lg p-4">
+            <p class="text-sm text-gray-600 mb-1">Document Type</p>
+            <p class="text-base font-semibold text-gray-900">{{ verificationDocumentType() }}</p>
+            <p class="text-xs text-gray-500 mt-1">{{ verificationDocumentFileName() }}</p>
+          </div>
+
+          <!-- Decision Radio Buttons -->
+          <div class="space-y-3">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Decision</label>
+            <div class="flex space-x-6">
+              <label class="flex items-center cursor-pointer">
+                <input 
+                  type="radio" 
+                  name="verificationDecision" 
+                  value="approve"
+                  [checked]="verificationDecision() === 'approve'"
+                  (change)="verificationDecision.set('approve')"
+                  class="h-4 w-4 text-green-600 focus:ring-green-500"
+                />
+                <span class="ml-2 text-sm font-medium text-green-700">Approve</span>
+              </label>
+              <label class="flex items-center cursor-pointer">
+                <input 
+                  type="radio" 
+                  name="verificationDecision" 
+                  value="reject"
+                  [checked]="verificationDecision() === 'reject'"
+                  (change)="verificationDecision.set('reject')"
+                  class="h-4 w-4 text-red-600 focus:ring-red-500"
+                />
+                <span class="ml-2 text-sm font-medium text-red-700">Reject</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Notes (for approval) -->
+          @if (verificationDecision() === 'approve') {
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">
+                Verification Notes <span class="text-gray-500 font-normal">(optional)</span>
+              </label>
+              <textarea 
+                [ngModel]="verificationNotes()" 
+                (ngModelChange)="verificationNotes.set($event)"
+                rows="4"
+                class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-green-500 focus:border-green-500"
+                placeholder="Add any notes about the verification (optional)"
+              ></textarea>
+            </div>
+          }
+
+          <!-- Rejection Reason (for rejection) -->
+          @if (verificationDecision() === 'reject') {
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">
+                Rejection Reason <span class="text-red-600">*</span>
+              </label>
+              <textarea 
+                [ngModel]="verificationRejectionReason()" 
+                (ngModelChange)="verificationRejectionReason.set($event)"
+                rows="4"
+                class="w-full border border-red-300 rounded-md px-3 py-2 text-sm focus:ring-red-500 focus:border-red-500"
+                placeholder="Please provide a reason for rejection (required)"
+                required
+              ></textarea>
+              <p class="mt-1 text-xs text-gray-500">
+                The applicant will be notified and can resubmit the document. You can request the same document again or different documents.
+              </p>
+            </div>
+          }
+        </div>
+
+        <div class="px-5 py-4 border-t border-gray-200 flex items-center justify-end gap-3">
+          <button 
+            (click)="closeVerificationModal()" 
+            class="px-4 py-2 text-sm rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
+          >
+            Cancel
+          </button>
+          <button 
+            (click)="submitDocumentVerification()" 
+            [disabled]="!verificationDecision() || (verificationDecision() === 'reject' && !verificationRejectionReason().trim()) || isLoading()"
+            class="px-4 py-2 text-sm rounded-md text-white hover:opacity-90 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            [class]="verificationDecision() === 'approve' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'"
+          >
+            @if (verificationDecision() === 'approve') {
+              Verify Document
+            } @else {
+              Reject Document
+            }
+          </button>
+        </div>
       </div>
+    </div>
+  }
+
+  <!-- Trigger Decision Modal -->
+  @if (showTriggerDecisionModal()) {
+    <div class="fixed inset-0 z-40 flex items-center justify-center">
+      <div class="absolute inset-0 bg-gray-900 bg-opacity-50" (click)="closeTriggerDecisionModal()"></div>
+      <div class="relative bg-white rounded-lg shadow-lg w-full max-w-2xl z-50">
+        <div class="px-5 py-4 border-b border-gray-200 flex items-center justify-between">
+          <h3 class="text-lg font-semibold text-gray-900">Trigger Decision Process</h3>
+          <button (click)="closeTriggerDecisionModal()" class="text-gray-500 hover:text-gray-700">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        
+        <div class="p-5 space-y-4">
+          <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <p class="text-sm text-blue-800">
+              <strong>Note:</strong> This will move the application to the decision stage. You will be able to submit your final decision (approve/reject) on the Decision page.
+            </p>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Summary Notes <span class="text-red-600">*</span>
+            </label>
+            <textarea 
+              [ngModel]="triggerDecisionSummaryNotes()" 
+              (ngModelChange)="triggerDecisionSummaryNotes.set($event)"
+              rows="6"
+              class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-purple-500 focus:border-purple-500"
+              placeholder="Provide a brief summary of your investigation findings and why you're ready to make a decision..."
+              required
+            ></textarea>
+            <p class="mt-1 text-xs text-gray-500">
+              These notes will be saved in the application history.
+            </p>
+          </div>
+        </div>
+
+        <div class="px-5 py-4 border-t border-gray-200 flex items-center justify-end gap-3">
+          <button 
+            (click)="closeTriggerDecisionModal()" 
+            class="px-4 py-2 text-sm rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
+          >
+            Cancel
+          </button>
+          <button 
+            (click)="submitTriggerDecision()" 
+            [disabled]="!triggerDecisionSummaryNotes().trim() || isLoading()"
+            class="px-4 py-2 text-sm rounded-md bg-purple-600 text-white hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+          >
+            Trigger Decision
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+    @if (applicationInfo()?.status === 'PENDING_COMPLIANCE_DOCS') {
+      @if (hasReceivedComplianceDocuments()) {
+        <div class="bg-green-50 border border-green-200 text-green-800 rounded-lg px-4 py-3">
+          Documents have been received from the applicant. Please review and verify them.
+        </div>
+      } @else {
+        <div class="bg-orange-50 border border-orange-200 text-orange-800 rounded-lg px-4 py-3">
+          Applicant action required: awaiting requested documents. Actions are locked until submission.
+        </div>
+      }
     }
 
     <!-- Action Buttons Section -->
@@ -499,7 +702,7 @@
 
               <!-- Documents Section -->
               @if (documents().length > 0) {
-                <div class="bg-gray-50 rounded-lg p-6">
+                <div id="documents-section" class="bg-gray-50 rounded-lg p-6">
                   <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
           <svg class="w-5 h-5 mr-2 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -579,11 +782,27 @@
 
                         <!-- View Document Button -->
                     @if (document.fileUrl) {
-                          <div class="mt-4 pt-3 border-t border-gray-200">
+                          <div class="mt-4 pt-3 border-t border-gray-200 space-y-2">
+                      <!-- Verify Button (only show for pending compliance documents) -->
+                      @if (isComplianceOnlyDoc(document) && (document.verificationStatus === 'PENDING' || !document.verificationStatus)) {
+                        <div class="flex space-x-2 mb-2">
+                          <button
+                            (click)="openVerificationModal(document.documentId)"
+                            class="flex-1 inline-flex items-center justify-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
+                            title="Verify or Reject this document"
+                          >
+                            <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Verify
+                          </button>
+                        </div>
+                      }
+                      <!-- View Document Button -->
                       <a 
                         [href]="document.fileUrl" 
                         target="_blank"
-                              class="w-full inline-flex items-center justify-center px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors"
+                        class="w-full inline-flex items-center justify-center px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors"
                       >
                               <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -599,58 +818,6 @@
                 </div>
               }
 
-              <!-- Compliance-Only Documents Review -->
-              @if (complianceOnlyDocuments().length > 0) {
-                <div class="bg-orange-50 rounded-lg p-6 border border-orange-200">
-                  <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                    <svg class="w-5 h-5 mr-2 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    Compliance-Only Documents Review
-                  </h3>
-
-                  <div class="space-y-4">
-                    @for (doc of complianceOnlyDocuments(); track doc.documentId) {
-                      <div class="bg-white border border-gray-200 rounded-lg p-4">
-                        <div class="flex items-center justify-between">
-                          <div>
-                            <div class="text-sm font-semibold text-gray-900">{{ doc.documentType }}</div>
-                            <div class="text-xs text-gray-500">{{ doc.fileName }}</div>
-                          </div>
-                          @if (doc.fileUrl) {
-                            <a [href]="doc.fileUrl" target="_blank" class="px-3 py-1 text-xs text-blue-600 bg-blue-50 rounded hover:bg-blue-100">View</a>
-                          }
-                        </div>
-
-                        <div class="mt-3 flex items-center space-x-6">
-                          <label class="flex items-center cursor-pointer text-sm">
-                            <input type="radio" name="cvr_{{doc.documentId}}" (change)="setComplianceDocDecision(doc.documentId, true)" class="h-4 w-4 text-green-600" />
-                            <span class="ml-2 text-green-700">Approve</span>
-                          </label>
-                          <label class="flex items-center cursor-pointer text-sm">
-                            <input type="radio" name="cvr_{{doc.documentId}}" (change)="setComplianceDocDecision(doc.documentId, false)" class="h-4 w-4 text-red-600" />
-                            <span class="ml-2 text-red-700">Reject</span>
-                          </label>
-                        </div>
-
-                        <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
-                          <textarea (ngModelChange)="setComplianceDocNotes(doc.documentId, $event)" [ngModel]="''" rows="2" placeholder="Notes (optional)" class="w-full px-3 py-2 border border-gray-300 rounded"></textarea>
-                          <textarea (ngModelChange)="setComplianceDocRejectionReason(doc.documentId, $event)" [ngModel]="''" rows="2" placeholder="Rejection reason (required if rejecting)" class="w-full px-3 py-2 border border-red-300 rounded"></textarea>
-                        </div>
-                      </div>
-                    }
-                  </div>
-
-                  <div class="mt-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">General Notes</label>
-                    <textarea [ngModel]="complianceReviewNotes()" (ngModelChange)="complianceReviewNotes.set($event)" rows="3" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" placeholder="Add overall review notes (optional)"></textarea>
-                  </div>
-
-                  <div class="mt-4 flex items-center justify-end">
-                    <button (click)="submitComplianceDocReview()" [disabled]="!canSubmitComplianceDocReview() || isLoading()" class="px-5 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed">Submit Compliance Review</button>
-                  </div>
-                </div>
-              }
             </div>
           }
         }

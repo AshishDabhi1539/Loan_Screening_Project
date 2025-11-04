@@ -194,6 +194,13 @@ export class LoanApplicationService {
   }
 
   /**
+   * Get compliance document requirements (only compliance-requested documents)
+   */
+  getComplianceDocumentRequirements(applicationId: string): Observable<ResubmissionRequirementsResponse> {
+    return this.apiService.get<ResubmissionRequirementsResponse>(`/loan-application/${applicationId}/compliance-document-requirements`);
+  }
+
+  /**
    * Mark documents as resubmitted - changes status to DOCUMENT_REVERIFICATION
    */
   markDocumentsResubmitted(applicationId: string): Observable<{message: string, status: string}> {

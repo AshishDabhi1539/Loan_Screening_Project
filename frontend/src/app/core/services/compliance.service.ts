@@ -240,6 +240,26 @@ export class ComplianceService {
    * Submit compliance-only document verification decisions
    * Reuses a compliance endpoint expected on backend
    */
+  /**
+   * Track document view by compliance officer
+   */
+  trackDocumentView(documentId: number): Observable<string> {
+    return this.apiService.post<string>(`${environment.apiUrl}${this.BASE_URL}/documents/${documentId}/track-view`, {});
+  }
+
+  /**
+   * Verify a single compliance document
+   */
+  verifySingleComplianceDocument(documentId: number, verified: boolean, notes?: string, rejectionReason?: string): Observable<string> {
+    const params = new URLSearchParams();
+    params.set('verified', verified.toString());
+    if (notes) params.set('notes', notes);
+    if (rejectionReason) params.set('rejectionReason', rejectionReason);
+    
+    // apiService.post already prepends environment.apiUrl, so we don't need to add it manually
+    return this.apiService.post<string>(`${this.BASE_URL}/documents/${documentId}/verify?${params.toString()}`, {});
+  }
+
   verifyComplianceDocuments(applicationId: string, body: {
     documentVerifications: Array<{ documentId: string; verified: boolean; verificationNotes?: string; rejectionReason?: string }>;
     generalNotes?: string;
@@ -253,6 +273,25 @@ export class ComplianceService {
    */
   requestDocuments(applicationId: string, request: ComplianceDocumentRequest): Observable<string> {
     return this.apiService.post<string>(`${this.BASE_URL}/applications/${applicationId}/request-documents`, request);
+  }
+
+  /**
+   * Get compliance document request details for an application
+   * Returns the requested document types to identify compliance-requested documents
+   */
+  getComplianceDocumentRequestDetails(applicationId: string): Observable<{
+    requestId?: number;
+    requiredDocumentTypes: string[];
+    requestReason?: string;
+    additionalInstructions?: string;
+    requestedAt?: string;
+    status?: string;
+    deadlineDays?: number;
+    priorityLevel?: string;
+    isMandatory?: boolean;
+    complianceCategory?: string;
+  }> {
+    return this.apiService.get(`${this.BASE_URL}/applications/${applicationId}/document-request-details`);
   }
 
   /**
@@ -302,5 +341,26 @@ export class ComplianceService {
    */
   processTimeout(applicationId: string): Observable<string> {
     return this.apiService.post<string>(`${this.BASE_URL}/applications/${applicationId}/process-timeout`, {});
+  }
+
+  /**
+   * Trigger decision process - moves application to AWAITING_COMPLIANCE_DECISION status
+   */
+  triggerDecision(applicationId: string, request: { summaryNotes: string }): Observable<string> {
+    return this.apiService.post<string>(`${this.BASE_URL}/applications/${applicationId}/trigger-decision`, request);
+  }
+
+  /**
+   * Get applications awaiting compliance decision
+   */
+  getApplicationsAwaitingDecision(): Observable<LoanApplicationResponse[]> {
+    return this.apiService.get<LoanApplicationResponse[]>(`${this.BASE_URL}/applications/awaiting-decision`);
+  }
+
+  /**
+   * Submit compliance decision (approve/reject) with notes to loan officer
+   */
+  submitComplianceDecision(applicationId: string, request: { decision: string; notesToLoanOfficer: string }): Observable<ComplianceDecisionResponse> {
+    return this.apiService.post<ComplianceDecisionResponse>(`${this.BASE_URL}/applications/${applicationId}/submit-decision`, request);
   }
 }

@@ -35,6 +35,7 @@ public class LoanDocumentMapper {
                 .verificationStatus(document.getVerificationStatus())
                 .verificationNotes(document.getVerificationNotes())
                 .verifiedAt(document.getVerifiedAt())
+                .viewedByComplianceAt(document.getViewedByComplianceAt())
                 .uploadedAt(document.getUploadedAt())
                 .createdAt(document.getCreatedAt())
                 .updatedAt(document.getUpdatedAt())

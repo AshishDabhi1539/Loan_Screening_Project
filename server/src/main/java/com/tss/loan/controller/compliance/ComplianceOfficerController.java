@@ -13,14 +13,15 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.tss.loan.dto.request.ComplianceDecisionRequest;
 import com.tss.loan.dto.request.ComplianceDocumentRequest;
+import com.tss.loan.dto.response.CompleteApplicationDetailsResponse;
 import com.tss.loan.dto.response.ComplianceDashboardResponse;
 import com.tss.loan.dto.response.ComplianceDecisionResponse;
 import com.tss.loan.dto.response.ComplianceInvestigationResponse;
-import com.tss.loan.dto.response.CompleteApplicationDetailsResponse;
 import com.tss.loan.dto.response.LoanApplicationResponse;
 import com.tss.loan.entity.user.User;
 import com.tss.loan.service.ComplianceOfficerService;
@@ -97,6 +98,72 @@ public class ComplianceOfficerController {
         CompleteApplicationDetailsResponse details = complianceOfficerService.getCompleteApplicationDetails(applicationId, complianceOfficer);
         
         return ResponseEntity.ok(details);
+    }
+    
+    /**
+     * Get compliance document request details for an application
+     * Returns the requested document types to help identify compliance-requested documents
+     */
+    @GetMapping("/applications/{applicationId}/document-request-details")
+    public ResponseEntity<com.tss.loan.dto.response.ComplianceDocumentRequestDetailsResponse> getComplianceDocumentRequestDetails(
+            @PathVariable UUID applicationId,
+            Authentication authentication) {
+        
+        log.info("Compliance officer {} requesting compliance document request details for application: {}", authentication.getName(), applicationId);
+        
+        User complianceOfficer = getCurrentUser(authentication);
+        com.tss.loan.dto.response.ComplianceDocumentRequestDetailsResponse details = 
+            complianceOfficerService.getComplianceDocumentRequestDetails(applicationId, complianceOfficer);
+        
+        return ResponseEntity.ok(details);
+    }
+    
+    /**
+     * Trigger decision process - moves application to AWAITING_COMPLIANCE_DECISION status
+     */
+    @PostMapping("/applications/{applicationId}/trigger-decision")
+    public ResponseEntity<String> triggerDecision(
+            @PathVariable UUID applicationId,
+            @Valid @RequestBody com.tss.loan.dto.request.ComplianceTriggerDecisionRequest request,
+            Authentication authentication) {
+        
+        log.info("Compliance officer {} triggering decision for application: {}", authentication.getName(), applicationId);
+        
+        User complianceOfficer = getCurrentUser(authentication);
+        complianceOfficerService.triggerDecision(applicationId, request, complianceOfficer);
+        
+        return ResponseEntity.ok("Decision process triggered successfully");
+    }
+    
+    /**
+     * Get applications awaiting compliance decision
+     */
+    @GetMapping("/applications/awaiting-decision")
+    public ResponseEntity<List<LoanApplicationResponse>> getApplicationsAwaitingDecision(Authentication authentication) {
+        
+        log.info("Compliance officer {} requesting applications awaiting decision", authentication.getName());
+        
+        User complianceOfficer = getCurrentUser(authentication);
+        List<LoanApplicationResponse> applications = complianceOfficerService.getApplicationsAwaitingDecision(complianceOfficer);
+        
+        return ResponseEntity.ok(applications);
+    }
+    
+    /**
+     * Submit compliance decision (approve/reject) with notes to loan officer
+     */
+    @PostMapping("/applications/{applicationId}/submit-decision")
+    public ResponseEntity<ComplianceDecisionResponse> submitComplianceDecision(
+            @PathVariable UUID applicationId,
+            @Valid @RequestBody com.tss.loan.dto.request.ComplianceSubmitDecisionRequest request,
+            Authentication authentication) {
+        
+        log.info("Compliance officer {} submitting decision for application: {}", authentication.getName(), applicationId);
+        
+        User complianceOfficer = getCurrentUser(authentication);
+        ComplianceDecisionResponse response = complianceOfficerService.submitComplianceDecision(applicationId, request, complianceOfficer);
+        
+        return ResponseEntity.ok(response);
     }
     
     /**
@@ -304,6 +371,41 @@ public class ComplianceOfficerController {
         complianceOfficerService.processComplianceTimeout(applicationId, complianceOfficer);
         
         return ResponseEntity.ok("Compliance timeout processed successfully");
+    }
+    
+    /**
+     * Track document view by compliance officer
+     */
+    @PostMapping("/documents/{documentId}/track-view")
+    public ResponseEntity<String> trackDocumentView(
+            @PathVariable Long documentId,
+            Authentication authentication) {
+        
+        log.info("Tracking document view: {} by officer: {}", documentId, authentication.getName());
+        
+        User complianceOfficer = getCurrentUser(authentication);
+        complianceOfficerService.trackDocumentView(documentId, complianceOfficer);
+        
+        return ResponseEntity.ok("Document view tracked");
+    }
+    
+    /**
+     * Verify a single compliance document
+     */
+    @PostMapping("/documents/{documentId}/verify")
+    public ResponseEntity<String> verifyComplianceDocument(
+            @PathVariable Long documentId,
+            @RequestParam boolean verified,
+            @RequestParam(required = false) String notes,
+            @RequestParam(required = false) String rejectionReason,
+            Authentication authentication) {
+        
+        log.info("Verifying document: {} as {} by officer: {}", documentId, verified ? "VERIFIED" : "REJECTED", authentication.getName());
+        
+        User complianceOfficer = getCurrentUser(authentication);
+        complianceOfficerService.verifyComplianceDocument(documentId, verified, notes, rejectionReason, complianceOfficer);
+        
+        return ResponseEntity.ok(verified ? "Document verified successfully" : "Document rejected");
     }
     
     private User getCurrentUser(Authentication authentication) {

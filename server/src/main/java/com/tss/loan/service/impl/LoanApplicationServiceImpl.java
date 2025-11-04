@@ -43,7 +43,11 @@ import com.tss.loan.repository.LoanDocumentRepository;
 import com.tss.loan.repository.ProfessionalEmploymentDetailsRepository;
 import com.tss.loan.repository.RetiredEmploymentDetailsRepository;
 import com.tss.loan.repository.StudentEmploymentDetailsRepository;
+import com.tss.loan.repository.AuditLogRepository;
+import com.tss.loan.repository.ComplianceDocumentRequestRepository;
 import com.tss.loan.dto.response.CompleteApplicationDetailsResponse;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tss.loan.service.ApplicationAssignmentService;
 import com.tss.loan.service.ApplicationWorkflowService;
 import com.tss.loan.service.AuditLogService;
@@ -85,6 +89,15 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
     
     @Autowired
     private AuditLogService auditLogService;
+    
+    @Autowired
+    private AuditLogRepository auditLogRepository;
+    
+    @Autowired
+    private ComplianceDocumentRequestRepository complianceDocumentRequestRepository;
+    
+    @Autowired
+    private ObjectMapper objectMapper;
     
     @Autowired
     private NotificationService notificationService;
@@ -854,6 +867,127 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
         } catch (Exception e) {
             log.error("Error getting resubmission requirements for application: {} by user: {}", applicationId, user.getEmail(), e);
             throw new LoanApiException("Failed to get resubmission requirements: " + e.getMessage());
+        }
+    }
+    
+    @Override
+    public com.tss.loan.dto.response.ApplicantResubmissionRequirementsResponse getComplianceDocumentRequirements(UUID applicationId, User user) {
+        log.info("Getting compliance document requirements for application: {} by user: {}", applicationId, user.getEmail());
+        
+        try {
+            // Get application and validate ownership
+            LoanApplication application = loanApplicationRepository.findById(applicationId)
+                .orElseThrow(() -> new LoanApiException("Application not found"));
+            
+            if (!application.getApplicant().getId().equals(user.getId())) {
+                throw new LoanApiException("You can only view your own applications");
+            }
+            
+            // Check if application is in PENDING_COMPLIANCE_DOCS status
+            if (application.getStatus() != ApplicationStatus.PENDING_COMPLIANCE_DOCS) {
+                throw new LoanApiException("Application is not awaiting compliance documents");
+            }
+            
+            // Find the most recent pending compliance document request from database
+            java.util.Optional<com.tss.loan.entity.compliance.ComplianceDocumentRequest> complianceRequestOpt = 
+                complianceDocumentRequestRepository.findMostRecentPendingRequest(applicationId);
+            
+            if (!complianceRequestOpt.isPresent()) {
+                log.warn("No pending compliance document request found for application: {}", applicationId);
+                return com.tss.loan.dto.response.ApplicantResubmissionRequirementsResponse.builder()
+                    .applicationId(applicationId)
+                    .applicationStatus(application.getStatus().toString())
+                    .hasResubmissionRequirements(false)
+                    .documentRequirements(new java.util.ArrayList<>())
+                    .totalDocumentsRequired(0)
+                    .documentsAlreadyVerified(0)
+                    .build();
+            }
+            
+            com.tss.loan.entity.compliance.ComplianceDocumentRequest complianceRequest = complianceRequestOpt.get();
+            
+            // Parse document types from JSON
+            List<String> documentTypes;
+            try {
+                documentTypes = objectMapper.readValue(
+                    complianceRequest.getRequiredDocumentTypes(), 
+                    new TypeReference<List<String>>() {}
+                );
+            } catch (Exception e) {
+                log.error("Failed to parse document types JSON: {}", complianceRequest.getRequiredDocumentTypes(), e);
+                throw new LoanApiException("Failed to parse compliance document request: " + e.getMessage());
+            }
+            
+            if (documentTypes.isEmpty()) {
+                return com.tss.loan.dto.response.ApplicantResubmissionRequirementsResponse.builder()
+                    .applicationId(applicationId)
+                    .applicationStatus(application.getStatus().toString())
+                    .hasResubmissionRequirements(false)
+                    .documentRequirements(new java.util.ArrayList<>())
+                    .totalDocumentsRequired(0)
+                    .documentsAlreadyVerified(0)
+                    .build();
+            }
+            
+            // Calculate deadline date
+            LocalDateTime deadlineDate = complianceRequest.getRequestedAt().plusDays(complianceRequest.getDeadlineDays());
+            
+            // Build document requirements for the compliance-requested documents only
+            List<com.tss.loan.dto.response.ApplicantResubmissionRequirementsResponse.DocumentRequirement> documentRequirements = 
+                documentTypes.stream()
+                    .map(docTypeStr -> {
+                        com.tss.loan.entity.enums.DocumentType docType;
+                        try {
+                            docType = com.tss.loan.entity.enums.DocumentType.valueOf(docTypeStr);
+                        } catch (IllegalArgumentException e) {
+                            log.warn("Invalid document type: {}", docTypeStr);
+                            return null;
+                        }
+                        
+                        return com.tss.loan.dto.response.ApplicantResubmissionRequirementsResponse.DocumentRequirement.builder()
+                            .documentType(docType.toString())
+                            .documentTypeName(getDocumentTypeName(docType))
+                            .currentStatus("PENDING")
+                            .canReupload(true)
+                            .rejectionReason(complianceRequest.getRequestReason())
+                            .requiredAction("UPLOAD")
+                            .specificInstructions(complianceRequest.getAdditionalInstructions() != null 
+                                ? complianceRequest.getAdditionalInstructions().replace("[COMPLIANCE_ONLY]", "").trim()
+                                : "Upload document requested by compliance officer")
+                            .isRequired(complianceRequest.getIsMandatory())
+                            .lastUploadedAt(null)
+                            .fileName(null)
+                            .currentDocumentId(null)
+                            .build();
+                    })
+                    .filter(req -> req != null)
+                    .collect(java.util.stream.Collectors.toList());
+            
+            String additionalInstructions = complianceRequest.getAdditionalInstructions();
+            if (additionalInstructions != null && additionalInstructions.contains("[COMPLIANCE_ONLY]")) {
+                additionalInstructions = additionalInstructions.replace("[COMPLIANCE_ONLY]", "").trim();
+            } else if (additionalInstructions == null || additionalInstructions.isEmpty()) {
+                additionalInstructions = "Compliance officer has requested these additional documents";
+            }
+            
+            return com.tss.loan.dto.response.ApplicantResubmissionRequirementsResponse.builder()
+                .applicationId(applicationId)
+                .applicationStatus(application.getStatus().toString())
+                .hasResubmissionRequirements(!documentRequirements.isEmpty())
+                .resubmissionDeadline(deadlineDate)
+                .additionalInstructions(additionalInstructions)
+                .documentRequirements(documentRequirements)
+                .requestedAt(complianceRequest.getRequestedAt())
+                .requestedByOfficer(complianceRequest.getRequestedBy() != null ? complianceRequest.getRequestedBy().getEmail() : null)
+                .totalDocumentsRequired(documentRequirements.size())
+                .documentsAlreadyVerified(0)
+                .build();
+                
+        } catch (LoanApiException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Error getting compliance document requirements for application: {} by user: {}", applicationId, user.getEmail(), e);
+            throw new LoanApiException("Failed to get compliance document requirements: " + e.getMessage());
         }
     }
     

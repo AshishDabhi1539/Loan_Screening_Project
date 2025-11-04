@@ -446,7 +446,16 @@ export class DashboardComponent implements OnInit {
    */
   resubmitDocuments(event: Event, applicationId: string): void {
     event.stopPropagation(); // Prevent row click
-    this.router.navigate(['/applicant/document-resubmission', applicationId]);
+    
+    // Check if this is a compliance request or loan officer request
+    const application = this.recentApplications().find(app => app.id === applicationId);
+    if (application?.status === 'PENDING_COMPLIANCE_DOCS') {
+      // Route to compliance document resubmission
+      this.router.navigate(['/applicant/compliance-document-resubmission', applicationId]);
+    } else {
+      // Route to regular loan officer document resubmission
+      this.router.navigate(['/applicant/document-resubmission', applicationId]);
+    }
   }
 
   /**

@@ -112,4 +112,35 @@ public interface ComplianceOfficerService {
      * Returns the exact JSON response from SP_ComprehensiveComplianceInvestigation
      */
     ComplianceInvestigationResponse performComprehensiveInvestigation(UUID applicationId, User complianceOfficer);
+    
+    /**
+     * Track document view by compliance officer
+     */
+    void trackDocumentView(Long documentId, User complianceOfficer);
+    
+    /**
+     * Verify a single compliance document
+     */
+    void verifyComplianceDocument(Long documentId, boolean verified, String notes, String rejectionReason, User complianceOfficer);
+    
+    /**
+     * Get compliance document request details for an application
+     * Returns the requested document types to help identify compliance-requested documents
+     */
+    com.tss.loan.dto.response.ComplianceDocumentRequestDetailsResponse getComplianceDocumentRequestDetails(UUID applicationId, User complianceOfficer);
+    
+    /**
+     * Trigger decision process - moves application to AWAITING_COMPLIANCE_DECISION status
+     */
+    void triggerDecision(UUID applicationId, com.tss.loan.dto.request.ComplianceTriggerDecisionRequest request, User complianceOfficer);
+    
+    /**
+     * Get applications awaiting compliance decision
+     */
+    List<LoanApplicationResponse> getApplicationsAwaitingDecision(User complianceOfficer);
+    
+    /**
+     * Submit compliance decision (approve/reject) with notes to loan officer
+     */
+    com.tss.loan.dto.response.ComplianceDecisionResponse submitComplianceDecision(UUID applicationId, com.tss.loan.dto.request.ComplianceSubmitDecisionRequest request, User complianceOfficer);
 }

@@ -37,4 +37,6 @@ public interface LoanApplicationRepository extends JpaRepository<LoanApplication
     List<LoanApplication> findByAssignedOfficerOrderByCreatedAtDesc(User assignedOfficer);
     
     List<LoanApplication> findByAssignedComplianceOfficerOrderByCreatedAtDesc(User assignedComplianceOfficer);
+    
+    List<LoanApplication> findByAssignedComplianceOfficerAndStatus(User assignedComplianceOfficer, ApplicationStatus status);
 }

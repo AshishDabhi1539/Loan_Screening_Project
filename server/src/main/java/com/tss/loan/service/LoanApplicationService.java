@@ -64,6 +64,12 @@ public interface LoanApplicationService {
     com.tss.loan.dto.response.ApplicantResubmissionRequirementsResponse getResubmissionRequirements(UUID applicationId, User user);
     
     /**
+     * Get compliance document requirements for applicant
+     * Returns only the documents specifically requested by compliance officer
+     */
+    com.tss.loan.dto.response.ApplicantResubmissionRequirementsResponse getComplianceDocumentRequirements(UUID applicationId, User user);
+    
+    /**
      * Mark documents as resubmitted - changes status to DOCUMENT_REVERIFICATION
      */
     void markDocumentsResubmitted(UUID applicationId, User user);
