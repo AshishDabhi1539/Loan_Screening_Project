@@ -10,7 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import com.tss.loan.dto.PendingRegistration;
+import com.tss.loan.dto.request.PendingRegistration;
 import com.tss.loan.entity.security.OtpVerification;
 import com.tss.loan.entity.user.User;
 import com.tss.loan.exception.LoanApiException;

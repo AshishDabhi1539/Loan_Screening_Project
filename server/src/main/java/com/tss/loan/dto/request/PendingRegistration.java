@@ -1,4 +1,4 @@
-package com.tss.loan.dto;
+package com.tss.loan.dto.request;
 
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;

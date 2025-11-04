@@ -143,7 +143,7 @@ public class AuthServiceImpl implements AuthService {
     public VerificationResponse verifyEmailOtp(OtpVerificationRequest request) {
         try {
             // ✅ NEW APPROACH: Check if this is a registration OTP or existing user OTP
-            com.tss.loan.dto.PendingRegistration pendingReg = otpService.verifyRegistrationOtp(
+            com.tss.loan.dto.request.PendingRegistration pendingReg = otpService.verifyRegistrationOtp(
                 request.getEmail(), 
                 request.getOtpCode()
             );
