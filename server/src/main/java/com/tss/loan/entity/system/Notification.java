@@ -3,6 +3,8 @@ package com.tss.loan.entity.system;
 import java.time.LocalDateTime;
 
 import com.tss.loan.entity.enums.NotificationType;
+import com.tss.loan.entity.enums.NotificationPriority;
+import com.tss.loan.entity.enums.RecipientRole;
 import com.tss.loan.entity.user.User;
 
 import jakarta.persistence.Column;
@@ -47,6 +49,14 @@ public class Notification {
     @Column(nullable = false)
     private NotificationType type; // EMAIL, SMS, PUSH, IN_APP
     
+    @Enumerated(EnumType.STRING)
+    @Column(length = 30)
+    private NotificationPriority priority; // HIGH, MEDIUM, LOW
+    
+    @Enumerated(EnumType.STRING)
+    @Column(length = 50)
+    private RecipientRole recipientRole; // APPLICANT, LOAN_OFFICER, COMPLIANCE_OFFICER, etc.
+    
     @Column(nullable = false, length = 200)
     private String title;
     
@@ -67,6 +77,12 @@ public class Notification {
     private String relatedEntityType;
     
     private Long relatedEntityId;
+    
+    @Column(columnDefinition = "TEXT")
+    private String metadataJson; // Additional metadata in JSON format
+    
+    @Column(length = 100)
+    private String createdByEvent; // Event that triggered this notification
     
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;

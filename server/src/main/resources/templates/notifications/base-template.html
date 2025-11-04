@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${title}">Loan Screening App</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+        .email-container {
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .email-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 30px 20px;
+            text-align: center;
+            color: #ffffff;
+        }
+        .email-header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .email-header .emoji {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        .email-body {
+            padding: 30px 20px;
+            color: #333333;
+            line-height: 1.6;
+        }
+        .greeting {
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+        .greeting .user-email {
+            color: #667eea;
+            font-weight: 600;
+            text-decoration: none;
+        }
+        .content-box {
+            background-color: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .content-box h3 {
+            margin: 0 0 15px 0;
+            color: #2c3e50;
+            font-size: 18px;
+        }
+        .content-box ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .content-box li {
+            margin: 8px 0;
+            color: #34495e;
+        }
+        .info-table {
+            width: 100%;
+            margin: 20px 0;
+        }
+        .info-table td {
+            padding: 10px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .info-table td:first-child {
+            font-weight: 600;
+            color: #555;
+            width: 40%;
+        }
+        .info-table td:last-child {
+            color: #333;
+        }
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #ffffff !important;
+            padding: 14px 32px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            margin: 20px 0;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(102, 126, 234, 0.3);
+            transition: transform 0.2s;
+        }
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(102, 126, 234, 0.4);
+        }
+        .alert-box {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .alert-box.success {
+            background-color: #d4edda;
+            border-left-color: #28a745;
+        }
+        .alert-box.danger {
+            background-color: #f8d7da;
+            border-left-color: #dc3545;
+        }
+        .alert-box.info {
+            background-color: #d1ecf1;
+            border-left-color: #17a2b8;
+        }
+        .support-link {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .support-link:hover {
+            text-decoration: underline;
+        }
+        .email-footer {
+            background-color: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            border-top: 1px solid #e0e0e0;
+        }
+        .email-footer p {
+            margin: 5px 0;
+            color: #6c757d;
+            font-size: 14px;
+        }
+        .email-footer .copyright {
+            font-size: 12px;
+            color: #999;
+            margin-top: 15px;
+        }
+        @media only screen and (max-width: 600px) {
+            .email-container {
+                margin: 0;
+                border-radius: 0;
+            }
+            .email-body {
+                padding: 20px 15px;
+            }
+            .cta-button {
+                display: block;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <!-- Header -->
+        <div class="email-header">
+            <div class="emoji" th:text="${emoji}">🎉</div>
+            <h1 th:text="${headerTitle}">Welcome to Loan Screening App!</h1>
+        </div>
+        
+        <!-- Body -->
+        <div class="email-body">
+            <div class="greeting">
+                Hi <a th:href="'mailto:' + ${userEmail}" class="user-email" th:text="${userEmail}">user@example.com</a>! 👋
+            </div>
+            
+            <!-- Main Content (to be replaced by child templates) -->
+            <div th:replace="~{::content}">
+                <p>Main content goes here</p>
+            </div>
+            
+            <!-- Support Section -->
+            <p style="margin-top: 30px;">
+                Need help? Contact our support team at 
+                <a href="mailto:support@loanscreening.com" class="support-link">support@loanscreening.com</a>
+            </p>
+            
+            <p style="margin-top: 20px;">
+                Thank you for choosing us! 🙏
+            </p>
+        </div>
+        
+        <!-- Footer -->
+        <div class="email-footer">
+            <p>This is an automated message from Loan Screening App.</p>
+            <p>Please do not reply to this email.</p>
+            <div class="copyright">
+                © 2024 Loan Screening App. All rights reserved.
+            </div>
+        </div>
+    </div>
+</body>
+</html>

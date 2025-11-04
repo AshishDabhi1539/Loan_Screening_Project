@@ -38,6 +38,7 @@ import com.tss.loan.repository.LoanDocumentRepository;
 import com.tss.loan.repository.external.CreditScoreHistoryRepository;
 import com.tss.loan.service.ApplicationWorkflowService;
 import com.tss.loan.service.AuditLogService;
+import com.tss.loan.service.EmailService;
 import com.tss.loan.service.LoanOfficerService;
 import com.tss.loan.service.NotificationService;
 import com.tss.loan.service.OfficerProfileService;
@@ -70,6 +71,9 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
     
     @Autowired
     private UserDisplayService userDisplayService;
+    
+    @Autowired
+    private EmailService emailService;
     
     @Autowired
     private NotificationService notificationService;
@@ -466,12 +470,33 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
         try {
             notificationService.createNotification(
                 application.getApplicant(),
-                NotificationType.EMAIL,
+                NotificationType.IN_APP,
                 notificationTitle,
                 notificationMessage
             );
         } catch (Exception e) {
             log.error("Error creating notification for application: {}", applicationId, e);
+        }
+        
+        // Send email notification
+        try {
+            if (request.getOverallVerificationPassed()) {
+                emailService.sendLoanStatusEmail(
+                    application.getApplicant().getEmail(),
+                    "DOCUMENT_VERIFIED",
+                    applicationId.toString(),
+                    application.getApplicant()
+                );
+            } else {
+                emailService.sendLoanStatusEmail(
+                    application.getApplicant().getEmail(),
+                    "DOCUMENT_REJECTED",
+                    applicationId.toString(),
+                    application.getApplicant()
+                );
+            }
+        } catch (Exception e) {
+            log.error("Error sending email for application: {}", applicationId, e);
         }
         
         // ✅ PHASE 6: Audit log (final operation)
@@ -714,13 +739,45 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
         // TODO: Process actual fraud check results here
         // For now, we'll simulate successful completion
         
-        // Notify applicant
+        // Notify applicant (In-App)
         notificationService.createNotification(
             application.getApplicant(),
             NotificationType.IN_APP,
             "External Verification Completed",
             "Your application has been successfully verified through external agencies. Processing continues."
         );
+        
+        // Send email to applicant
+        try {
+            emailService.sendLoanStatusEmail(
+                application.getApplicant().getEmail(),
+                "EXTERNAL_VERIFICATION_COMPLETE",
+                applicationId.toString(),
+                application.getApplicant()
+            );
+        } catch (Exception e) {
+            log.error("Failed to send external verification email", e);
+        }
+        
+        // Notify loan officer (In-App)
+        notificationService.createNotification(
+            officer,
+            NotificationType.IN_APP,
+            "Application Ready for Decision",
+            String.format("Application %s has completed external verification and is ready for your decision.", applicationId)
+        );
+        
+        // Send email to loan officer
+        try {
+            emailService.sendLoanStatusEmail(
+                officer.getEmail(),
+                "READY_FOR_DECISION",
+                applicationId.toString(),
+                officer
+            );
+        } catch (Exception e) {
+            log.error("Failed to send ready for decision email", e);
+        }
         
         // Audit log
         auditLogService.logAction(officer, "EXTERNAL_VERIFICATION_COMPLETED", "LoanApplication", 

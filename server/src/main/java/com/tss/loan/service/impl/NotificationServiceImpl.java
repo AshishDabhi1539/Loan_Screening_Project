@@ -4,6 +4,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.tss.loan.entity.enums.NotificationType;
@@ -86,6 +88,41 @@ public class NotificationServiceImpl implements NotificationService {
         
         auditLogService.logAction(user, "NOTIFICATIONS_READ_ALL", "Notification", null, 
             "Marked " + updatedCount + " notifications as read");
+    }
+    
+    @Override
+    public int markSelectedAsRead(User user, List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return 0;
+        }
+        
+        int updatedCount = 0;
+        for (Long id : ids) {
+            try {
+                markAsRead(id, user);
+                updatedCount++;
+            } catch (Exception e) {
+                // Skip notifications that don't exist or don't belong to user
+            }
+        }
+        
+        auditLogService.logAction(user, "NOTIFICATIONS_READ_SELECTED", "Notification", null, 
+            "Marked " + updatedCount + " selected notifications as read");
+        
+        return updatedCount;
+    }
+    
+    @Override
+    public Page<Notification> list(User user, Boolean isRead, NotificationType type, Pageable pageable) {
+        if (isRead != null && type != null) {
+            return notificationRepository.findByUserAndIsReadAndType(user, isRead, type, pageable);
+        } else if (isRead != null) {
+            return notificationRepository.findByUserAndIsRead(user, isRead, pageable);
+        } else if (type != null) {
+            return notificationRepository.findByUserAndType(user, type, pageable);
+        } else {
+            return notificationRepository.findByUserOrderByCreatedAtDesc(user, pageable);
+        }
     }
     
     @Override

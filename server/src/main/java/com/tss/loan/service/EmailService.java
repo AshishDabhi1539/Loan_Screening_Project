@@ -7,4 +7,5 @@ public interface EmailService {
     boolean sendWelcomeEmail(String toEmail, String userName, User user);
     boolean sendLoanStatusEmail(String toEmail, String status, String applicationId, User user);
     boolean sendOfficerCredentials(String toEmail, String tempPassword, String role, User createdBy);
+    boolean sendGenericHtml(String toEmail, String subject, String htmlContent, User user, String eventType);
 }

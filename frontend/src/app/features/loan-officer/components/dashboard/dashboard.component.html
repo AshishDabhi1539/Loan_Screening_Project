@@ -12,24 +12,29 @@
             Welcome to your loan processing dashboard
           </p>
         </div>
-        <button
-          (click)="refreshDashboard()"
-          class="bg-white text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-lg transition-all duration-200 flex items-center space-x-2 shadow-md font-medium"
-          [disabled]="isLoading()"
-          [class.opacity-50]="isLoading()"
-          [class.cursor-not-allowed]="isLoading()"
-        >
-          <svg 
-            class="w-5 h-5" 
-            [class.animate-spin]="isLoading()"
-            fill="none" 
-            viewBox="0 0 24 24" 
-            stroke="currentColor"
+        <div class="flex items-center gap-4">
+          <!-- Notification Bell -->
+          <app-notification-bell></app-notification-bell>
+          
+          <button
+            (click)="refreshDashboard()"
+            class="bg-white text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-lg transition-all duration-200 flex items-center space-x-2 shadow-md font-medium"
+            [disabled]="isLoading()"
+            [class.opacity-50]="isLoading()"
+            [class.cursor-not-allowed]="isLoading()"
           >
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-          <span>Refresh</span>
-        </button>
+            <svg 
+              class="w-5 h-5" 
+              [class.animate-spin]="isLoading()"
+              fill="none" 
+              viewBox="0 0 24 24" 
+              stroke="currentColor"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <span>Refresh</span>
+          </button>
+        </div>
       </div>
     </div>
   </div>

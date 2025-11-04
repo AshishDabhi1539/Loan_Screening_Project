@@ -127,9 +127,24 @@ public class UserServiceImpl implements UserService {
                 "Failed to auto-create officer profile for: " + savedOfficer.getEmail() + ". Error: " + e.getMessage());
         }
 
-        // Send credentials email
+        // Send credentials email to new officer
         emailService.sendOfficerCredentials(request.getEmail(), request.getPassword(),
                 request.getRole().toString(), createdBy);
+
+        // Notify admin who created the officer
+        try {
+            notificationService.createNotification(
+                createdBy,
+                NotificationType.IN_APP,
+                "Officer Account Created",
+                String.format("Successfully created %s account for %s %s (%s)", 
+                    request.getRole(), request.getFirstName(), request.getLastName(), request.getEmail())
+            );
+        } catch (Exception e) {
+            // Log but don't fail
+            auditLogService.logAction(createdBy, "NOTIFICATION_FAILED", "User", null,
+                "Failed to send officer creation notification");
+        }
 
         auditLogService.logAction(createdBy, "OFFICER_CREATED", "User", null,
                 "Created " + request.getRole() + " with email: " + request.getEmail());

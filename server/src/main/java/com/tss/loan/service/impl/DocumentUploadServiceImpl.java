@@ -22,8 +22,10 @@ import com.tss.loan.entity.user.User;
 import com.tss.loan.exception.LoanApiException;
 import com.tss.loan.repository.LoanApplicationRepository;
 import com.tss.loan.repository.LoanDocumentRepository;
+import com.tss.loan.entity.enums.NotificationType;
 import com.tss.loan.service.AuditLogService;
 import com.tss.loan.service.DocumentUploadService;
+import com.tss.loan.service.NotificationService;
 import com.tss.loan.dto.response.DocumentUploadResponse;
 
 import lombok.extern.slf4j.Slf4j;
@@ -36,6 +38,7 @@ public class DocumentUploadServiceImpl implements DocumentUploadService {
     private final LoanApplicationRepository loanApplicationRepository;
     private final LoanDocumentRepository documentRepository;
     private final AuditLogService auditLogService;
+    private final NotificationService notificationService;
     
     @Value("${supabase.url}")
     private String supabaseUrl;
@@ -49,11 +52,13 @@ public class DocumentUploadServiceImpl implements DocumentUploadService {
     public DocumentUploadServiceImpl(WebClient webClient, 
                                    LoanApplicationRepository loanApplicationRepository,
                                    LoanDocumentRepository documentRepository,
-                                   AuditLogService auditLogService) {
+                                   AuditLogService auditLogService,
+                                   NotificationService notificationService) {
         this.webClient = webClient;
         this.loanApplicationRepository = loanApplicationRepository;
         this.documentRepository = documentRepository;
         this.auditLogService = auditLogService;
+        this.notificationService = notificationService;
     }
     
     // Allowed file types for different document types
@@ -139,6 +144,18 @@ public class DocumentUploadServiceImpl implements DocumentUploadService {
             // Audit log
             auditLogService.logAction(uploadedBy, "DOCUMENT_UPLOADED", "LoanDocument", null,
                 "Document uploaded: " + documentType + " for loan application: " + loanApplicationId);
+            
+            // Send notification
+            try {
+                notificationService.createNotification(
+                    uploadedBy,
+                    NotificationType.IN_APP,
+                    "Document Uploaded Successfully",
+                    "Your " + documentType + " document has been uploaded successfully and is pending verification."
+                );
+            } catch (Exception e) {
+                log.error("Failed to create notification", e);
+            }
             
             log.info("Document uploaded successfully: {} | URL: {}", 
                 savedDocument.getFileName(), savedDocument.getFilePath());

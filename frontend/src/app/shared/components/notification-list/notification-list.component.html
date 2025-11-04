@@ -1,0 +1,198 @@
+<div class="notification-list-page">
+  <!-- Page Header -->
+  <div class="page-header">
+    <h1>Notifications</h1>
+    <div class="header-actions">
+      @if (hasNotifications()) {
+        <button class="btn-mark-all" (click)="markAllAsRead()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
+          Mark All Read
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters-bar">
+    <!-- Status Filter -->
+    <div class="filter-group">
+      <button 
+        class="filter-btn"
+        [class.active]="filterType() === 'all'"
+        (click)="onFilterTypeChange('all')">
+        All
+      </button>
+      <button 
+        class="filter-btn"
+        [class.active]="filterType() === 'unread'"
+        (click)="onFilterTypeChange('unread')">
+        Unread
+      </button>
+      <button 
+        class="filter-btn"
+        [class.active]="filterType() === 'read'"
+        (click)="onFilterTypeChange('read')">
+        Read
+      </button>
+    </div>
+
+    <!-- Type Filter -->
+    <div class="filter-group">
+      <select 
+        class="type-select"
+        [(ngModel)]="filterNotificationType"
+        (ngModelChange)="onNotificationTypeChange($event)">
+        <option [ngValue]="null">All Types</option>
+        <option [ngValue]="NotificationTypeEnum.IN_APP">In-App</option>
+        <option [ngValue]="NotificationTypeEnum.EMAIL">Email</option>
+        <option [ngValue]="NotificationTypeEnum.SMS">SMS</option>
+        <option [ngValue]="NotificationTypeEnum.PUSH">Push</option>
+      </select>
+    </div>
+
+    <!-- Bulk Actions -->
+    @if (hasSelection()) {
+      <div class="bulk-actions">
+        <span class="selection-count">{{ selectedIds().size }} selected</span>
+        <button class="btn-bulk-action" (click)="markSelectedAsRead()">
+          Mark Selected as Read
+        </button>
+      </div>
+    }
+  </div>
+
+  <!-- Loading State -->
+  @if (loading()) {
+    <div class="loading-container">
+      <div class="spinner-large"></div>
+      <p>Loading notifications...</p>
+    </div>
+  } @else if (hasNotifications()) {
+    <!-- Notifications List -->
+    <div class="notifications-container">
+      <!-- Select All -->
+      <div class="select-all-row">
+        <label class="checkbox-label">
+          <input 
+            type="checkbox"
+            [checked]="allSelected()"
+            (change)="toggleSelectAll()">
+          <span>Select All</span>
+        </label>
+        <span class="total-count">{{ totalElements() }} total notifications</span>
+      </div>
+
+      <!-- Notification Items -->
+      @for (notification of notifications(); track notification.id) {
+        <div 
+          class="notification-card"
+          [class.unread]="!notification.isRead"
+          [style.border-left-color]="getNotificationConfig(notification).color">
+          
+          <!-- Checkbox -->
+          <div class="notification-checkbox">
+            <input 
+              type="checkbox"
+              [checked]="selectedIds().has(notification.id)"
+              (change)="toggleSelection(notification.id)">
+          </div>
+
+          <!-- Icon -->
+          <div class="notification-icon">
+            {{ getNotificationConfig(notification).icon }}
+          </div>
+
+          <!-- Content -->
+          <div class="notification-content">
+            <div class="notification-header">
+              <h3 class="notification-title">{{ notification.title }}</h3>
+              @if (!notification.isRead) {
+                <span class="unread-badge">New</span>
+              }
+            </div>
+            <p class="notification-message">{{ notification.message }}</p>
+            <div class="notification-meta">
+              <span class="notification-time">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                {{ getTimeAgo(notification.createdAt) }}
+              </span>
+              <span class="notification-priority">
+                Priority: {{ notification.priority }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="notification-actions">
+            @if (!notification.isRead) {
+              <button 
+                class="btn-mark-read"
+                (click)="markAsRead(notification)"
+                title="Mark as read">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </button>
+            }
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Pagination -->
+    @if (totalPages() > 1) {
+      <div class="pagination">
+        <button 
+          class="pagination-btn"
+          [disabled]="currentPage() === 0"
+          (click)="previousPage()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+          Previous
+        </button>
+
+        <div class="page-numbers">
+          @for (page of getPageNumbers(); track page) {
+            @if (page === -1) {
+              <span class="ellipsis">...</span>
+            } @else {
+              <button 
+                class="page-btn"
+                [class.active]="page === currentPage()"
+                (click)="goToPage(page)">
+                {{ page + 1 }}
+              </button>
+            }
+          }
+        </div>
+
+        <button 
+          class="pagination-btn"
+          [disabled]="currentPage() === totalPages() - 1"
+          (click)="nextPage()">
+          Next
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </button>
+      </div>
+    }
+  } @else {
+    <!-- Empty State -->
+    <div class="empty-state">
+      <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+      </svg>
+      <h2>No Notifications</h2>
+      <p>You're all caught up! Check back later for new updates.</p>
+    </div>
+  }
+</div>

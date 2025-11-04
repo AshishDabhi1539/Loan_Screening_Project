@@ -50,6 +50,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tss.loan.service.ApplicationAssignmentService;
 import com.tss.loan.service.ApplicationWorkflowService;
 import com.tss.loan.service.AuditLogService;
+import com.tss.loan.service.EmailService;
 import com.tss.loan.service.LoanApplicationService;
 import com.tss.loan.service.LoanOfficerService;
 import com.tss.loan.service.NotificationService;
@@ -112,6 +113,9 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
     
     @Autowired
     private ApplicationAssignmentService applicationAssignmentService;
+    
+    @Autowired
+    private EmailService emailService;
 
     @Override
     public LoanApplicationResponse createLoanApplication(LoanApplicationRequest request, User applicant) {
@@ -141,13 +145,25 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
         
         LoanApplication savedApplication = loanApplicationRepository.save(application);
         
-        // Create notification
+        // Create in-app notification
         notificationService.createNotification(
             applicant,
             NotificationType.IN_APP,
             "Loan Application Created",
             "Your loan application has been created successfully. Please complete all sections to submit."
         );
+        
+        // Send email notification
+        try {
+            emailService.sendLoanStatusEmail(
+                applicant.getEmail(),
+                "CREATED",
+                savedApplication.getId().toString(),
+                applicant
+            );
+        } catch (Exception e) {
+            log.error("Failed to send application created email", e);
+        }
         
         // Audit log
         auditLogService.logAction(applicant, "LOAN_APPLICATION_CREATED", "LoanApplication", null,
@@ -329,13 +345,25 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
                 "Application auto-assigned to loan officer: " + assignedOfficer.getEmail()
             );
             
-            // Notify the assigned loan officer
+            // Notify the assigned loan officer (In-App)
             notificationService.createNotification(
                 assignedOfficer,
                 NotificationType.IN_APP,
                 "New Loan Application Assigned",
                 "A new loan application has been assigned to you for review. Application ID: " + applicationId
             );
+            
+            // Send email notification to assigned loan officer
+            try {
+                emailService.sendLoanStatusEmail(
+                    assignedOfficer.getEmail(),
+                    "NEW_ASSIGNMENT",
+                    applicationId.toString(),
+                    assignedOfficer
+                );
+            } catch (Exception emailEx) {
+                log.error("Failed to send assignment email to officer", emailEx);
+            }
             
             log.info("Application {} auto-assigned to officer: {}", applicationId, assignedOfficer.getEmail());
             
@@ -344,13 +372,25 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
             // Don't fail the submission, just log the error
         }
         
-        // Create notification for applicant
+        // Create in-app notification for applicant
         notificationService.createNotification(
             user,
-            NotificationType.EMAIL,
+            NotificationType.IN_APP,
             "Loan Application Submitted",
             "Your loan application has been submitted successfully and assigned to a loan officer for review."
         );
+        
+        // Send email notification to applicant
+        try {
+            emailService.sendLoanStatusEmail(
+                user.getEmail(),
+                "SUBMITTED",
+                applicationId.toString(),
+                user
+            );
+        } catch (Exception e) {
+            log.error("Failed to send application submitted email", e);
+        }
         
         // Audit log
         auditLogService.logAction(user, "LOAN_APPLICATION_SUBMITTED", "LoanApplication", null,

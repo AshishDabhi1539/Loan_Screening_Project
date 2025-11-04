@@ -164,6 +164,18 @@ public class EmailServiceImpl implements EmailService {
         }
     }
     
+    @Override
+    public boolean sendGenericHtml(String toEmail, String subject, String htmlContent, User user, String eventType) {
+        try {
+            return sendEmail(toEmail, subject, htmlContent, user, "GENERIC_EMAIL_SENT_" + eventType);
+        } catch (Exception e) {
+            logger.error("Failed to send generic HTML email to {}: {}", toEmail, e.getMessage());
+            auditLogService.logAction(user, "GENERIC_EMAIL_FAILED_" + eventType, "Notification", null, 
+                "Failed to send generic email: " + e.getMessage());
+            return false;
+        }
+    }
+    
     private boolean sendEmail(String toEmail, String subject, String content, User user, String auditAction) {
         try {
             MimeMessage mimeMessage = javaMailSender.createMimeMessage();

@@ -16,6 +16,7 @@ import com.tss.loan.service.ApplicationAssignmentService;
 import com.tss.loan.service.ApplicationWorkflowService;
 import com.tss.loan.service.AuditLogService;
 import com.tss.loan.service.DecisionManagementService;
+import com.tss.loan.service.EmailService;
 import com.tss.loan.service.NotificationService;
 import com.tss.loan.service.OfficerProfileService;
 import lombok.extern.slf4j.Slf4j;
@@ -52,6 +53,9 @@ public class DecisionManagementServiceImpl implements DecisionManagementService 
     
     @Autowired
     private OfficerProfileService officerProfileService;
+    
+    @Autowired
+    private EmailService emailService;
     
     @Override
     public LoanDecisionResponse approveLoanApplication(UUID applicationId, LoanDecisionRequest request, User decisionMaker) {
@@ -101,8 +105,30 @@ public class DecisionManagementServiceImpl implements DecisionManagementService 
                 request.getApprovedAmount(), request.getApprovedInterestRate(), 
                 request.getApprovedTenureMonths(), request.getDecisionReason()));
         
-        // Send notification to applicant (placeholder - will implement notification methods)
-        // notificationService.sendLoanApprovalNotification(savedApplication, decisionMaker);
+        // Send in-app notification to applicant
+        try {
+            notificationService.createNotification(
+                savedApplication.getApplicant(),
+                NotificationType.IN_APP,
+                "Loan Application Approved",
+                String.format("Congratulations! Your loan application has been approved for ₹%s at %s%% interest rate for %d months.",
+                    request.getApprovedAmount(), request.getApprovedInterestRate(), request.getApprovedTenureMonths())
+            );
+        } catch (Exception e) {
+            log.error("Failed to create in-app notification", e);
+        }
+        
+        // Send email notification to applicant
+        try {
+            emailService.sendLoanStatusEmail(
+                savedApplication.getApplicant().getEmail(),
+                "APPROVED",
+                applicationId.toString(),
+                savedApplication.getApplicant()
+            );
+        } catch (Exception e) {
+            log.error("Failed to send approval email", e);
+        }
         
         log.info("Loan application {} approved successfully by {}", applicationId, decisionMaker.getEmail());
         
@@ -154,8 +180,30 @@ public class DecisionManagementServiceImpl implements DecisionManagementService 
             String.format("Loan rejected. Reason: %s. Rejection details: %s",
                 request.getDecisionReason(), request.getRejectionReason()));
         
-        // Send notification to applicant (placeholder)
-        // notificationService.sendLoanRejectionNotification(savedApplication, decisionMaker);
+        // Send in-app notification to applicant
+        try {
+            notificationService.createNotification(
+                savedApplication.getApplicant(),
+                NotificationType.IN_APP,
+                "Loan Application Rejected",
+                String.format("We regret to inform you that your loan application has been rejected. Reason: %s",
+                    request.getDecisionReason())
+            );
+        } catch (Exception e) {
+            log.error("Failed to create in-app notification", e);
+        }
+        
+        // Send email notification to applicant
+        try {
+            emailService.sendLoanStatusEmail(
+                savedApplication.getApplicant().getEmail(),
+                "REJECTED",
+                applicationId.toString(),
+                savedApplication.getApplicant()
+            );
+        } catch (Exception e) {
+            log.error("Failed to send rejection email", e);
+        }
         
         log.info("Loan application {} rejected successfully by {}", applicationId, decisionMaker.getEmail());
         
@@ -240,18 +288,32 @@ public class DecisionManagementServiceImpl implements DecisionManagementService 
 (long)(applicationId.toString().hashCode() & 0x7FFFFFFF) // Convert UUID to positive Long
             );
             
-            // Also send email notification for high priority cases
-            if ("HIGH".equals(request.getPriorityLevel())) {
-                notificationService.createNotification(
-                    savedApplication.getAssignedComplianceOfficer(),
-                    NotificationType.EMAIL,
-                    "HIGH PRIORITY: Compliance Review Required",
-                    String.format("URGENT: Application %s requires immediate compliance review. Reason: %s", 
-                        applicationId, request.getFlagReason()),
-                    "LoanApplication",
-                    (long)(applicationId.toString().hashCode() & 0x7FFFFFFF)
+            // Send email notification to compliance officer
+            try {
+                String emailStatus = "HIGH".equals(request.getPriorityLevel()) ? 
+                    "APPLICATION_FLAGGED_HIGH_PRIORITY" : "APPLICATION_FLAGGED_COMPLIANCE";
+                    
+                emailService.sendLoanStatusEmail(
+                    savedApplication.getAssignedComplianceOfficer().getEmail(),
+                    emailStatus,
+                    applicationId.toString(),
+                    savedApplication.getAssignedComplianceOfficer()
                 );
+            } catch (Exception e) {
+                log.error("Failed to send compliance flag email", e);
             }
+        }
+        
+        // Notify applicant
+        try {
+            notificationService.createNotification(
+                savedApplication.getApplicant(),
+                NotificationType.IN_APP,
+                "Application Under Additional Review",
+                "Your application is undergoing additional compliance review. This is a standard procedure and you'll be notified of any updates."
+            );
+        } catch (Exception e) {
+            log.error("Failed to notify applicant", e);
         }
         
         log.info("Application {} flagged for compliance review successfully", applicationId);

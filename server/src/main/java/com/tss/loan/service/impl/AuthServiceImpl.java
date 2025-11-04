@@ -15,9 +15,11 @@ import com.tss.loan.dto.response.VerificationResponse;
 import com.tss.loan.entity.user.User;
 import com.tss.loan.exception.LoanApiException;
 import com.tss.loan.security.JwtTokenProvider;
+import com.tss.loan.entity.enums.NotificationType;
 import com.tss.loan.service.AuditLogService;
 import com.tss.loan.service.AuthService;
 import com.tss.loan.service.EmailService;
+import com.tss.loan.service.NotificationService;
 import com.tss.loan.service.OtpService;
 import com.tss.loan.service.UserService;
 
@@ -41,6 +43,9 @@ public class AuthServiceImpl implements AuthService {
     
     @Autowired
     private AuditLogService auditLogService;
+    
+    @Autowired
+    private NotificationService notificationService;
     
     @Override
     public RegistrationResponse register(UserRegistrationRequest request) {
@@ -298,9 +303,36 @@ public class AuthServiceImpl implements AuthService {
         
         // Lock account after 5 failed attempts
         if (user.getFailedLoginAttempts() >= 5) {
-            // In production, you might want to set a lock timestamp
+            // Set account to locked status
+            user.setStatus(com.tss.loan.entity.enums.UserStatus.LOCKED);
+            
+            // Audit log
             auditLogService.logAction(user, "ACCOUNT_LOCKED", "User", null, 
                 "Account locked due to 5 failed login attempts");
+            
+            // Send notification to user
+            try {
+                notificationService.createNotification(
+                    user,
+                    NotificationType.IN_APP,
+                    "Account Locked",
+                    "Your account has been locked due to multiple failed login attempts. Please contact support to unlock your account."
+                );
+            } catch (Exception e) {
+                // Log but don't fail
+            }
+            
+            // Send email notification
+            try {
+                emailService.sendLoanStatusEmail(
+                    user.getEmail(),
+                    "ACCOUNT_LOCKED",
+                    user.getId().toString(),
+                    user
+                );
+            } catch (Exception e) {
+                // Log but don't fail
+            }
         }
         
         // Update user

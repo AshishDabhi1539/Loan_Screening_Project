@@ -4,6 +4,8 @@ import { Observable, throwError } from 'rxjs';
 import { map, catchError, tap } from 'rxjs/operators';
 
 import { ApiService } from './api.service';
+import { NotificationSseService } from './notification-sse.service';
+import { InAppNotificationService } from './in-app-notification.service';
 import { environment } from '../../../environments/environment';
 
 export interface User {
@@ -77,6 +79,8 @@ export interface VerificationResponse {
 export class AuthService {
   private readonly apiService = inject(ApiService);
   private readonly router = inject(Router);
+  private readonly sseService = inject(NotificationSseService);
+  private readonly notificationService = inject(InAppNotificationService);
 
   // Signals for reactive state management
   private readonly _currentUser = signal<User | null>(null);
@@ -313,6 +317,12 @@ export class AuthService {
     this._currentUser.set(user);
     this._isAuthenticated.set(true);
     
+    // Connect to SSE for real-time notifications
+    this.sseService.connect(token);
+    
+    // Load initial notification count
+    this.notificationService.getUnreadCount().subscribe();
+    
     // Only navigate after login, not during initialization
     if (!this.isInitializing()) {
       this.navigateAfterLogin(user);
@@ -325,6 +335,12 @@ export class AuthService {
   private clearAuthData(): void {
     localStorage.removeItem(environment.auth.tokenKey);
     localStorage.removeItem(environment.auth.refreshTokenKey);
+    
+    // Disconnect from SSE
+    this.sseService.disconnect();
+    
+    // Clear notification state
+    this.notificationService.clear();
     
     this._currentUser.set(null);
     this._isAuthenticated.set(false);

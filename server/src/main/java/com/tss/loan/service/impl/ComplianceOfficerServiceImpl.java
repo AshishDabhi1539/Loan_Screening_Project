@@ -28,10 +28,12 @@ import com.tss.loan.repository.ApplicantPersonalDetailsRepository;
 import com.tss.loan.repository.ComplianceDocumentRequestRepository;
 import com.tss.loan.repository.LoanApplicationRepository;
 import com.tss.loan.repository.LoanDocumentRepository;
+import com.tss.loan.entity.enums.NotificationType;
 import com.tss.loan.service.ApplicationAssignmentService;
 import com.tss.loan.service.ApplicationWorkflowService;
 import com.tss.loan.service.AuditLogService;
 import com.tss.loan.service.ComplianceOfficerService;
+import com.tss.loan.service.EmailService;
 import com.tss.loan.service.LoanOfficerService;
 import com.tss.loan.service.NotificationService;
 import com.tss.loan.service.OfficerProfileService;
@@ -81,6 +83,9 @@ public class ComplianceOfficerServiceImpl implements ComplianceOfficerService {
     
     @Autowired
     private ProfileCompletionService profileCompletionService;
+    
+    @Autowired
+    private EmailService emailService;
     
     @Autowired
     private ComplianceDocumentRequestRepository complianceDocumentRequestRepository;
@@ -381,6 +386,46 @@ public class ComplianceOfficerServiceImpl implements ComplianceOfficerService {
         auditLogService.logAction(complianceOfficer, "COMPLIANCE_CLEARED", "LoanApplication", null,
             "Application cleared from compliance review. Reason: " + request.getDecisionNotes());
         
+        // Notify applicant
+        try {
+            notificationService.createNotification(
+                application.getApplicant(),
+                NotificationType.IN_APP,
+                "Compliance Review Completed",
+                "Your application has been cleared from compliance review and is proceeding to final decision."
+            );
+            
+            emailService.sendLoanStatusEmail(
+                application.getApplicant().getEmail(),
+                "COMPLIANCE_CLEARED",
+                applicationId.toString(),
+                application.getApplicant()
+            );
+        } catch (Exception e) {
+            log.error("Failed to notify applicant", e);
+        }
+        
+        // Notify loan officer
+        try {
+            if (application.getAssignedOfficer() != null) {
+                notificationService.createNotification(
+                    application.getAssignedOfficer(),
+                    NotificationType.IN_APP,
+                    "Application Cleared from Compliance",
+                    String.format("Application %s has been cleared from compliance review and is ready for your decision.", applicationId)
+                );
+                
+                emailService.sendLoanStatusEmail(
+                    application.getAssignedOfficer().getEmail(),
+                    "READY_FOR_DECISION",
+                    applicationId.toString(),
+                    application.getAssignedOfficer()
+                );
+            }
+        } catch (Exception e) {
+            log.error("Failed to notify loan officer", e);
+        }
+        
         return ComplianceDecisionResponse.builder()
             .applicationId(applicationId)
             .complianceOfficerId(complianceOfficer.getId())
@@ -428,6 +473,25 @@ public class ComplianceOfficerServiceImpl implements ComplianceOfficerService {
         auditLogService.logAction(complianceOfficer, "COMPLIANCE_VIOLATION_REJECTED", "LoanApplication", null,
             String.format("Application rejected for compliance violation. Type: %s. Reason: %s", 
                 request.getComplianceViolationType(), request.getDecisionNotes()));
+        
+        // Notify applicant
+        try {
+            notificationService.createNotification(
+                application.getApplicant(),
+                NotificationType.IN_APP,
+                "Application Rejected - Compliance Violation",
+                "We regret to inform you that your application has been rejected due to compliance requirements."
+            );
+            
+            emailService.sendLoanStatusEmail(
+                application.getApplicant().getEmail(),
+                "COMPLIANCE_REJECTED",
+                applicationId.toString(),
+                application.getApplicant()
+            );
+        } catch (Exception e) {
+            log.error("Failed to notify applicant", e);
+        }
         
         return ComplianceDecisionResponse.builder()
             .applicationId(applicationId)

@@ -5,11 +5,12 @@ import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../../core/services/auth.service';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { LoanOfficerService, OfficerDashboardResponse, LoanApplicationSummary } from '../../../../core/services/loan-officer.service';
+import { NotificationBellComponent } from '../../../../shared/components/notification-bell/notification-bell.component';
 
 @Component({
   selector: 'app-loan-officer-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, NotificationBellComponent],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css'
 })

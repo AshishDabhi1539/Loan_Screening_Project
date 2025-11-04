@@ -48,6 +48,13 @@ export const routes: Routes = [
     data: { roles: ['ADMIN'] }
   },
   
+  // Notifications route (protected - all authenticated users)
+  {
+    path: 'notifications',
+    loadComponent: () => import('./shared/components/notification-list/notification-list.component').then(m => m.NotificationListComponent),
+    canActivate: [AuthGuard]
+  },
+  
   // Wildcard route
   {
     path: '**',

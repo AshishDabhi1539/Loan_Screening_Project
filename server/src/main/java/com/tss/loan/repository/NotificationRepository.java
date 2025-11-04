@@ -38,6 +38,15 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     @Query("SELECT n FROM Notification n WHERE n.user = :user AND n.type = :type ORDER BY n.createdAt DESC")
     List<Notification> findByUserAndType(@Param("user") User user, @Param("type") NotificationType type);
     
+    // Find notifications by type with pagination
+    Page<Notification> findByUserAndType(User user, NotificationType type, Pageable pageable);
+    
+    // Find notifications by read status with pagination
+    Page<Notification> findByUserAndIsRead(User user, Boolean isRead, Pageable pageable);
+    
+    // Find notifications by read status and type with pagination
+    Page<Notification> findByUserAndIsReadAndType(User user, Boolean isRead, NotificationType type, Pageable pageable);
+    
     // Find notifications related to entity
     @Query("SELECT n FROM Notification n WHERE n.relatedEntityType = :entityType AND n.relatedEntityId = :entityId ORDER BY n.createdAt DESC")
     List<Notification> findByRelatedEntity(@Param("entityType") String entityType, @Param("entityId") Long entityId);
