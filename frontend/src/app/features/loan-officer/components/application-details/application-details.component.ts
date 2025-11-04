@@ -31,29 +31,11 @@ export class ApplicationDetailsComponent implements OnInit {
 
   /**
    * Display status for loan officer - frozen during compliance review
-   * Loan officer sees FLAGGED_FOR_COMPLIANCE until it returns to READY_FOR_DECISION
+   * Uses service method for consistency across all components
    */
   displayStatus = computed(() => {
     const actualStatus = this.applicationDetails()?.applicationInfo?.status;
-    if (!actualStatus) return '';
-
-    // List of all compliance-related statuses from backend ApplicationStatus enum
-    const complianceStatuses = [
-      'FLAGGED_FOR_COMPLIANCE',
-      'COMPLIANCE_REVIEW',
-      'PENDING_COMPLIANCE_DOCS',
-      'COMPLIANCE_TIMEOUT',
-      'UNDER_INVESTIGATION',
-      'AWAITING_COMPLIANCE_DECISION'
-    ];
-
-    // If status is any compliance-related status, show as FLAGGED_FOR_COMPLIANCE
-    // This "freezes" the status for loan officer during entire compliance process
-    if (complianceStatuses.includes(actualStatus)) {
-      return 'FLAGGED_FOR_COMPLIANCE';
-    }
-
-    return actualStatus;
+    return this.loanOfficerService.getDisplayStatus(actualStatus || '');
   });
 
   ngOnInit(): void {
@@ -122,7 +104,7 @@ export class ApplicationDetailsComponent implements OnInit {
   }
 
   /**
-   * Load audit trail with enhanced details
+   * Load audit trail - shows balanced amount of important events
    */
   private loadAuditTrail(): void {
     const appId = this.applicationDetails()?.applicationInfo?.id;
@@ -135,7 +117,46 @@ export class ApplicationDetailsComponent implements OnInit {
         const sortedTrail = trail.sort((a, b) => 
           new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
         );
-        this.auditTrail.set(sortedTrail);
+        
+        // Group events by type and keep only the most recent of each type
+        const uniqueEvents = new Map<string, any>();
+        
+        sortedTrail.forEach(entry => {
+          const action = entry.action;
+          
+          // For status changes, keep all of them (important milestones)
+          if (action.includes('STATUS') || action.includes('DECISION') || 
+              action.includes('APPROVED') || action.includes('REJECTED') ||
+              action.includes('ASSIGNED') || action.includes('COMPLIANCE')) {
+            const key = `${action}_${entry.timestamp}`;
+            uniqueEvents.set(key, entry);
+          }
+          // For document actions, keep only first occurrence of each type
+          else if (action.includes('DOCUMENT')) {
+            if (!uniqueEvents.has(action)) {
+              uniqueEvents.set(action, entry);
+            }
+          }
+          // For verification actions, keep all
+          else if (action.includes('VERIFICATION')) {
+            const key = `${action}_${entry.timestamp}`;
+            uniqueEvents.set(key, entry);
+          }
+          // For other actions, keep only if not already present
+          else {
+            if (!uniqueEvents.has(action)) {
+              uniqueEvents.set(action, entry);
+            }
+          }
+        });
+        
+        // Convert back to array and sort
+        const filteredTrail = Array.from(uniqueEvents.values()).sort((a, b) => 
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        );
+        
+        // Limit to 15 most recent events for better UX
+        this.auditTrail.set(filteredTrail.slice(0, 15));
         this.isLoadingAudit.set(false);
       },
       error: (error) => {
@@ -591,6 +612,7 @@ export class ApplicationDetailsComponent implements OnInit {
 
   /**
    * Get progress steps for the application
+   * Uses displayStatus() to show frozen status during compliance review
    */
   getProgressSteps = computed(() => {
     const app = this.applicationDetails()?.applicationInfo;
@@ -604,7 +626,10 @@ export class ApplicationDetailsComponent implements OnInit {
       { name: 'Final Decision', status: 'pending', current: false }
     ];
 
-    switch (app.status) {
+    // Use displayStatus() instead of app.status to show frozen status during compliance
+    const status = this.displayStatus();
+    
+    switch (status) {
       case 'SUBMITTED':
         steps[1].current = true;
         break;

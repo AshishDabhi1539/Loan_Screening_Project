@@ -626,6 +626,32 @@ export class LoanOfficerService {
   }
 
   /**
+   * Get display status for loan officer - freezes compliance statuses
+   * Loan officer sees FLAGGED_FOR_COMPLIANCE for all compliance-related statuses
+   */
+  getDisplayStatus(actualStatus: string): string {
+    if (!actualStatus) return '';
+
+    // List of all compliance-related statuses from backend ApplicationStatus enum
+    const complianceStatuses = [
+      'FLAGGED_FOR_COMPLIANCE',
+      'COMPLIANCE_REVIEW',
+      'PENDING_COMPLIANCE_DOCS',
+      'COMPLIANCE_TIMEOUT',
+      'UNDER_INVESTIGATION',
+      'AWAITING_COMPLIANCE_DECISION'
+    ];
+
+    // If status is any compliance-related status, show as FLAGGED_FOR_COMPLIANCE
+    // This "freezes" the status for loan officer during entire compliance process
+    if (complianceStatuses.includes(actualStatus)) {
+      return 'FLAGGED_FOR_COMPLIANCE';
+    }
+
+    return actualStatus;
+  }
+
+  /**
    * Helper method to get status badge color
    */
   getStatusBadgeClass(status: string): string {

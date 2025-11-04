@@ -176,8 +176,8 @@
 
     <!-- Tabs Navigation -->
     <div class="bg-white shadow rounded-lg">
-      <div class="border-b border-gray-200">
-        <nav class="flex -mb-px" aria-label="Tabs">
+      <div class="border-b border-gray-200 overflow-x-auto scrollbar-hide">
+        <nav class="flex -mb-px min-w-max" aria-label="Tabs">
           <button
             (click)="setActiveTab('overview')"
             [ngClass]="{

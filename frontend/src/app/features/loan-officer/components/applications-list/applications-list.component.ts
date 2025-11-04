@@ -146,7 +146,15 @@ export class ApplicationsListComponent implements OnInit {
 
     // Status filter
     if (this.statusFilter() !== 'all') {
-      filtered = filtered.filter(app => app.status === this.statusFilter());
+      // For DOCUMENT_VERIFICATION, also include DOCUMENT_REVERIFICATION
+      if (this.statusFilter() === 'DOCUMENT_VERIFICATION') {
+        filtered = filtered.filter(app => 
+          app.status === 'DOCUMENT_VERIFICATION' || 
+          app.status === 'DOCUMENT_REVERIFICATION'
+        );
+      } else {
+        filtered = filtered.filter(app => app.status === this.statusFilter());
+      }
     }
 
     // Priority filter
@@ -251,6 +259,13 @@ export class ApplicationsListComponent implements OnInit {
    */
   formatDate(date: Date | string): string {
     return this.loanOfficerService.formatDate(date);
+  }
+
+  /**
+   * Get display status (frozen for compliance)
+   */
+  getDisplayStatus(status: string): string {
+    return this.loanOfficerService.getDisplayStatus(status);
   }
 
   /**
