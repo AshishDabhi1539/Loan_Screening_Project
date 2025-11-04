@@ -35,4 +35,11 @@ public class ComplianceDecisionResponse {
     private String escalatedToOfficerName;
     private boolean canBeAppealed;
     private String recommendedAction;
+    
+    /**
+     * Full investigation data (JSON) from compliance investigation stored procedure
+     * This is sent to loan officer so they can review the investigation results
+     * when making final decision
+     */
+    private String investigationData;
 }

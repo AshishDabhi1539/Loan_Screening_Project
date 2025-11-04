@@ -143,4 +143,10 @@ public interface ComplianceOfficerService {
      * Submit compliance decision (approve/reject) with notes to loan officer
      */
     com.tss.loan.dto.response.ComplianceDecisionResponse submitComplianceDecision(UUID applicationId, com.tss.loan.dto.request.ComplianceSubmitDecisionRequest request, User complianceOfficer);
+    
+    /**
+     * Get completed applications (applications that compliance has finished processing)
+     * Includes applications in READY_FOR_DECISION, APPROVED, REJECTED status
+     */
+    List<LoanApplicationResponse> getCompletedApplications(User complianceOfficer);
 }
