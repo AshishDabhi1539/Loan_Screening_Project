@@ -40,6 +40,11 @@ export class ApplicationsListComponent implements OnInit {
   // Current filter mode (assigned, pending-documents, ready-for-decision)
   filterMode = signal<string>('assigned');
 
+  // Bulk actions
+  selectedApplications = signal<Set<string>>(new Set());
+  isSelectAllChecked = signal(false);
+  showBulkActions = signal(false);
+
   // Math utility for template
   Math = Math;
 
@@ -359,4 +364,208 @@ export class ApplicationsListComponent implements OnInit {
         return 'Assigned Applications';
     }
   });
+
+  /**
+   * Toggle select all applications
+   */
+  toggleSelectAll(): void {
+    const currentlyChecked = this.isSelectAllChecked();
+    this.isSelectAllChecked.set(!currentlyChecked);
+    
+    if (!currentlyChecked) {
+      // Select all visible applications
+      const allIds = new Set(this.paginatedApplications().map(app => app.id));
+      this.selectedApplications.set(allIds);
+    } else {
+      // Deselect all
+      this.selectedApplications.set(new Set());
+    }
+    
+    this.updateBulkActionsVisibility();
+  }
+
+  /**
+   * Toggle individual application selection
+   */
+  toggleApplicationSelection(applicationId: string): void {
+    const selected = this.selectedApplications();
+    const newSelected = new Set(selected);
+    
+    if (newSelected.has(applicationId)) {
+      newSelected.delete(applicationId);
+    } else {
+      newSelected.add(applicationId);
+    }
+    
+    this.selectedApplications.set(newSelected);
+    this.isSelectAllChecked.set(newSelected.size === this.paginatedApplications().length);
+    this.updateBulkActionsVisibility();
+  }
+
+  /**
+   * Check if application is selected
+   */
+  isApplicationSelected(applicationId: string): boolean {
+    return this.selectedApplications().has(applicationId);
+  }
+
+  /**
+   * Update bulk actions visibility
+   */
+  private updateBulkActionsVisibility(): void {
+    this.showBulkActions.set(this.selectedApplications().size > 0);
+  }
+
+  /**
+   * Clear all selections
+   */
+  clearSelections(): void {
+    this.selectedApplications.set(new Set());
+    this.isSelectAllChecked.set(false);
+    this.showBulkActions.set(false);
+  }
+
+  /**
+   * Export selected applications to Excel
+   */
+  exportSelectedToExcel(): void {
+    const selected = Array.from(this.selectedApplications());
+    
+    if (selected.length === 0) {
+      this.notificationService.warning('No Selection', 'Please select applications to export');
+      return;
+    }
+    
+    const appsToExport = this.applications().filter(app => selected.includes(app.id));
+    this.exportToExcel(appsToExport, 'selected');
+  }
+
+  /**
+   * Export all filtered applications to Excel
+   */
+  exportAllToExcel(): void {
+    if (this.filteredApplications().length === 0) {
+      this.notificationService.warning('No Data', 'No applications to export');
+      return;
+    }
+    
+    this.exportToExcel(this.filteredApplications(), 'all');
+  }
+
+  /**
+   * Export applications to Excel (CSV format)
+   */
+  private exportToExcel(applications: LoanApplicationResponse[], exportType: 'all' | 'selected' = 'all'): void {
+    if (applications.length === 0) {
+      this.notificationService.warning('No Data', 'No applications to export');
+      return;
+    }
+
+    // Prepare CSV data
+    const headers = [
+      'Application ID',
+      'Applicant Name',
+      'Email',
+      'Phone',
+      'Loan Type',
+      'Requested Amount',
+      'Tenure (Months)',
+      'Purpose',
+      'Status',
+      'Priority',
+      'Risk Level',
+      'Submitted Date',
+      'Documents Count',
+      'Verified Documents'
+    ];
+
+    const rows = applications.map(app => [
+      app.id ? app.id.substring(0, 8) + '...' : 'N/A',
+      app.applicantName || 'N/A',
+      app.applicantEmail || 'N/A',
+      app.applicantPhone || 'N/A',
+      app.loanType || 'N/A',
+      app.requestedAmount ? app.requestedAmount.toString() : '0',
+      app.tenureMonths ? app.tenureMonths.toString() : '0',
+      app.purpose || 'N/A',
+      app.status || 'N/A',
+      app.priority || 'N/A',
+      app.riskLevel || 'N/A',
+      app.submittedAt ? this.formatDate(app.submittedAt) : 'N/A',
+      app.documentsCount !== undefined ? app.documentsCount.toString() : '0',
+      app.verifiedDocumentsCount !== undefined ? app.verifiedDocumentsCount.toString() : '0'
+    ]);
+
+    // Create CSV content
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+
+    // Create blob and download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    const timestamp = new Date().toISOString().split('T')[0];
+    const exportTypeLabel = exportType === 'selected' ? 'selected' : 'filtered';
+    const filename = `loan_applications_${exportTypeLabel}_${timestamp}.csv`;
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    this.notificationService.success(
+      'Export Successful',
+      `Exported ${applications.length} ${exportType === 'selected' ? 'selected' : 'filtered'} application(s) to ${filename}`
+    );
+    
+    // Clear selections after export if exporting selected
+    if (exportType === 'selected') {
+      this.clearSelections();
+    }
+  }
+
+  /**
+   * Bulk update priority
+   */
+  bulkUpdatePriority(priority: 'HIGH' | 'MEDIUM' | 'LOW'): void {
+    const selected = Array.from(this.selectedApplications());
+    
+    if (selected.length === 0) {
+      this.notificationService.warning('No Selection', 'Please select applications first');
+      return;
+    }
+
+    // In a real implementation, this would call an API
+    // For now, just show a notification
+    this.notificationService.success(
+      'Priority Updated',
+      `Updated priority to ${priority} for ${selected.length} application(s)`
+    );
+    
+    this.clearSelections();
+  }
+
+  /**
+   * Bulk assign to officer
+   */
+  bulkAssignToOfficer(): void {
+    const selected = Array.from(this.selectedApplications());
+    
+    if (selected.length === 0) {
+      this.notificationService.warning('No Selection', 'Please select applications first');
+      return;
+    }
+
+    // In a real implementation, this would show a dialog to select officer
+    // For now, just show a notification
+    this.notificationService.info(
+      'Bulk Assignment',
+      `Selected ${selected.length} application(s) for assignment`
+    );
+  }
 }

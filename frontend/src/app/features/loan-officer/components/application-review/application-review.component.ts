@@ -35,6 +35,15 @@ export class ApplicationReviewComponent implements OnInit {
     const applicationId = this.route.snapshot.paramMap.get('id');
     if (applicationId) {
       this.loadApplicationDetails(applicationId);
+      
+      // Check if step is specified in query params (e.g., from "Review Workflow" button)
+      const stepParam = this.route.snapshot.queryParamMap.get('step');
+      if (stepParam) {
+        const step = parseInt(stepParam, 10);
+        if (step >= 1 && step <= this.totalSteps) {
+          this.currentStep.set(step);
+        }
+      }
     } else {
       this.notificationService.error('Error', 'Application ID is missing');
       this.router.navigate(['/loan-officer/applications/assigned']);
@@ -50,7 +59,13 @@ export class ApplicationReviewComponent implements OnInit {
       next: (details) => {
         this.applicationDetails.set(details);
         this.updateSteps(details);
-        this.setCurrentStepBasedOnStatus(details);
+        
+        // Only auto-set step if not specified in query params
+        const stepParam = this.route.snapshot.queryParamMap.get('step');
+        if (!stepParam) {
+          this.setCurrentStepBasedOnStatus(details);
+        }
+        
         this.isLoading.set(false);
       },
       error: (error) => {

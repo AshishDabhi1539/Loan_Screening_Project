@@ -5,6 +5,9 @@
       <h1 class="text-2xl font-bold text-gray-900">{{ pageTitle() }}</h1>
       <p class="mt-1 text-sm text-gray-500">
         Showing {{ filteredApplications().length }} application{{ filteredApplications().length !== 1 ? 's' : '' }}
+        @if (selectedApplications().size > 0) {
+          <span class="ml-2 text-blue-600 font-semibold">• {{ selectedApplications().size }} selected</span>
+        }
       </p>
     </div>
     <button
@@ -20,6 +23,77 @@
       </span>
     </button>
   </div>
+
+  <!-- Bulk Actions Bar (shown when items are selected) -->
+  @if (showBulkActions()) {
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 shadow-sm">
+      <div class="flex items-center justify-between flex-wrap gap-4">
+        <div class="flex items-center gap-3">
+          <svg class="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+          </svg>
+          <span class="text-sm font-semibold text-blue-900">
+            {{ selectedApplications().size }} application{{ selectedApplications().size !== 1 ? 's' : '' }} selected
+          </span>
+        </div>
+        <div class="flex items-center gap-2">
+          <!-- Export Selected -->
+          <button
+            (click)="exportSelectedToExcel()"
+            class="px-4 py-2 text-sm font-medium text-blue-700 bg-white border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors"
+          >
+            <span class="flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Export Selected
+            </span>
+          </button>
+          <!-- Update Priority -->
+          <div class="relative inline-block">
+            <button
+              class="px-4 py-2 text-sm font-medium text-blue-700 bg-white border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors"
+              onclick="this.nextElementSibling.classList.toggle('hidden')"
+            >
+              <span class="flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11" />
+                </svg>
+                Set Priority
+              </span>
+            </button>
+            <div class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+              <button (click)="bulkUpdatePriority('HIGH')" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-t-lg">
+                <span class="flex items-center gap-2">
+                  <span class="w-2 h-2 bg-red-500 rounded-full"></span>
+                  High Priority
+                </span>
+              </button>
+              <button (click)="bulkUpdatePriority('MEDIUM')" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                <span class="flex items-center gap-2">
+                  <span class="w-2 h-2 bg-yellow-500 rounded-full"></span>
+                  Medium Priority
+                </span>
+              </button>
+              <button (click)="bulkUpdatePriority('LOW')" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-b-lg">
+                <span class="flex items-center gap-2">
+                  <span class="w-2 h-2 bg-blue-500 rounded-full"></span>
+                  Low Priority
+                </span>
+              </button>
+            </div>
+          </div>
+          <!-- Clear Selection -->
+          <button
+            (click)="clearSelections()"
+            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            Clear Selection
+          </button>
+        </div>
+      </div>
+    </div>
+  }
 
   <!-- Filters and Search -->
   <div class="bg-white rounded-lg shadow p-4">
@@ -114,6 +188,15 @@
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
             <tr>
+              <th scope="col" class="px-4 py-3 text-left">
+                <input
+                  type="checkbox"
+                  [checked]="isSelectAllChecked()"
+                  (change)="toggleSelectAll()"
+                  class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
+                  title="Select all on this page"
+                />
+              </th>
               <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                   (click)="onSortChange('applicantName')">
                 <div class="flex items-center space-x-1">
@@ -170,7 +253,15 @@
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
             @for (app of paginatedApplications(); track app.id) {
-              <tr class="hover:bg-gray-50 transition-colors">
+              <tr class="hover:bg-gray-50 transition-colors" [ngClass]="{'bg-blue-50': isApplicationSelected(app.id)}">
+                <td class="px-4 py-3 whitespace-nowrap">
+                  <input
+                    type="checkbox"
+                    [checked]="isApplicationSelected(app.id)"
+                    (change)="toggleApplicationSelection(app.id)"
+                    class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
+                  />
+                </td>
                 <td class="px-4 py-3 whitespace-nowrap">
                   <div class="flex items-center">
                     <div class="flex-shrink-0 h-8 w-8">

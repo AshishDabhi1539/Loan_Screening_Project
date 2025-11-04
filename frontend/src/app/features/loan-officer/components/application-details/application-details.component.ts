@@ -29,6 +29,33 @@ export class ApplicationDetailsComponent implements OnInit {
   // View mode - determines if we show action buttons or not
   isViewMode = signal(false);
 
+  /**
+   * Display status for loan officer - frozen during compliance review
+   * Loan officer sees FLAGGED_FOR_COMPLIANCE until it returns to READY_FOR_DECISION
+   */
+  displayStatus = computed(() => {
+    const actualStatus = this.applicationDetails()?.applicationInfo?.status;
+    if (!actualStatus) return '';
+
+    // List of all compliance-related statuses from backend ApplicationStatus enum
+    const complianceStatuses = [
+      'FLAGGED_FOR_COMPLIANCE',
+      'COMPLIANCE_REVIEW',
+      'PENDING_COMPLIANCE_DOCS',
+      'COMPLIANCE_TIMEOUT',
+      'UNDER_INVESTIGATION',
+      'AWAITING_COMPLIANCE_DECISION'
+    ];
+
+    // If status is any compliance-related status, show as FLAGGED_FOR_COMPLIANCE
+    // This "freezes" the status for loan officer during entire compliance process
+    if (complianceStatuses.includes(actualStatus)) {
+      return 'FLAGGED_FOR_COMPLIANCE';
+    }
+
+    return actualStatus;
+  });
+
   ngOnInit(): void {
     const applicationId = this.route.snapshot.paramMap.get('id');
     
@@ -95,7 +122,7 @@ export class ApplicationDetailsComponent implements OnInit {
   }
 
   /**
-   * Load audit trail
+   * Load audit trail with enhanced details
    */
   private loadAuditTrail(): void {
     const appId = this.applicationDetails()?.applicationInfo?.id;
@@ -104,7 +131,11 @@ export class ApplicationDetailsComponent implements OnInit {
     this.isLoadingAudit.set(true);
     this.loanOfficerService.getAuditTrail(appId).subscribe({
       next: (trail) => {
-        this.auditTrail.set(trail);
+        // Sort by timestamp descending (newest first)
+        const sortedTrail = trail.sort((a, b) => 
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        );
+        this.auditTrail.set(sortedTrail);
         this.isLoadingAudit.set(false);
       },
       error: (error) => {
@@ -113,6 +144,73 @@ export class ApplicationDetailsComponent implements OnInit {
         this.isLoadingAudit.set(false);
       }
     });
+  }
+
+  /**
+   * Get action icon based on action type
+   */
+  getActionIcon(action: string): string {
+    const iconMap: { [key: string]: string } = {
+      'APPLICATION_SUBMITTED': 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
+      'STATUS_CHANGED': 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15',
+      'DOCUMENT_UPLOADED': 'M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12',
+      'DOCUMENT_VERIFIED': 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
+      'DOCUMENT_REJECTED': 'M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z',
+      'EXTERNAL_VERIFICATION': 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z',
+      'APPROVED': 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
+      'REJECTED': 'M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z',
+      'ASSIGNED': 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z',
+      'COMMENT_ADDED': 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z'
+    };
+    return iconMap[action] || 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z';
+  }
+
+  /**
+   * Get action color based on action type
+   */
+  getActionColor(action: string): string {
+    const colorMap: { [key: string]: string } = {
+      'APPLICATION_SUBMITTED': 'bg-blue-100 text-blue-800',
+      'STATUS_CHANGED': 'bg-purple-100 text-purple-800',
+      'DOCUMENT_UPLOADED': 'bg-indigo-100 text-indigo-800',
+      'DOCUMENT_VERIFIED': 'bg-green-100 text-green-800',
+      'DOCUMENT_REJECTED': 'bg-red-100 text-red-800',
+      'EXTERNAL_VERIFICATION': 'bg-cyan-100 text-cyan-800',
+      'APPROVED': 'bg-green-100 text-green-800',
+      'REJECTED': 'bg-red-100 text-red-800',
+      'ASSIGNED': 'bg-yellow-100 text-yellow-800',
+      'COMMENT_ADDED': 'bg-gray-100 text-gray-800'
+    };
+    return colorMap[action] || 'bg-gray-100 text-gray-800';
+  }
+
+  /**
+   * Format action name for display
+   */
+  formatActionName(action: string): string {
+    return action.replace(/_/g, ' ').toLowerCase()
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  }
+
+  /**
+   * Get time difference in human-readable format
+   */
+  getTimeDifference(timestamp: Date | string): string {
+    const now = new Date();
+    const then = new Date(timestamp);
+    const diffMs = now.getTime() - then.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} min${diffMins > 1 ? 's' : ''} ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} week${Math.floor(diffDays / 7) > 1 ? 's' : ''} ago`;
+    return this.formatDate(timestamp);
   }
 
   /**
@@ -126,29 +224,14 @@ export class ApplicationDetailsComponent implements OnInit {
   }
 
   /**
-   * Trigger external verification (fraud check)
+   * Resume external verification - Navigate to review page step 3
    */
-  triggerExternalVerification(): void {
+  resumeExternalVerification(): void {
     const appId = this.applicationDetails()?.applicationInfo?.id;
-    if (!appId) return;
-
-    this.loanOfficerService.triggerExternalVerification(appId).subscribe({
-      next: () => {
-        this.notificationService.success(
-          'External Verification Triggered',
-          'Fraud check and credit scoring has been initiated. The application will move to Ready for Decision once complete.'
-        );
-        // Reload application details to show updated status
-        this.loadApplicationDetails(appId);
-      },
-      error: (error) => {
-        console.error('Error triggering external verification:', error);
-        this.notificationService.error(
-          'Verification Failed',
-          error.error?.message || 'Failed to trigger external verification.'
-        );
-      }
-    });
+    if (appId) {
+      // Navigate to review page - it will auto-set to step 3 (External Verification)
+      this.router.navigate(['/loan-officer/application', appId, 'review']);
+    }
   }
 
   /**
@@ -172,25 +255,39 @@ export class ApplicationDetailsComponent implements OnInit {
   }
 
   /**
-   * Start review process - changes status to DOCUMENT_VERIFICATION
+   * Start verification process - changes status UNDER_REVIEW to DOCUMENT_VERIFICATION
    */
-  startReview(): void {
+  startVerificationProcess(): void {
     const appId = this.applicationDetails()?.applicationInfo?.id;
     if (appId) {
       // Call API to start document verification (changes status to DOCUMENT_VERIFICATION)
       this.loanOfficerService.startDocumentVerification(appId).subscribe({
         next: (response) => {
-          this.notificationService.success('Success', 'Review process started successfully');
+          this.notificationService.success('Success', 'Verification process started successfully');
           // Navigate to review workflow page
           this.router.navigate(['/loan-officer/application', appId, 'review']);
         },
         error: (error) => {
-          console.error('Error starting review:', error);
+          console.error('Error starting verification:', error);
           this.notificationService.error(
             'Error',
-            error.error?.message || 'Failed to start review process'
+            error.error?.message || 'Failed to start verification process'
           );
         }
+      });
+    }
+  }
+
+  /**
+   * Navigate to review workflow page - NO API call, NO status change
+   * Always starts from Step 1 (Overview)
+   */
+  navigateToReviewWorkflow(): void {
+    const appId = this.applicationDetails()?.applicationInfo?.id;
+    if (appId) {
+      // Navigate to review page with query param to force Step 1
+      this.router.navigate(['/loan-officer/application', appId, 'review'], {
+        queryParams: { step: 1 }
       });
     }
   }
@@ -425,11 +522,11 @@ export class ApplicationDetailsComponent implements OnInit {
         };
       case 'PENDING_EXTERNAL_VERIFICATION':
         return {
-          text: 'Trigger External Verification',
-          action: 'trigger-external',
+          text: 'Resume External Verification',
+          action: 'resume-external',
           color: 'bg-indigo-600 hover:bg-indigo-700',
           icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z',
-          method: () => this.triggerExternalVerification()
+          method: () => this.resumeExternalVerification()
         };
       case 'EXTERNAL_VERIFICATION':
         return {
@@ -441,11 +538,11 @@ export class ApplicationDetailsComponent implements OnInit {
         };
       case 'UNDER_REVIEW':
         return {
-          text: 'Start Review',
-          action: 'start-review',
-          color: 'bg-orange-600 hover:bg-orange-700',
-          icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2',
-          method: () => this.startReview()
+          text: 'Start Verification Process',
+          action: 'start-verification-process',
+          color: 'bg-blue-600 hover:bg-blue-700',
+          icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
+          method: () => this.startVerificationProcess()
         };
       case 'READY_FOR_DECISION':
         return {
