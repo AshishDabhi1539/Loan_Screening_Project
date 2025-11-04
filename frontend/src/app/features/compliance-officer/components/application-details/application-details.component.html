@@ -48,7 +48,7 @@
         <!-- Trigger Decision Button -->
         @if (canTriggerDecision()) {
           <button
-            (click)="openTriggerDecisionModal()"
+            (click)="triggerDecision()"
             class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-purple-600 border border-purple-600 rounded-lg hover:bg-purple-700 transition-colors duration-200"
             title="Trigger Decision Process"
           >
@@ -233,64 +233,6 @@
             } @else {
               Reject Document
             }
-          </button>
-        </div>
-      </div>
-    </div>
-  }
-
-  <!-- Trigger Decision Modal -->
-  @if (showTriggerDecisionModal()) {
-    <div class="fixed inset-0 z-40 flex items-center justify-center">
-      <div class="absolute inset-0 bg-gray-900 bg-opacity-50" (click)="closeTriggerDecisionModal()"></div>
-      <div class="relative bg-white rounded-lg shadow-lg w-full max-w-2xl z-50">
-        <div class="px-5 py-4 border-b border-gray-200 flex items-center justify-between">
-          <h3 class="text-lg font-semibold text-gray-900">Trigger Decision Process</h3>
-          <button (click)="closeTriggerDecisionModal()" class="text-gray-500 hover:text-gray-700">
-            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-        
-        <div class="p-5 space-y-4">
-          <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p class="text-sm text-blue-800">
-              <strong>Note:</strong> This will move the application to the decision stage. You will be able to submit your final decision (approve/reject) on the Decision page.
-            </p>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              Summary Notes <span class="text-red-600">*</span>
-            </label>
-            <textarea 
-              [ngModel]="triggerDecisionSummaryNotes()" 
-              (ngModelChange)="triggerDecisionSummaryNotes.set($event)"
-              rows="6"
-              class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-purple-500 focus:border-purple-500"
-              placeholder="Provide a brief summary of your investigation findings and why you're ready to make a decision..."
-              required
-            ></textarea>
-            <p class="mt-1 text-xs text-gray-500">
-              These notes will be saved in the application history.
-            </p>
-          </div>
-        </div>
-
-        <div class="px-5 py-4 border-t border-gray-200 flex items-center justify-end gap-3">
-          <button 
-            (click)="closeTriggerDecisionModal()" 
-            class="px-4 py-2 text-sm rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
-          >
-            Cancel
-          </button>
-          <button 
-            (click)="submitTriggerDecision()" 
-            [disabled]="!triggerDecisionSummaryNotes().trim() || isLoading()"
-            class="px-4 py-2 text-sm rounded-md bg-purple-600 text-white hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
-          >
-            Trigger Decision
           </button>
         </div>
       </div>

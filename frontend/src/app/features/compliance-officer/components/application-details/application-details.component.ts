@@ -54,9 +54,6 @@ export class ApplicationDetailsComponent implements OnInit {
   verificationNotes = signal('');
   verificationRejectionReason = signal('');
 
-  // Trigger Decision modal state
-  showTriggerDecisionModal = signal(false);
-  triggerDecisionSummaryNotes = signal('');
 
   // Computed properties for easier access
   applicationInfo = computed(() => this.application()?.applicationInfo);
@@ -801,35 +798,15 @@ export class ApplicationDetailsComponent implements OnInit {
   }
 
   /**
-   * Open trigger decision modal
+   * Trigger decision - redirects to decision page
    */
-  openTriggerDecisionModal(): void {
-    this.triggerDecisionSummaryNotes.set('');
-    this.showTriggerDecisionModal.set(true);
-  }
-
-  /**
-   * Close trigger decision modal
-   */
-  closeTriggerDecisionModal(): void {
-    this.showTriggerDecisionModal.set(false);
-    this.triggerDecisionSummaryNotes.set('');
-  }
-
-  /**
-   * Submit trigger decision
-   */
-  submitTriggerDecision(): void {
-    const summaryNotes = this.triggerDecisionSummaryNotes().trim();
-    if (!summaryNotes) {
-      this.notificationService.error('Validation', 'Summary notes are required');
-      return;
-    }
-
+  triggerDecision(): void {
+    // Trigger decision with a default summary note
+    const summaryNotes = 'Investigation completed, ready for decision';
+    
     this.complianceService.triggerDecision(this.applicationId(), { summaryNotes }).subscribe({
       next: () => {
         this.notificationService.success('Success', 'Decision process triggered successfully');
-        this.closeTriggerDecisionModal();
         // Navigate to decision page
         this.router.navigate(['/compliance-officer/decision']);
       },
