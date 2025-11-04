@@ -22,6 +22,10 @@ export const complianceOfficerRoutes: Routes = [
     path: 'decision',
     loadComponent: () => import('./components/decision/decision.component').then(m => m.DecisionComponent)
   },
+  {
+    path: 'history',
+    loadComponent: () => import('./components/application-history/application-history.component').then(m => m.ApplicationHistoryComponent)
+  },
   // Legacy routes for backward compatibility
   {
     path: 'flagged-applications',

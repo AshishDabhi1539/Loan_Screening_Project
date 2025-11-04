@@ -58,7 +58,7 @@
                       </span>
                     </div>
                     <div class="text-sm text-gray-600">
-                      <span class="font-medium">Amount:</span> ₹{{ application.requestedAmount?.toLocaleString() || 'N/A' }}
+                      <span class="font-medium">Amount:</span> ₹{{ (application.requestedAmount || 0).toLocaleString() }}
                     </div>
                     <div class="text-sm text-gray-600">
                       <span class="font-medium">Submitted:</span> {{ formatDate(application.submittedAt || null) }}

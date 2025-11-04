@@ -363,4 +363,11 @@ export class ComplianceService {
   submitComplianceDecision(applicationId: string, request: { decision: string; notesToLoanOfficer: string }): Observable<ComplianceDecisionResponse> {
     return this.apiService.post<ComplianceDecisionResponse>(`${this.BASE_URL}/applications/${applicationId}/submit-decision`, request);
   }
+
+  /**
+   * Get completed applications (applications that compliance has finished processing)
+   */
+  getCompletedApplications(): Observable<LoanApplicationResponse[]> {
+    return this.apiService.get<LoanApplicationResponse[]>(`${this.BASE_URL}/applications/completed`);
+  }
 }

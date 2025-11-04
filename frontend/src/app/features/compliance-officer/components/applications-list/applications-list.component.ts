@@ -34,12 +34,14 @@ export class ApplicationsListComponent implements OnInit {
   itemsPerPageOptions = [5, 10, 25, 50, 100];
 
   // Status and Priority options
+  // Note: READY_FOR_DECISION is excluded - compliance can't do anything after submitting decision
   statusOptions = [
     { value: 'ALL', label: 'All Statuses' },
     { value: 'FLAGGED_FOR_COMPLIANCE', label: 'Flagged' },
     { value: 'COMPLIANCE_REVIEW', label: 'Under Review' },
+    { value: 'UNDER_INVESTIGATION', label: 'Under Investigation' },
     { value: 'PENDING_COMPLIANCE_DOCS', label: 'Pending Documents' },
-    { value: 'READY_FOR_DECISION', label: 'Ready for Decision' },
+    { value: 'AWAITING_COMPLIANCE_DECISION', label: 'Awaiting Decision' },
     { value: 'REJECTED', label: 'Rejected' }
   ];
 
