@@ -111,6 +111,12 @@ export class MainLayoutComponent {
       icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
       roles: ['COMPLIANCE_OFFICER', 'SENIOR_COMPLIANCE_OFFICER']
     },
+    {
+      label: 'Application History',
+      route: '/compliance-officer/history',
+      icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z',
+      roles: ['COMPLIANCE_OFFICER', 'SENIOR_COMPLIANCE_OFFICER']
+    },
 
     // Admin Navigation
     {

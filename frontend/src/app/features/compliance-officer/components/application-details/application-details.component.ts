@@ -804,14 +804,29 @@ export class ApplicationDetailsComponent implements OnInit {
     // Trigger decision with a default summary note
     const summaryNotes = 'Investigation completed, ready for decision';
     
+    // Show loading state
+    this.isLoading.set(true);
+    
     this.complianceService.triggerDecision(this.applicationId(), { summaryNotes }).subscribe({
       next: () => {
-        this.notificationService.success('Success', 'Decision process triggered successfully');
-        // Navigate to decision page
-        this.router.navigate(['/compliance-officer/decision']);
+        // Success - navigate immediately to decision page
+        // The decision page will load fresh data from server
+        this.notificationService.success(
+          'Decision Triggered', 
+          'Application moved to decision stage. Redirecting to decision page...'
+        );
+        
+        // Navigate to decision page (it will load fresh data)
+        setTimeout(() => {
+          this.router.navigate(['/compliance-officer/decision']).then(() => {
+            // Reset loading state after navigation
+            this.isLoading.set(false);
+          });
+        }, 300); // Small delay to show notification
       },
       error: (err: any) => {
         console.error('Error triggering decision:', err);
+        this.isLoading.set(false);
         this.notificationService.error('Error', err.error?.message || 'Failed to trigger decision');
       }
     });
