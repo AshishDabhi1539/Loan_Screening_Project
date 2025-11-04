@@ -1,9 +1,13 @@
 package com.tss.loan.controller.compliance;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -15,6 +19,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.reactive.function.BodyInserters;
+import org.springframework.web.reactive.function.client.WebClient;
+
+import com.tss.loan.exception.LoanApiException;
 
 import com.tss.loan.dto.request.ComplianceDecisionRequest;
 import com.tss.loan.dto.request.ComplianceDocumentRequest;
@@ -23,9 +32,16 @@ import com.tss.loan.dto.response.ComplianceDashboardResponse;
 import com.tss.loan.dto.response.ComplianceDecisionResponse;
 import com.tss.loan.dto.response.ComplianceInvestigationResponse;
 import com.tss.loan.dto.response.LoanApplicationResponse;
+import com.tss.loan.dto.response.OfficerDetailsResponse;
+import com.tss.loan.dto.response.OfficerPersonalDetailsResponse;
+import com.tss.loan.dto.response.OfficerProfileResponse;
 import com.tss.loan.entity.user.User;
+import com.tss.loan.entity.officer.OfficerPersonalDetails;
 import com.tss.loan.service.ComplianceOfficerService;
 import com.tss.loan.service.UserService;
+import com.tss.loan.service.OfficerProfileService;
+import com.tss.loan.repository.OfficerPersonalDetailsRepository;
+import com.tss.loan.mapper.OfficerMapper;
 
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
@@ -42,6 +58,27 @@ public class ComplianceOfficerController {
     @Autowired
     private UserService userService;
     
+    @Autowired
+    private OfficerProfileService officerProfileService;
+    
+    @Autowired
+    private OfficerPersonalDetailsRepository officerPersonalDetailsRepository;
+    
+    @Autowired
+    private OfficerMapper officerMapper;
+    
+    @Autowired
+    private WebClient webClient;
+    
+    @Value("${supabase.url}")
+    private String supabaseUrl;
+    
+    @Value("${supabase.service.key}")
+    private String serviceKey;
+    
+    @Value("${supabase.bucket.name}")
+    private String bucketName;
+    
     /**
      * Get compliance officer dashboard with statistics
      */
@@ -55,6 +92,137 @@ public class ComplianceOfficerController {
         return ResponseEntity.ok(dashboard);
     }
     
+    /**
+     * Get current compliance officer's comprehensive details (User + Personal Details)
+     */
+    @GetMapping("/me/details")
+    public ResponseEntity<OfficerDetailsResponse> getMyDetails(Authentication authentication) {
+        User officer = getCurrentUser(authentication);
+        OfficerPersonalDetails personal = officerPersonalDetailsRepository
+            .findByUser(officer)
+            .orElse(null);
+        OfficerDetailsResponse response = officerMapper.toDetailsResponse(officer, personal);
+        return ResponseEntity.ok(response);
+    }
+    
+    /**
+     * Get current compliance officer's personal details only
+     */
+    @GetMapping("/me/personal-details")
+    public ResponseEntity<OfficerPersonalDetailsResponse> getMyPersonalDetails(Authentication authentication) {
+        User officer = getCurrentUser(authentication);
+        OfficerPersonalDetailsResponse response = officerProfileService
+            .getOfficerDetailsByUser(officer)
+            .orElseGet(() -> OfficerPersonalDetailsResponse.builder()
+                .email(officer.getEmail())
+                .role(officer.getRole().name())
+                .userStatus(officer.getStatus().name())
+                .hasCompleteProfile(false)
+                .build());
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Get current compliance officer full profile (details + personal) in single response
+     */
+    @GetMapping("/me/profile")
+    public ResponseEntity<OfficerProfileResponse> getMyProfile(Authentication authentication) {
+        User officer = getCurrentUser(authentication);
+        OfficerPersonalDetails personal = officerPersonalDetailsRepository
+            .findByUser(officer)
+            .orElse(null);
+        OfficerDetailsResponse details = officerMapper.toDetailsResponse(officer, personal);
+        OfficerPersonalDetailsResponse personalDto = officerProfileService
+            .getOfficerDetailsByUser(officer)
+            .orElseGet(() -> OfficerPersonalDetailsResponse.builder()
+                .email(officer.getEmail())
+                .role(officer.getRole().name())
+                .userStatus(officer.getStatus().name())
+                .hasCompleteProfile(false)
+                .build());
+        OfficerProfileResponse response = OfficerProfileResponse.builder()
+            .details(details)
+            .personal(personalDto)
+            .build();
+        return ResponseEntity.ok(response);
+    }
+    
+    /**
+     * Upload profile photo for compliance officer
+     */
+    @PostMapping("/me/profile-photo")
+    public ResponseEntity<String> uploadProfilePhoto(
+            @RequestParam("file") MultipartFile file,
+            Authentication authentication) throws IOException {
+        
+        log.info("Uploading profile photo for compliance officer: {}", authentication.getName());
+        
+        // Validate file
+        if (file.isEmpty()) {
+            throw new LoanApiException("File is empty");
+        }
+        
+        // Validate file type (images only)
+        String contentType = file.getContentType();
+        if (contentType == null || (!contentType.startsWith("image/"))) {
+            throw new LoanApiException("Only image files are allowed");
+        }
+        
+        // Validate file size (max 2MB for profile photos)
+        long maxSize = 2 * 1024 * 1024; // 2MB
+        if (file.getSize() > maxSize) {
+            throw new LoanApiException("File size exceeds 2MB limit");
+        }
+        
+        User officer = getCurrentUser(authentication);
+        
+        try {
+            // Create unique filename
+            String originalFileName = file.getOriginalFilename();
+            String fileExtension = originalFileName != null && originalFileName.contains(".") 
+                ? originalFileName.substring(originalFileName.lastIndexOf(".")) : ".jpg";
+            String uniqueFileName = "profile_" + officer.getId().toString().replace("-", "") + "_" + System.currentTimeMillis() + fileExtension;
+            
+            // Upload to Supabase Storage
+            String uploadUrl = supabaseUrl + "/storage/v1/object/" + bucketName + "/" + uniqueFileName;
+            
+            webClient.post()
+                .uri(uploadUrl)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + serviceKey)
+                .header(HttpHeaders.CONTENT_TYPE, file.getContentType())
+                .body(BodyInserters.fromResource(new ByteArrayResource(file.getBytes())))
+                .retrieve()
+                .bodyToMono(String.class)
+                .block();
+            
+            // Generate public URL
+            String fileUrl = supabaseUrl + "/storage/v1/object/public/" + bucketName + "/" + uniqueFileName;
+            
+            // Update officer personal details
+            OfficerPersonalDetails personal = officerPersonalDetailsRepository
+                .findByUser(officer)
+                .orElse(null);
+            
+            if (personal == null) {
+                throw new LoanApiException("Personal details not found. Please complete your profile first.");
+            }
+            
+            // Delete old photo if exists (optional - you can implement this if needed)
+            // For now, we'll just update the URL
+            
+            personal.setProfilePhotoUrl(fileUrl);
+            officerPersonalDetailsRepository.save(personal);
+            
+            log.info("Profile photo uploaded successfully for officer: {} | URL: {}", officer.getEmail(), fileUrl);
+            
+            return ResponseEntity.ok(fileUrl);
+            
+        } catch (Exception e) {
+            log.error("Failed to upload profile photo: {}", e.getMessage());
+            throw new IOException("Failed to upload profile photo: " + e.getMessage());
+        }
+    }
+
     /**
      * Get applications assigned to current compliance officer
      */

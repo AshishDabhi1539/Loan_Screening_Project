@@ -79,6 +79,7 @@ export interface LoanApplicationResponse {
   createdAt: string;
   submittedAt?: string;
   lastUpdated: string;
+  complianceNotes?: string;
 }
 
 /**
@@ -105,6 +106,55 @@ export interface ComplianceDecisionResponse {
   processedBy: string;
   processedAt: string;
   message: string;
+}
+
+// Officer details DTOs
+export interface OfficerDetailsResponse {
+  id: string;
+  email: string;
+  phone: string;
+  role: string;
+  status: string;
+  isEmailVerified: boolean;
+  isPhoneVerified: boolean;
+  failedLoginAttempts: number;
+  lastLoginAt: string;
+  createdAt: string;
+  updatedAt: string;
+  firstName: string;
+  lastName: string;
+  middleName?: string;
+  fullName?: string;
+  employeeId?: string;
+  department?: string;
+  designation?: string;
+  phoneNumber?: string;
+  workLocation?: string;
+  totalAssignedApplications?: number;
+  activeApplications?: number;
+  completedApplications?: number;
+}
+
+export interface OfficerPersonalDetailsResponse {
+  firstName: string;
+  lastName: string;
+  middleName?: string;
+  fullName?: string;
+  gender?: string;
+  dateOfBirth?: string;
+  profilePhotoUrl?: string;
+  phoneNumber?: string;
+  alternatePhone?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+}
+
+export interface OfficerProfileResponse {
+  details: OfficerDetailsResponse;
+  personal: OfficerPersonalDetailsResponse;
 }
 
 /**
@@ -369,5 +419,26 @@ export class ComplianceService {
    */
   getCompletedApplications(): Observable<LoanApplicationResponse[]> {
     return this.apiService.get<LoanApplicationResponse[]>(`${this.BASE_URL}/applications/completed`);
+  }
+
+  /** Officer profile details */
+  getOfficerDetails(): Observable<OfficerDetailsResponse> {
+    return this.apiService.get<OfficerDetailsResponse>(`${this.BASE_URL}/me/details`);
+  }
+
+  getOfficerPersonalDetails(): Observable<OfficerPersonalDetailsResponse> {
+    return this.apiService.get<OfficerPersonalDetailsResponse>(`${this.BASE_URL}/me/personal-details`);
+  }
+
+  /** Combined profile */
+  getOfficerProfile(): Observable<OfficerProfileResponse> {
+    return this.apiService.get<OfficerProfileResponse>(`${this.BASE_URL}/me/profile`);
+  }
+
+  /**
+   * Upload profile photo
+   */
+  uploadProfilePhoto(file: File): Observable<string> {
+    return this.apiService.uploadFile<string>(`${this.BASE_URL}/me/profile-photo`, file);
   }
 }

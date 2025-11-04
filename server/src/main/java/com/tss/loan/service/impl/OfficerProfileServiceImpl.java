@@ -296,6 +296,9 @@ public class OfficerProfileServiceImpl implements OfficerProfileService {
             .designation(entity.getDesignation())
             .phoneNumber(entity.getPhoneNumber())
             .workLocation(entity.getWorkLocation())
+            .gender(entity.getGender())
+            .dateOfBirth(entity.getDateOfBirth())
+            .profilePhotoUrl(entity.getProfilePhotoUrl())
             .createdAt(entity.getCreatedAt())
             .updatedAt(entity.getUpdatedAt())
             // User information

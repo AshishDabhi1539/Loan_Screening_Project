@@ -404,25 +404,25 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
         
         // ✅ PHASE 3: Update financial profile (with retry logic for deadlock)
         try {
-            com.tss.loan.entity.financial.ApplicantFinancialProfile financialProfile = 
-                financialProfileRepository.findByLoanApplicationId(applicationId).orElse(null);
-            if (financialProfile != null) {
-                financialProfile.setEmploymentVerificationStatus(
-                    request.getEmploymentVerified() ? com.tss.loan.entity.enums.VerificationStatus.VERIFIED : 
-                    com.tss.loan.entity.enums.VerificationStatus.REJECTED);
-                financialProfile.setIncomeVerificationStatus(
-                    request.getIncomeVerified() ? com.tss.loan.entity.enums.VerificationStatus.VERIFIED : 
-                    com.tss.loan.entity.enums.VerificationStatus.REJECTED);
-                financialProfile.setBankVerificationStatus(
-                    request.getBankAccountVerified() ? com.tss.loan.entity.enums.VerificationStatus.VERIFIED : 
-                    com.tss.loan.entity.enums.VerificationStatus.REJECTED);
+        com.tss.loan.entity.financial.ApplicantFinancialProfile financialProfile = 
+            financialProfileRepository.findByLoanApplicationId(applicationId).orElse(null);
+        if (financialProfile != null) {
+            financialProfile.setEmploymentVerificationStatus(
+                request.getEmploymentVerified() ? com.tss.loan.entity.enums.VerificationStatus.VERIFIED : 
+                com.tss.loan.entity.enums.VerificationStatus.REJECTED);
+            financialProfile.setIncomeVerificationStatus(
+                request.getIncomeVerified() ? com.tss.loan.entity.enums.VerificationStatus.VERIFIED : 
+                com.tss.loan.entity.enums.VerificationStatus.REJECTED);
+            financialProfile.setBankVerificationStatus(
+                request.getBankAccountVerified() ? com.tss.loan.entity.enums.VerificationStatus.VERIFIED : 
+                com.tss.loan.entity.enums.VerificationStatus.REJECTED);
                 financialProfile.setEmploymentVerifiedAt(verifiedAt);
                 financialProfile.setIncomeVerifiedAt(verifiedAt);
                 financialProfile.setBankVerifiedAt(verifiedAt);
-                
-                // Set specific verification notes
-                String combinedNotes = buildVerificationNotes(request);
-                financialProfile.setVerificationNotes(combinedNotes);
+            
+            // Set specific verification notes
+            String combinedNotes = buildVerificationNotes(request);
+            financialProfile.setVerificationNotes(combinedNotes);
                 financialProfileRepository.saveAndFlush(financialProfile);  // ✅ Immediate flush
             }
         } catch (Exception e) {
@@ -465,7 +465,7 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
         } catch (Exception e) {
             log.error("Error creating workflow entry for application: {}", applicationId, e);
         }
-        
+            
         try {
             notificationService.createNotification(
                 application.getApplicant(),
@@ -479,8 +479,8 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
         
         // ✅ PHASE 6: Audit log (final operation)
         try {
-            auditLogService.logAction(officer, "DOCUMENT_VERIFICATION_COMPLETED", "LoanApplication", 
-                null, "Document verification completed with result: " + request.getOverallVerificationPassed() + " for application: " + applicationId);
+        auditLogService.logAction(officer, "DOCUMENT_VERIFICATION_COMPLETED", "LoanApplication", 
+            null, "Document verification completed with result: " + request.getOverallVerificationPassed() + " for application: " + applicationId);
         } catch (Exception e) {
             log.error("Error creating audit log for application: {}", applicationId, e);
         }
@@ -660,10 +660,10 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
             }
             
             // ✅ Store ALL external verification results in LoanApplication entity
-            application.setCreditScore(creditScore);
+                application.setCreditScore(creditScore);
             application.setRiskLevel(convertToRiskLevelEnum(riskType));  // Convert String to Enum
-            application.setFraudScore(riskTypeNumeric);
-            application.setFraudReasons(riskFactors);
+                application.setFraudScore(riskTypeNumeric);
+                application.setFraudReasons(riskFactors);
             application.setRedAlertFlag(redAlertFlag);
             
             // Store financial metrics

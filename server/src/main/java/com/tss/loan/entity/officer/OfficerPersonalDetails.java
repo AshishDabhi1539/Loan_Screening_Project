@@ -1,5 +1,6 @@
 package com.tss.loan.entity.officer;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import com.tss.loan.entity.user.User;
@@ -103,6 +104,25 @@ public class OfficerPersonalDetails {
     @Size(max = 200, message = "Work location cannot exceed 200 characters")
     @Column(length = 200)
     private String workLocation;
+    
+    /**
+     * Officer's gender (stored as string for simplicity)
+     */
+    @Size(max = 20)
+    @Column(length = 20)
+    private String gender;
+    
+    /**
+     * Officer's date of birth
+     */
+    private LocalDate dateOfBirth;
+    
+    /**
+     * Officer's profile photo URL (stored in Supabase Storage)
+     */
+    @Size(max = 500, message = "Profile photo URL cannot exceed 500 characters")
+    @Column(length = 500)
+    private String profilePhotoUrl;
     
     /**
      * Timestamp when record was created

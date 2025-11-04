@@ -21,7 +21,27 @@ export class ComplianceDashboardComponent implements OnInit {
   // State signals
   dashboard = signal<ComplianceDashboardResponse | null>(null);
   assignedApplications = signal<LoanApplicationResponse[]>([]);
+  completedApplications = signal<LoanApplicationResponse[]>([]);
   isLoading = signal(true);
+
+  // Computed properties for cards
+  userDisplayName = computed(() => {
+    const raw = this.dashboard()?.officerName || '';
+    if (raw.trim().length > 0) {
+      // Extract first and last name only
+      const parts = raw.trim().split(/\s+/).filter(Boolean);
+      if (parts.length === 1) return parts[0];
+      if (parts.length >= 2) return `${parts[0]} ${parts[parts.length - 1]}`;
+    }
+    return 'Compliance Officer';
+  });
+
+  getGreeting(): string {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good Morning';
+    if (hour < 17) return 'Good Afternoon';
+    return 'Good Evening';
+  }
 
   // Computed properties for cards
   totalAssigned = computed(() => this.dashboard()?.totalAssignedApplications || 0);
@@ -35,12 +55,16 @@ export class ComplianceDashboardComponent implements OnInit {
     ).length;
   });
 
-  completed = computed(() => {
-    const apps = this.assignedApplications();
-    return apps.filter(app => 
-      app.status === 'READY_FOR_DECISION' || 
-      app.status === 'APPROVED'
-    ).length;
+  /**
+   * Approved by Compliance: count of applications for which this officer submitted APPROVE
+   * We consider applications currently in READY_FOR_DECISION status and with complianceNotes containing "Compliance Decision: APPROVE".
+   */
+  approvedByComplianceCount = computed(() => {
+    const apps = this.completedApplications();
+    return apps.filter(app => {
+      const notes = app.complianceNotes || '';
+      return /Compliance Decision:\s*APPROVE/i.test(notes);
+    }).length;
   });
 
   rejected = computed(() => {
@@ -120,9 +144,10 @@ export class ComplianceDashboardComponent implements OnInit {
     this.isLoading.set(true);
     let dashboardLoaded = false;
     let applicationsLoaded = false;
+    let completedLoaded = false;
     
     const checkComplete = () => {
-      if (dashboardLoaded && applicationsLoaded) {
+      if (dashboardLoaded && applicationsLoaded && completedLoaded) {
         this.isLoading.set(false);
       }
     };
@@ -142,6 +167,18 @@ export class ComplianceDashboardComponent implements OnInit {
       }
     });
 
+    // Load completed applications (READY_FOR_DECISION) for compliance decision count
+    this.complianceService.getCompletedApplications().subscribe({
+      next: (apps) => {
+        this.completedApplications.set(apps);
+        completedLoaded = true;
+        checkComplete();
+      },
+      error: () => {
+        completedLoaded = true;
+        checkComplete();
+      }
+    });
     // Load assigned applications for top 5 and todos
     this.complianceService.getAssignedApplications().subscribe({
       next: (apps) => {
@@ -232,6 +269,17 @@ export class ComplianceDashboardComponent implements OnInit {
     this.router.navigate(['/compliance-officer/applications/review'], {
       queryParams: { ref: encodedId }
     });
+  }
+
+  /**
+   * Show only first and last name from a full name string
+   */
+  formatFirstLast(name?: string | null): string {
+    if (!name) return 'N/A';
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return 'N/A';
+    if (parts.length === 1) return parts[0];
+    return `${parts[0]} ${parts[parts.length - 1]}`;
   }
 
   /**

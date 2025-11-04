@@ -22,6 +22,50 @@ export class DecisionComponent implements OnInit {
   applications = signal<LoanApplicationResponse[]>([]);
   isLoading = signal(true);
 
+  // Pagination
+  currentPage = signal(1);
+  itemsPerPage = signal(10);
+  itemsPerPageOptions = [5, 10, 25, 50, 100];
+  paginatedApplications = computed(() => {
+    const all = this.applications();
+    const start = (this.currentPage() - 1) * this.itemsPerPage();
+    const end = start + this.itemsPerPage();
+    return all.slice(start, end);
+  });
+  totalPages = computed(() => Math.ceil(this.applications().length / this.itemsPerPage()));
+  totalItems = computed(() => this.applications().length);
+  showingFrom = computed(() => {
+    const total = this.totalItems();
+    return total === 0 ? 0 : (this.currentPage() - 1) * this.itemsPerPage() + 1;
+  });
+  showingTo = computed(() => {
+    const total = this.totalItems();
+    const to = this.currentPage() * this.itemsPerPage();
+    return to > total ? total : to;
+  });
+  canGoPrevious = computed(() => this.currentPage() > 1);
+  canGoNext = computed(() => this.currentPage() < this.totalPages());
+
+  /** Pagination handlers for template (avoid arrow functions in template) */
+  setItemsPerPage(size: number): void {
+    const val = Number(size) || 10;
+    this.itemsPerPage.set(val);
+    this.currentPage.set(1);
+  }
+
+  goPrevPage(): void {
+    if (this.currentPage() > 1) {
+      this.currentPage.set(this.currentPage() - 1);
+    }
+  }
+
+  goNextPage(): void {
+    const total = this.totalPages();
+    if (total && this.currentPage() < total) {
+      this.currentPage.set(this.currentPage() + 1);
+    }
+  }
+
   // Decision modal state
   showDecisionModal = signal(false);
   selectedApplication = signal<LoanApplicationResponse | null>(null);

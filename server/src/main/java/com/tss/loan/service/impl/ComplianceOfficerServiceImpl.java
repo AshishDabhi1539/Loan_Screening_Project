@@ -1289,17 +1289,14 @@ public class ComplianceOfficerServiceImpl implements ComplianceOfficerService {
     public List<LoanApplicationResponse> getCompletedApplications(User complianceOfficer) {
         log.info("Fetching completed applications for compliance officer: {}", complianceOfficer.getEmail());
         
-        // Get applications that compliance has finished processing
-        // These are applications in READY_FOR_DECISION, APPROVED, or REJECTED status
+        // Show applications that compliance has completed and sent to loan officer with a decision
+        // These are applications in READY_FOR_DECISION (compliance marked APPROVE/REJECT when submitting decision)
         List<LoanApplication> applications = loanApplicationRepository
             .findByAssignedComplianceOfficerOrderByCreatedAtDesc(complianceOfficer)
             .stream()
             .filter(app -> {
                 ApplicationStatus status = app.getStatus();
-                return status == ApplicationStatus.READY_FOR_DECISION ||
-                       status == ApplicationStatus.APPROVED ||
-                       status == ApplicationStatus.REJECTED ||
-                       status == ApplicationStatus.AWAITING_COMPLIANCE_DECISION; // Include this as it's after compliance submitted decision
+                return status == ApplicationStatus.READY_FOR_DECISION;
             })
             .collect(Collectors.toList());
         

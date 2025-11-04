@@ -1,5 +1,6 @@
 package com.tss.loan.dto.response;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -30,6 +31,9 @@ public class OfficerPersonalDetailsResponse {
     private String designation;
     private String phoneNumber;
     private String workLocation;
+    private String gender;
+    private LocalDate dateOfBirth;
+    private String profilePhotoUrl;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     
