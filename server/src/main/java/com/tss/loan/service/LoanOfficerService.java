@@ -107,25 +107,7 @@ public interface LoanOfficerService {
      * @param officer The loan officer
      */
     List<AuditLogResponse> getApplicationAuditTrail(UUID applicationId, User officer);
-    
-    /**
-     * Get compliance review summary for loan officer
-     * Returns complete compliance investigation data, notes, and timeline
-     * @param applicationId The application ID
-     * @param officer The loan officer
-     * @return Compliance review summary
-     */
-    com.tss.loan.dto.response.ComplianceReviewSummaryResponse getComplianceReviewSummary(UUID applicationId, User officer);
-    
-    /**
-     * Acknowledge compliance review by loan officer
-     * Tracks that loan officer has reviewed compliance findings before making decision
-     * @param applicationId The application ID
-     * @param request Acknowledgment request with optional notes
-     * @param officer The loan officer
-     */
-    void acknowledgeComplianceReview(UUID applicationId, com.tss.loan.dto.request.AcknowledgeComplianceReviewRequest request, User officer);
-    
+
     /**
      * Get all post-compliance applications for loan officer
      * Returns applications that went through compliance process (all statuses)

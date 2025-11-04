@@ -279,45 +279,6 @@ public class LoanOfficerController {
     }
     
     /**
-     * Get compliance review summary for loan officer
-     * Returns complete compliance investigation data, notes, and timeline
-     */
-    @GetMapping("/applications/{applicationId}/compliance-review-summary")
-    public ResponseEntity<com.tss.loan.dto.response.ComplianceReviewSummaryResponse> getComplianceReviewSummary(
-            @PathVariable UUID applicationId,
-            Authentication authentication) {
-        
-        log.info("Officer {} requesting compliance review summary for application: {}", authentication.getName(), applicationId);
-        
-        User officer = getCurrentUser(authentication);
-        com.tss.loan.dto.response.ComplianceReviewSummaryResponse summary = 
-            loanOfficerService.getComplianceReviewSummary(applicationId, officer);
-        
-        return ResponseEntity.ok(summary);
-    }
-    
-    /**
-     * Acknowledge compliance review by loan officer
-     * Tracks that loan officer has reviewed compliance findings before making decision
-     */
-    @PostMapping("/applications/{applicationId}/acknowledge-compliance-review")
-    public ResponseEntity<java.util.Map<String, String>> acknowledgeComplianceReview(
-            @PathVariable UUID applicationId,
-            @Valid @RequestBody com.tss.loan.dto.request.AcknowledgeComplianceReviewRequest request,
-            Authentication authentication) {
-        
-        log.info("Officer {} acknowledging compliance review for application: {}", authentication.getName(), applicationId);
-        
-        User officer = getCurrentUser(authentication);
-        loanOfficerService.acknowledgeComplianceReview(applicationId, request, officer);
-        
-        return ResponseEntity.ok(java.util.Map.of(
-            "message", "Compliance review acknowledged successfully",
-            "status", "success"
-        ));
-    }
-    
-    /**
      * Get all post-compliance applications for loan officer
      * Returns applications that went through compliance process (all statuses)
      */
