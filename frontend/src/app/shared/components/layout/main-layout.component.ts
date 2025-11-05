@@ -67,15 +67,15 @@ export class MainLayoutComponent {
       roles: ['APPLICANT']
     },
     {
-      label: 'Profile',
-      route: '/applicant/profile',
-      icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z',
-      roles: ['APPLICANT']
-    },
-    {
       label: 'Notifications',
       route: '/notifications',
       icon: 'M10 21h4a2 2 0 0 1-4 0zm9-5V11a7 7 0 0 0-14 0v5l-2 2v1h18v-1l-2-2z',
+      roles: ['APPLICANT']
+    },
+    {
+      label: 'Profile',
+      route: '/applicant/profile',
+      icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z',
       roles: ['APPLICANT']
     },
 
@@ -143,15 +143,15 @@ export class MainLayoutComponent {
       roles: ['COMPLIANCE_OFFICER', 'SENIOR_COMPLIANCE_OFFICER']
     },
     {
-      label: 'Notifications',
-      route: '/notifications',
-      icon: 'M10 21h4a2 2 0 0 1-4 0zm9-5V11a7 7 0 0 0-14 0v5l-2 2v1h18v-1l-2-2z',
-      roles: ['COMPLIANCE_OFFICER', 'SENIOR_COMPLIANCE_OFFICER']
-    },
-    {
       label: 'My Profile',
       route: '/compliance-officer/profile',
       icon: 'M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5zm0 2c-3.33 0-10 1.67-10 5v3h20v-3c0-3.33-6.67-5-10-5z',
+      roles: ['COMPLIANCE_OFFICER', 'SENIOR_COMPLIANCE_OFFICER']
+    },
+    {
+      label: 'Notifications',
+      route: '/notifications',
+      icon: 'M10 21h4a2 2 0 0 1-4 0zm9-5V11a7 7 0 0 0-14 0v5l-2 2v1h18v-1l-2-2z',
       roles: ['COMPLIANCE_OFFICER', 'SENIOR_COMPLIANCE_OFFICER']
     },
 
@@ -182,7 +182,7 @@ export class MainLayoutComponent {
     },
     {
       label: 'System Reports',
-      route: '/admin/system/reports',
+      route: '/admin/reports/system',
       icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z',
       roles: ['ADMIN']
     },
