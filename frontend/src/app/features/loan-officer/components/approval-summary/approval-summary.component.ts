@@ -163,8 +163,8 @@ export class ApprovalSummaryComponent implements OnInit {
       </head>
       <body>
         <div class="header">
-          <h1>🏦 LoanScreen</h1>
-          <p>Loan Management System</p>
+          <h1>🏦 Loanify</h1>
+          <p>Your Loan Solution</p>
           <p>Date: ${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
         </div>
 
@@ -266,7 +266,7 @@ export class ApprovalSummaryComponent implements OnInit {
         </div>
 
         <div class="footer">
-          <p><strong>LoanScreen - Loan Management System</strong></p>
+          <p><strong>Loanify - Your Loan Solution</strong></p>
           <p>This is a computer-generated document and does not require a physical signature</p>
           <p>For queries, contact: support&#64;loanscreen.com | +91-1800-XXX-XXXX</p>
         </div>

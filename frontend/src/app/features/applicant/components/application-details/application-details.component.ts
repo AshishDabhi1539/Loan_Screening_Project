@@ -103,7 +103,7 @@ export class ApplicationDetailsComponent implements OnInit {
       </head>
       <body>
         <div class="header">
-          <div class="logo">🏦 LoanScreen</div>
+          <div class="logo">🏦 Loanify</div>
           <h1>Loan Application Details</h1>
           <p>Generated on ${new Date().toLocaleDateString()}</p>
         </div>
@@ -177,7 +177,7 @@ export class ApplicationDetailsComponent implements OnInit {
         </div>
 
         <div class="footer">
-          <p><strong>LoanScreen</strong> - Your Trusted Loan Partner</p>
+          <p><strong>Loanify</strong> - Your Loan Solution</p>
           <p>This is a computer-generated document. No signature required.</p>
           <p>Application ID: ${application.id}</p>
         </div>

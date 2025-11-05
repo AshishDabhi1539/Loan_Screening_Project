@@ -200,12 +200,12 @@ export class AuthService {
     this.apiService.post('/auth/logout', {}).subscribe({
       complete: () => {
         this.clearAuthData();
-        this.router.navigate(['/auth/login']);
+        this.router.navigate(['/']);
         this._isLoading.set(false);
       },
       error: () => {
         this.clearAuthData();
-        this.router.navigate(['/auth/login']);
+        this.router.navigate(['/']);
         this._isLoading.set(false);
       }
     });
