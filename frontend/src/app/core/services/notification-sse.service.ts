@@ -29,8 +29,8 @@ export class NotificationSseService {
 
     console.log('Connecting to SSE stream...');
 
-    // Native EventSource cannot set Authorization headers; backend now supports access_token query param
-    const url = `${this.SSE_URL}?access_token=${encodeURIComponent(token)}`;
+    // Add token to URL
+    const url = `${this.SSE_URL}?token=${token}`;
 
     this.ngZone.runOutsideAngular(() => {
       this.eventSource = new EventSource(url);
@@ -103,23 +103,9 @@ export class NotificationSseService {
       console.log(`Attempting to reconnect in ${delay}ms (attempt ${this.reconnectAttempts}/${this.MAX_RECONNECT_ATTEMPTS})`);
       
       this.reconnectTimeout = setTimeout(() => {
-        // Try both storages using configured key
-        const key = environment.auth.tokenKey;
-        const token = localStorage.getItem(key) || sessionStorage.getItem(key);
-        // Only reconnect if token exists and is not expired (basic check)
+        const token = localStorage.getItem('token');
         if (token) {
-          try {
-            const payload = JSON.parse(atob(token.split('.')[1]));
-            const currentTime = Math.floor(Date.now() / 1000);
-            // Only reconnect if token is not expired (with 5 min buffer)
-            if (payload.exp && payload.exp > (currentTime + 300)) {
-              this.connect(token);
-            } else {
-              console.log('SSE reconnection skipped: token expired');
-            }
-          } catch (e) {
-            console.error('SSE reconnection failed: invalid token', e);
-          }
+          this.connect(token);
         }
       }, delay);
     } else {

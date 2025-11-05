@@ -8,7 +8,6 @@ export const environment = {
   auth: {
     tokenKey: 'loan_screening_token',
     refreshTokenKey: 'loan_screening_refresh_token',
-    rememberMeKey: 'loan_screening_remember_me',
     tokenExpiryBuffer: 300000 // 5 minutes before expiry
   },
   features: {

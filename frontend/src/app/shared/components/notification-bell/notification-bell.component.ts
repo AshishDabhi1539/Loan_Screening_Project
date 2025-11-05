@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { InAppNotificationService } from '../../../core/services/in-app-notification.service';
 import { InAppNotification, NOTIFICATION_CONFIGS } from '../../../core/models/in-app-notification.model';
-import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-notification-bell',
@@ -28,22 +27,15 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
 
   private refreshInterval: any;
 
-  constructor(
-    public notificationService: InAppNotificationService,
-    private authService: AuthService
-  ) {}
+  constructor(public notificationService: InAppNotificationService) {}
 
   ngOnInit(): void {
-    // Delay initial load to ensure token is set after login
-    setTimeout(() => {
-      if (this.authService.isAuthenticated()) {
-        this.loadNotifications();
-      }
-    }, 200);
+    // Initial load
+    this.loadNotifications();
 
     // Refresh every 30 seconds
     this.refreshInterval = setInterval(() => {
-      if (!this.showDropdown() && this.authService.isAuthenticated()) {
+      if (!this.showDropdown()) {
         this.loadNotifications();
       }
     }, 30000);

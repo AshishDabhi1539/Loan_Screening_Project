@@ -106,12 +106,7 @@ export class DocumentVerificationComponent implements OnInit {
     this.isLoading.set(true);
     this.loanOfficerService.getCompleteApplicationDetails(applicationId).subscribe({
       next: (details) => {
-        // ✅ FILTER DOCUMENTS: Show only latest version of each document type
-        const filteredDetails = {
-          ...details,
-          documents: this.getSmartFilteredDocuments(details.documents || [])
-        };
-        this.applicationDetails.set(filteredDetails);
+        this.applicationDetails.set(details);
         this.initializeDocumentForms();
         
         // Only start verification if not already started
@@ -131,66 +126,6 @@ export class DocumentVerificationComponent implements OnInit {
         this.isLoading.set(false);
       }
     });
-  }
-
-  /**
-   * ✅ SMART DOCUMENT FILTERING - FRONTEND ONLY SOLUTION
-   * Filters out duplicate/replaced documents to show only active versions
-   * 
-   * Logic:
-   * 1. If document type has PENDING status → show only latest PENDING (re-uploaded)
-   * 2. If document type has VERIFIED status → show VERIFIED
-   * 3. If document type has only REJECTED → show latest REJECTED (not yet re-uploaded)
-   * 
-   * This ensures officer sees exactly the right number of documents without duplicates
-   */
-  private getSmartFilteredDocuments(documents: any[]): any[] {
-    if (!documents || documents.length === 0) return [];
-    
-    const documentsByType = new Map<string, any[]>();
-    
-    // Group documents by document type
-    documents.forEach(doc => {
-      const type = doc.documentType;
-      if (!documentsByType.has(type)) {
-        documentsByType.set(type, []);
-      }
-      documentsByType.get(type)!.push(doc);
-    });
-    
-    const filteredDocuments: any[] = [];
-    
-    documentsByType.forEach((docs, type) => {
-      // Separate by verification status
-      const pending = docs.filter(d => d.verificationStatus === 'PENDING');
-      const verified = docs.filter(d => d.verificationStatus === 'VERIFIED');
-      const rejected = docs.filter(d => d.verificationStatus === 'REJECTED');
-      
-      if (pending.length > 0) {
-        // Show latest PENDING (re-uploaded document)
-        const latest = pending.sort((a, b) => {
-          const dateA = new Date(a.uploadedAt || a.createdAt).getTime();
-          const dateB = new Date(b.uploadedAt || b.createdAt).getTime();
-          return dateB - dateA; // Descending order (newest first)
-        })[0];
-        filteredDocuments.push(latest);
-      } else if (verified.length > 0) {
-        // Show VERIFIED document (already approved)
-        filteredDocuments.push(verified[0]);
-      } else if (rejected.length > 0) {
-        // Show latest REJECTED (if not yet re-uploaded)
-        const latest = rejected.sort((a, b) => {
-          const dateA = new Date(a.uploadedAt || a.createdAt).getTime();
-          const dateB = new Date(b.uploadedAt || b.createdAt).getTime();
-          return dateB - dateA; // Descending order (newest first)
-        })[0];
-        filteredDocuments.push(latest);
-      }
-    });
-    
-    console.log(`📄 Document Filtering: ${documents.length} total → ${filteredDocuments.length} active (removed ${documents.length - filteredDocuments.length} duplicates)`);
-    
-    return filteredDocuments;
   }
 
   /**
@@ -461,7 +396,7 @@ export class DocumentVerificationComponent implements OnInit {
     this.isSubmitting.set(true);
     const documents = this.applicationDetails()?.documents || [];
 
-    // Build document verifications - check INDIVIDUAL document rejection status
+    // Build document verifications - mark ALL documents as verified/rejected based on their category
     const documentVerifications: {
       documentId: string;
       verified: boolean;
@@ -480,49 +415,23 @@ export class DocumentVerificationComponent implements OnInit {
     documents.forEach(doc => {
       let verified = false;
       let notes = '';
-      let categoryNotes = '';
 
-      // Determine category and get category-level decision
-      let categoryVerified = true;
+      // Determine verification status based on document category
       if (identityDocs.includes(doc.documentId)) {
-        categoryVerified = formValue.identityVerified === true;
-        categoryNotes = formValue.identityNotes || 'Identity verification';
+        verified = formValue.identityVerified === true;
+        notes = formValue.identityNotes || 'Identity verification';
       } else if (employmentDocs.includes(doc.documentId)) {
-        categoryVerified = formValue.employmentVerified === true;
-        categoryNotes = formValue.employmentNotes || 'Employment verification';
+        verified = formValue.employmentVerified === true;
+        notes = formValue.employmentNotes || 'Employment verification';
       } else if (incomeDocs.includes(doc.documentId)) {
-        categoryVerified = formValue.incomeVerified === true;
-        categoryNotes = formValue.incomeNotes || 'Income verification';
+        verified = formValue.incomeVerified === true;
+        notes = formValue.incomeNotes || 'Income verification';
       } else if (bankDocs.includes(doc.documentId)) {
-        categoryVerified = formValue.bankVerified === true;
-        categoryNotes = formValue.bankNotes || 'Bank verification';
+        verified = formValue.bankVerified === true;
+        notes = formValue.bankNotes || 'Bank verification';
       } else if (addressDocs.includes(doc.documentId)) {
-        categoryVerified = formValue.addressVerified === true;
-        categoryNotes = formValue.addressNotes || 'Address verification';
-      }
-
-      // ✅ FIX: Check individual document rejection checkbox
-      const docFormIndex = this.getDocumentFormIndex(doc.documentId);
-      if (docFormIndex !== -1 && formValue.documents[docFormIndex]) {
-        const docForm = formValue.documents[docFormIndex];
-        
-        // If category is rejected AND this specific document is checked as rejected
-        if (!categoryVerified && docForm.rejected === true) {
-          verified = false;
-          notes = docForm.rejectionReason || categoryNotes;
-        } else if (categoryVerified) {
-          // If category is verified, this document is verified
-          verified = true;
-          notes = categoryNotes;
-        } else {
-          // Category rejected but this document NOT individually selected → verify it
-          verified = true;
-          notes = 'Document verified (not individually rejected)';
-        }
-      } else {
-        // Fallback to category decision if no form control found
-        verified = categoryVerified;
-        notes = categoryNotes;
+        verified = formValue.addressVerified === true;
+        notes = formValue.addressNotes || 'Address verification';
       }
 
       documentVerifications.push({

@@ -38,26 +38,10 @@ export class DashboardComponent implements OnInit {
 
   recentActivities = signal<RecentActivity[]>([]);
   
-  // Computed values - shows only first name and last name
+  // Computed values
   userDisplayName = computed(() => {
     const user = this.currentUser();
-    
-    if (user?.displayName) {
-      const nameParts = user.displayName.trim().split(/\s+/);
-      
-      if (nameParts.length === 1) {
-        // Only one name part (first name)
-        return nameParts[0];
-      } else if (nameParts.length === 2) {
-        // First name and last name
-        return `${nameParts[0]} ${nameParts[1]}`;
-      } else if (nameParts.length >= 3) {
-        // First name, middle name(s), last name - show only first and last
-        return `${nameParts[0]} ${nameParts[nameParts.length - 1]}`;
-      }
-    }
-    
-    return user?.email?.split('@')[0] || 'Admin';
+    return user?.displayName || user?.email?.split('@')[0] || 'Admin';
   });
 
   systemHealthColor = computed(() => {
