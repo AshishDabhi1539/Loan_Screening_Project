@@ -94,6 +94,17 @@ export class ApplicationDetailsComponent implements OnInit {
    * Set active tab
    */
   setActiveTab(tab: 'overview' | 'personal' | 'financial' | 'documents' | 'external' | 'audit'): void {
+    // Prevent access to external verification and audit trail tabs if external verification is not completed
+    if ((tab === 'external' || tab === 'audit') && !this.isExternalVerificationCompleted()) {
+      this.notificationService.warning(
+        'Access Restricted',
+        'External verification must be completed before accessing this tab.'
+      );
+      // Switch to overview tab instead
+      this.activeTab.set('overview');
+      return;
+    }
+    
     this.activeTab.set(tab);
     
     // Load audit trail when audit tab is clicked
@@ -527,6 +538,29 @@ export class ApplicationDetailsComponent implements OnInit {
     
     // Fallback: return null if no external verification has been completed
     return null;
+  });
+
+  /**
+   * Check if external verification step has been completed
+   * External verification is considered started/completed when status is EXTERNAL_VERIFICATION or later
+   */
+  isExternalVerificationCompleted = computed(() => {
+    const app = this.applicationDetails()?.applicationInfo;
+    if (!app || !app.status) return false;
+    
+    const status = app.status;
+    // External verification is considered complete if status is EXTERNAL_VERIFICATION or later
+    const completedStatuses = [
+      'EXTERNAL_VERIFICATION',
+      'FRAUD_CHECK',
+      'READY_FOR_DECISION',
+      'APPROVED',
+      'REJECTED',
+      'DISBURSED',
+      'CANCELLED'
+    ];
+    
+    return completedStatuses.includes(status);
   });
 
   /**

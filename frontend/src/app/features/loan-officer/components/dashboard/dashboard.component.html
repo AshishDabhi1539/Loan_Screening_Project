@@ -1,6 +1,6 @@
 <!-- Loan Officer Dashboard -->
 <div class="space-y-6">
-  <!-- Welcome Header -->
+  <!-- Page Header -->
   <div class="bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg shadow-lg">
     <div class="px-6 py-8 sm:px-8">
       <div class="flex items-center justify-between flex-wrap gap-4">
@@ -9,353 +9,202 @@
             {{ getGreeting() }}, {{ userDisplayName() }}!
           </h1>
           <p class="mt-2 text-blue-100">
-            Welcome to your loan processing dashboard
+            Manage and process your assigned loan applications
           </p>
-        </div>
-        <div class="flex items-center gap-4">
-          <button
-            (click)="refreshDashboard()"
-            class="bg-white text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-lg transition-all duration-200 flex items-center space-x-2 shadow-md font-medium"
-            [disabled]="isLoading()"
-            [class.opacity-50]="isLoading()"
-            [class.cursor-not-allowed]="isLoading()"
-          >
-            <svg 
-              class="w-5 h-5" 
-              [class.animate-spin]="isLoading()"
-              fill="none" 
-              viewBox="0 0 24 24" 
-              stroke="currentColor"
-            >
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            <span>Refresh</span>
-          </button>
         </div>
       </div>
     </div>
   </div>
 
+  <!-- Loading State -->
   @if (isLoading()) {
-    <!-- Loading State -->
-    <div class="flex justify-center items-center py-12">
-      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+    <div class="flex items-center justify-center py-12">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      <span class="ml-3 text-gray-600">Loading dashboard...</span>
     </div>
   } @else if (dashboardData()) {
     <!-- Statistics Cards -->
-    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       <!-- Total Assigned -->
-      <div class="bg-white overflow-hidden shadow rounded-lg stats-card">
-        <div class="p-5">
-          <div class="flex items-center">
-            <div class="flex-shrink-0">
-              <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center stats-icon">
-                <svg class="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              </div>
-            </div>
-            <div class="ml-5 w-0 flex-1">
-              <dl>
-                <dt class="text-sm font-medium text-gray-500">Total Assigned</dt>
-                <dd class="text-lg font-semibold text-gray-900">{{ dashboardData()!.totalAssigned }}</dd>
-              </dl>
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+              <svg class="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
             </div>
           </div>
-        </div>
-      </div>
-
-      <!-- Verified -->
-      <div class="bg-white overflow-hidden shadow rounded-lg stats-card cursor-pointer"
-           (click)="navigateToApplications()">
-        <div class="p-5">
-          <div class="flex items-center">
-            <div class="flex-shrink-0">
-              <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center stats-icon">
-                <svg class="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-            </div>
-            <div class="ml-5 w-0 flex-1">
-              <dl>
-                <dt class="text-sm font-medium text-gray-500">Verified</dt>
-                <dd class="text-lg font-semibold text-gray-900">{{ dashboardData()!.verified }}</dd>
-              </dl>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Rejected -->
-      <div class="bg-white overflow-hidden shadow rounded-lg stats-card">
-        <div class="p-5">
-          <div class="flex items-center">
-            <div class="flex-shrink-0">
-              <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center stats-icon">
-                <svg class="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-            </div>
-            <div class="ml-5 w-0 flex-1">
-              <dl>
-                <dt class="text-sm font-medium text-gray-500">Rejected</dt>
-                <dd class="text-lg font-semibold text-gray-900">{{ dashboardData()!.rejected }}</dd>
-              </dl>
-            </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-600">Total Assigned</p>
+            <p class="text-3xl font-bold text-gray-900">{{ dashboardData()!.totalAssigned }}</p>
           </div>
         </div>
       </div>
 
       <!-- In Progress -->
-      <div class="bg-white overflow-hidden shadow rounded-lg stats-card cursor-pointer"
-           (click)="navigateToApplications()">
-        <div class="p-5">
-          <div class="flex items-center">
-            <div class="flex-shrink-0">
-              <div class="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center stats-icon">
-                <svg class="w-6 h-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+              <svg class="w-6 h-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
             </div>
-            <div class="ml-5 w-0 flex-1">
-              <dl>
-                <dt class="text-sm font-medium text-gray-500">In Progress</dt>
-                <dd class="text-lg font-semibold text-gray-900">{{ dashboardData()!.inProgress }}</dd>
-              </dl>
+          </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-600">In Progress</p>
+            <p class="text-3xl font-bold text-gray-900">{{ dashboardData()!.inProgress }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Verified -->
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+              <svg class="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
             </div>
+          </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-600">Verified</p>
+            <p class="text-3xl font-bold text-gray-900">{{ dashboardData()!.verified }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rejected -->
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+              <svg class="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-600">Rejected</p>
+            <p class="text-3xl font-bold text-gray-900">{{ dashboardData()!.rejected }}</p>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Additional Stats and Priority Breakdown -->
-    <div class="grid grid-cols-1 gap-5 lg:grid-cols-3">
-      <!-- Priority Breakdown -->
-      <div class="bg-white overflow-hidden shadow rounded-lg">
-        <div class="p-5">
-          <h3 class="text-lg font-medium text-gray-900 mb-4">Priority Breakdown</h3>
-          <div class="space-y-3">
-            <div class="flex items-center justify-between">
-              <span class="text-sm text-gray-600">High Priority</span>
-              <span class="text-sm font-semibold text-red-600">{{ priorityBreakdown().high }}</span>
-            </div>
-            <div class="w-full bg-gray-200 rounded-full h-2">
-              <div 
-                class="bg-red-600 h-2 rounded-full transition-all duration-300"
-                [style.width.%]="dashboardData()!.totalAssigned > 0 ? (priorityBreakdown().high / dashboardData()!.totalAssigned * 100) : 0"
-              ></div>
-            </div>
-
-            <div class="flex items-center justify-between">
-              <span class="text-sm text-gray-600">Medium Priority</span>
-              <span class="text-sm font-semibold text-yellow-600">{{ priorityBreakdown().medium }}</span>
-            </div>
-            <div class="w-full bg-gray-200 rounded-full h-2">
-              <div 
-                class="bg-yellow-600 h-2 rounded-full transition-all duration-300"
-                [style.width.%]="dashboardData()!.totalAssigned > 0 ? (priorityBreakdown().medium / dashboardData()!.totalAssigned * 100) : 0"
-              ></div>
-            </div>
-
-            <div class="flex items-center justify-between">
-              <span class="text-sm text-gray-600">Low Priority</span>
-              <span class="text-sm font-semibold text-blue-600">{{ priorityBreakdown().low }}</span>
-            </div>
-            <div class="w-full bg-gray-200 rounded-full h-2">
-              <div 
-                class="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                [style.width.%]="dashboardData()!.totalAssigned > 0 ? (priorityBreakdown().low / dashboardData()!.totalAssigned * 100) : 0"
-              ></div>
-            </div>
-          </div>
+    <!-- Assigned Applications Table & Performance Metrics -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Assigned Applications Table -->
+      <div class="lg:col-span-2 bg-white rounded-lg shadow-sm border border-gray-200">
+        <div class="px-5 py-3 border-b border-gray-200">
+          <h2 class="text-lg font-semibold text-gray-900">Assigned Applications</h2>
+        </div>
+        <div>
+          <table class="w-full divide-y divide-gray-200 text-sm">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sr. No.</th>
+                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Applicant Name</th>
+                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Loan Type</th>
+                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              @for (app of paginatedApplications(); track app.id; let i = $index) {
+                <tr class="hover:bg-gray-50 cursor-pointer" (click)="viewApplication(app.id)">
+                  <td class="px-3 py-2">
+                    <div class="text-gray-900">{{ showingFrom() + i }}</div>
+                  </td>
+                  <td class="px-3 py-2">
+                    <div class="font-medium text-gray-900 break-words">{{ formatFirstLast(app.applicantName) }}</div>
+                  </td>
+                  <td class="px-3 py-2">
+                    <div class="text-gray-900 break-words">{{ formatLoanType(app.loanType) }}</div>
+                  </td>
+                  <td class="px-3 py-2">
+                    <span [class]="'inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ' + getStatusBadgeColor(app.status)">
+                      {{ formatStatus(app.status) }}
+                    </span>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="4" class="px-3 py-6 text-center text-sm text-gray-500">
+                    No assigned applications found
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
         </div>
       </div>
 
-      <!-- Performance Metrics -->
-      <div class="bg-white overflow-hidden shadow rounded-lg">
-        <div class="p-5">
-          <h3 class="text-lg font-medium text-gray-900 mb-4">Performance Metrics</h3>
+      <!-- Performance Metrics with Bar Chart -->
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Performance Metrics</h2>
+        @if (performanceChartData().length > 0 && maxChartValue() > 0) {
           <div class="space-y-4">
-            <div>
-              <div class="flex items-center justify-between mb-1">
-                <span class="text-sm text-gray-600">Completed Today</span>
-                <span class="text-sm font-semibold text-gray-900">{{ dashboardData()!.completedToday }}</span>
+            @for (item of performanceChartData(); track item.label) {
+              <div>
+                <div class="flex items-center justify-between mb-1.5">
+                  <span class="text-xs text-gray-600">{{ item.label }}</span>
+                  <span class="text-xs font-semibold text-gray-900">{{ item.value }}</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-4">
+                  <div 
+                    class="h-4 rounded-full transition-all duration-300"
+                    [style.background-color]="item.color"
+                    [style.width.%]="getBarHeight(item.value)">
+                  </div>
+                </div>
               </div>
-            </div>
-            <div>
-              <div class="flex items-center justify-between mb-1">
-                <span class="text-sm text-gray-600">Avg. Processing Time</span>
-                <span class="text-sm font-semibold text-gray-900">
-                  {{ dashboardData()!.avgProcessingTime > 0 ? dashboardData()!.avgProcessingTime.toFixed(1) : 0 }} hrs
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Quick Actions -->
-      <div class="bg-white overflow-hidden shadow rounded-lg">
-        <div class="p-5">
-          <h3 class="text-lg font-medium text-gray-900 mb-4">Quick Actions</h3>
-          <div class="space-y-2">
-            <button
-              (click)="navigateToApplications()"
-              class="w-full text-left px-4 py-2 text-sm font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              View All Applications
-            </button>
-            @if (hasPendingReview()) {
-              <button
-                (click)="navigateToApplications()"
-                class="w-full text-left px-4 py-2 text-sm font-medium text-yellow-700 bg-yellow-50 hover:bg-yellow-100 rounded-lg transition-colors"
-              >
-                Review Pending Applications
-              </button>
             }
-            @if (hasReadyForDecision()) {
-              <button
-                (click)="navigateToApplications('ready-for-decision')"
-                class="w-full text-left px-4 py-2 text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 rounded-lg transition-colors"
-              >
-                Applications Ready for Decision
-              </button>
-            }
-            <button
-              (click)="navigateToApplications('pending-documents')"
-              class="w-full text-left px-4 py-2 text-sm font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors flex items-center"
-            >
-              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-              </svg>
-              Pending Documents
-            </button>
           </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Recent Applications and Activities -->
-    <div class="grid grid-cols-1 gap-5 lg:grid-cols-2">
-      <!-- Recent Applications -->
-      <div class="bg-white shadow rounded-lg">
-        <div class="px-6 py-4 border-b border-gray-200">
-          <h3 class="text-lg font-medium text-gray-900">Recent Applications</h3>
-        </div>
-        <div class="p-6">
-          @if (recentApplications().length === 0) {
-            <div class="text-center py-8">
-              <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <h3 class="mt-2 text-sm font-medium text-gray-900">No applications</h3>
-              <p class="mt-1 text-sm text-gray-500">No recent applications to display.</p>
-            </div>
-          } @else {
-            <div class="flow-root">
-              <ul class="-my-2 divide-y divide-gray-200">
-                @for (app of recentApplications().slice(0, 5); track app.id; let idx = $index) {
-                  <li class="py-3">
-                    <div class="flex items-center space-x-3">
-                      <div class="flex-shrink-0">
-                        <div class="h-9 w-9 rounded-full bg-blue-100 flex items-center justify-center">
-                          <span class="text-blue-600 font-semibold text-xs">{{ app.applicantName.charAt(0).toUpperCase() }}</span>
-                        </div>
-                      </div>
-                      <div class="flex-1 min-w-0">
-                        <p class="text-sm font-semibold text-gray-900 truncate">
-                          {{ app.applicantName }}
-                        </p>
-                        <p class="text-xs text-gray-500 truncate">
-                          {{ app.loanType }} • {{ formatCurrency(app.requestedAmount) }}
-                        </p>
-                      </div>
-                      <div class="flex-shrink-0 flex flex-col items-end space-y-1">
-                        <span [ngClass]="getStatusBadgeClass(app.status)" 
-                              class="px-2 py-0.5 text-xs font-semibold rounded-full">
-                          {{ app.status.replace('_', ' ') }}
-                        </span>
-                        <button
-                          (click)="viewApplication(app.id)"
-                          class="text-xs text-blue-600 hover:text-blue-800 font-medium"
-                        >
-                          View →
-                        </button>
-                      </div>
-                    </div>
-                  </li>
-                }
-              </ul>
-            </div>
-          }
-        </div>
-        @if (recentApplications().length > 0) {
-          <div class="px-6 py-4 border-t border-gray-200 bg-gray-50">
-            <button
-              (click)="navigateToApplications()"
-              class="text-sm font-medium text-blue-600 hover:text-blue-800"
-            >
-              View all applications →
-            </button>
+        } @else {
+          <div class="text-center py-8 text-gray-500 text-sm">
+            No performance data available
           </div>
         }
       </div>
+    </div>
 
-      <!-- Recent Activities -->
-      <div class="bg-white shadow rounded-lg">
-        <div class="px-6 py-4 border-b border-gray-200">
-          <h3 class="text-lg font-medium text-gray-900">Recent Activities</h3>
-        </div>
-        <div class="p-6">
-          @if (recentActivities().length === 0) {
-            <div class="text-center py-8">
-              <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <h3 class="mt-2 text-sm font-medium text-gray-900">No activities</h3>
-              <p class="mt-1 text-sm text-gray-500">No recent activities to display.</p>
-            </div>
-          } @else {
-            <div class="flow-root">
-              <ul class="-my-2 divide-y divide-gray-200">
-                @for (activity of recentActivities().slice(0, 5); track activity.id; let idx = $index) {
-                  <li class="py-3">
-                    <div class="flex items-start space-x-3">
-                      <div class="flex-shrink-0">
-                        <div class="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
-                          <svg class="h-4 w-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                        </div>
-                      </div>
-                      <div class="flex-1 min-w-0">
-                        <p class="text-sm font-semibold text-gray-900 truncate">
-                          {{ activity.action }}
-                        </p>
-                        <p class="text-xs text-gray-500 truncate">
-                          {{ activity.applicantName }} • #{{ activity.applicationId.substring(0, 8) }}
-                        </p>
-                        <p class="text-xs text-gray-400 mt-0.5">
-                          {{ getTimeAgo(activity.timestamp) }}
-                        </p>
-                      </div>
-                      <div class="flex-shrink-0">
-                        <span [ngClass]="getStatusBadgeClass(activity.status)" 
-                              class="px-2 py-0.5 text-xs font-semibold rounded-full">
-                          {{ activity.status.replace('_', ' ') }}
-                        </span>
-                      </div>
-                    </div>
-                  </li>
-                }
-              </ul>
+    <!-- Todo List - Pending Tasks -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+      <div class="px-6 py-4 border-b border-gray-200">
+        <h2 class="text-lg font-semibold text-gray-900">Pending Tasks</h2>
+      </div>
+      @if (todoList().length > 0) {
+        <div class="divide-y divide-gray-200">
+          @for (todo of todoList(); track todo.id) {
+            <div class="px-6 py-4 hover:bg-gray-50 cursor-pointer" (click)="viewApplication(todo.id)">
+              <div class="flex items-start">
+                <div class="flex-shrink-0 pt-1">
+                  <input type="checkbox" class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded" [disabled]="true">
+                </div>
+                <div class="ml-3 flex-1">
+                  <div class="flex items-center justify-between">
+                    <p class="text-sm font-medium text-gray-900">{{ todo.task }}</p>
+                    <span [class]="'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ' + getPriorityBadgeColor(todo.priority)">
+                      {{ todo.priority }}
+                    </span>
+                  </div>
+                  <p class="mt-1 text-xs text-gray-500">Status: {{ formatStatus(todo.status) }}</p>
+                </div>
+              </div>
             </div>
           }
         </div>
-      </div>
+      } @else {
+        <div class="text-center py-12">
+          <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <h3 class="mt-2 text-sm font-medium text-gray-900">No Pending Tasks</h3>
+          <p class="mt-1 text-sm text-gray-500">All tasks are complete!</p>
+        </div>
+      }
     </div>
   }
 </div>

@@ -36,7 +36,8 @@ export class ApplicationsListComponent implements OnInit {
 
   // Pagination
   currentPage = signal(1);
-  pageSize = signal(10);
+  itemsPerPage = signal(10);
+  itemsPerPageOptions = [5, 10, 25, 50, 100];
 
   // Current filter mode (assigned, pending-documents, ready-for-decision)
   filterMode = signal<string>('assigned');
@@ -348,8 +349,8 @@ export class ApplicationsListComponent implements OnInit {
    * Get paginated applications
    */
   paginatedApplications = computed(() => {
-    const start = (this.currentPage() - 1) * this.pageSize();
-    const end = start + this.pageSize();
+    const start = (this.currentPage() - 1) * this.itemsPerPage();
+    const end = start + this.itemsPerPage();
     return this.filteredApplications().slice(start, end);
   });
 
@@ -357,13 +358,64 @@ export class ApplicationsListComponent implements OnInit {
    * Get total pages
    */
   totalPages = computed(() => {
-    return Math.ceil(this.filteredApplications().length / this.pageSize());
+    return Math.ceil(this.filteredApplications().length / this.itemsPerPage());
   });
+
+  /**
+   * Pagination info
+   */
+  totalItems = computed(() => this.filteredApplications().length);
+  showingFrom = computed(() => {
+    const filtered = this.filteredApplications();
+    return filtered.length === 0 ? 0 : (this.currentPage() - 1) * this.itemsPerPage() + 1;
+  });
+  showingTo = computed(() => {
+    const filtered = this.filteredApplications();
+    const to = this.currentPage() * this.itemsPerPage();
+    return to > filtered.length ? filtered.length : to;
+  });
+  canGoPrevious = computed(() => this.currentPage() > 1);
+  canGoNext = computed(() => this.currentPage() < this.totalPages());
 
   /**
    * Change page
    */
   changePage(page: number): void {
+    if (page >= 1 && page <= this.totalPages()) {
+      this.currentPage.set(page);
+    }
+  }
+
+  /**
+   * Set items per page
+   */
+  setItemsPerPage(value: number): void {
+    this.itemsPerPage.set(value);
+    this.currentPage.set(1);
+  }
+
+  /**
+   * Go to previous page
+   */
+  previousPage(): void {
+    if (this.canGoPrevious()) {
+      this.currentPage.update(p => Math.max(1, p - 1));
+    }
+  }
+
+  /**
+   * Go to next page
+   */
+  nextPage(): void {
+    if (this.canGoNext()) {
+      this.currentPage.update(p => Math.min(this.totalPages(), p + 1));
+    }
+  }
+
+  /**
+   * Go to specific page
+   */
+  goToPage(page: number): void {
     if (page >= 1 && page <= this.totalPages()) {
       this.currentPage.set(page);
     }

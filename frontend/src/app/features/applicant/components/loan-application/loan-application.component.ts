@@ -25,7 +25,7 @@ export class LoanApplicationComponent implements OnInit {
   isLoading = signal(false);
   isCheckingProfile = signal(true);
   currentStep = signal(1);
-  totalSteps = 2;
+  totalSteps = 1; // Single step: directly go to financial/employment after this
 
   // EMI Calculation signals
   calculatedEMI = signal<number>(0);
@@ -118,8 +118,9 @@ export class LoanApplicationComponent implements OnInit {
       loanType: ['', Validators.required],
       loanAmount: ['', [Validators.required, Validators.min(10000), Validators.max(10000000)]],
       tenureMonths: ['', [Validators.required, Validators.min(6), Validators.max(360)]],
-      purpose: ['', [Validators.required, Validators.minLength(10), Validators.maxLength(500)]],
-      additionalNotes: ['', Validators.maxLength(500)]
+      // Purpose will be set automatically based on loan type before submit
+      purpose: [''],
+      additionalNotes: ['']
     });
   }
 
@@ -203,8 +204,6 @@ export class LoanApplicationComponent implements OnInit {
           this.loanApplicationForm.get('loanAmount')?.valid &&
           this.loanApplicationForm.get('tenureMonths')?.valid
         );
-      case 2: // Purpose
-        return !!this.loanApplicationForm.get('purpose')?.valid;
       default:
         return false;
     }
@@ -222,6 +221,13 @@ export class LoanApplicationComponent implements OnInit {
 
     this.isLoading.set(true);
     const formData = this.loanApplicationForm.value as LoanApplicationRequest;
+
+    // Auto-set purpose based on selected loan type if not provided
+    if (!formData.purpose || formData.purpose.trim().length === 0) {
+      formData.purpose = this.getAutoPurposeForLoanType(formData.loanType);
+    }
+    // Ensure additional notes exists
+    formData.additionalNotes = formData.additionalNotes || '';
 
     this.loanApplicationService.createApplication(formData).subscribe({
       next: (response) => {
@@ -253,6 +259,23 @@ export class LoanApplicationComponent implements OnInit {
         this.notificationService.error('Error', errorMessage);
       }
     });
+  }
+
+  /**
+   * Map loan type to a default purpose statement
+   */
+  private getAutoPurposeForLoanType(loanType: string): string {
+    const map: Record<string, string> = {
+      PERSONAL_LOAN: 'Personal financial requirements and contingencies',
+      HOME_LOAN: 'Purchase or construction of residential property',
+      CAR_LOAN: 'Purchase of a new or used car',
+      TWO_WHEELER_LOAN: 'Purchase of a two-wheeler',
+      EDUCATION_LOAN: 'Funding education-related expenses',
+      BUSINESS_LOAN: 'Business expansion and working capital needs',
+      GOLD_LOAN: 'Short-term fund requirement against pledged gold',
+      PROPERTY_LOAN: 'Purchase of commercial or residential property'
+    };
+    return map[loanType] || 'Loan requirement as per selected loan type';
   }
 
   /**
