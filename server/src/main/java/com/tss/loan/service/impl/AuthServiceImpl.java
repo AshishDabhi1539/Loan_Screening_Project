@@ -128,7 +128,11 @@ public class AuthServiceImpl implements AuthService {
             boolean rememberMe = request.isRememberMe();
             String accessToken = jwtTokenProvider.generateToken(user, rememberMe);
             String refreshToken = jwtTokenProvider.generateRefreshToken(user, rememberMe);
-            LocalDateTime expiresAt = jwtTokenProvider.getExpirationDateFromToken(accessToken);
+            
+            // Calculate expiration time directly instead of parsing the token
+            // This avoids potential issues with token validation during login
+            int expirationMs = rememberMe ? (30 * 24 * 60 * 60 * 1000) : 86400000; // 30 days or 24 hours
+            LocalDateTime expiresAt = LocalDateTime.now().plusSeconds(expirationMs / 1000);
             
             // Update last login
             user.setLastLoginAt(LocalDateTime.now());
@@ -270,6 +274,53 @@ public class AuthServiceImpl implements AuthService {
             auditLogService.logAction(null, "OTP_RESEND_ERROR", "OtpVerification", null, 
                 "OTP resend error: " + e.getMessage());
             throw new LoanApiException("Failed to resend OTP: " + e.getMessage());
+        }
+    }
+    
+    @Override
+    public LoginResponse refreshToken(String refreshToken) {
+        try {
+            // Validate refresh token
+            if (!jwtTokenProvider.validateToken(refreshToken)) {
+                throw new LoanApiException("Invalid or expired refresh token");
+            }
+            
+            // Get user from refresh token
+            String userEmail = jwtTokenProvider.getUserEmailFromToken(refreshToken);
+            User user = userService.findByEmail(userEmail);
+            
+            // Validate user status
+            validateUserForLogin(user);
+            
+            // Generate new tokens (preserve remember me if it was a long-lived refresh token)
+            boolean rememberMe = jwtTokenProvider.isLongLivedToken(refreshToken);
+            String newAccessToken = jwtTokenProvider.generateToken(user, rememberMe);
+            String newRefreshToken = jwtTokenProvider.generateRefreshToken(user, rememberMe);
+            
+            // Calculate expiration
+            int expirationMs = rememberMe ? (30 * 24 * 60 * 60 * 1000) : 86400000;
+            LocalDateTime expiresAt = LocalDateTime.now().plusSeconds(expirationMs / 1000);
+            
+            // Get display name
+            String displayName = userDisplayService.getDisplayName(user);
+            
+            // Log token refresh
+            auditLogService.logAction(user, "TOKEN_REFRESH", "User", null,
+                "Access token refreshed successfully");
+            
+            return LoginResponse.builder()
+                .userId(user.getId())
+                .email(user.getEmail())
+                .displayName(displayName)
+                .role(user.getRole().name())
+                .token(newAccessToken)
+                .refreshToken(newRefreshToken)
+                .expiresAt(expiresAt)
+                .message("Token refreshed successfully")
+                .build();
+                
+        } catch (Exception e) {
+            throw new LoanApiException("Token refresh failed: " + e.getMessage());
         }
     }
     
