@@ -691,6 +691,46 @@ export class DashboardComponent implements OnInit {
   }
 
   /**
+   * Get performance chart data for bar chart
+   */
+  getPerformanceChartData(): Array<{ label: string; value: number; color: string; percentage: number }> {
+    const stats = this.dashboardStats();
+    const maxVal = Math.max(
+      stats.totalApplications || 0,
+      stats.activeApplications || 0,
+      stats.approvedApplications || 0,
+      stats.rejectedApplications || 0
+    );
+
+    return [
+      { 
+        label: 'Total Applications', 
+        value: stats.totalApplications || 0, 
+        color: '#3b82f6', 
+        percentage: maxVal > 0 ? ((stats.totalApplications || 0) / maxVal) * 100 : 0 
+      },
+      { 
+        label: 'Active', 
+        value: stats.activeApplications || 0, 
+        color: '#f59e0b', 
+        percentage: maxVal > 0 ? ((stats.activeApplications || 0) / maxVal) * 100 : 0 
+      },
+      { 
+        label: 'Approved', 
+        value: stats.approvedApplications || 0, 
+        color: '#10b981', 
+        percentage: maxVal > 0 ? ((stats.approvedApplications || 0) / maxVal) * 100 : 0 
+      },
+      { 
+        label: 'Rejected', 
+        value: stats.rejectedApplications || 0, 
+        color: '#ef4444', 
+        percentage: maxVal > 0 ? ((stats.rejectedApplications || 0) / maxVal) * 100 : 0 
+      }
+    ].filter(item => item.value > 0);
+  }
+
+  /**
    * Check if profile is incomplete (for fresh customers only)
    * Only show when profile is loaded AND incomplete
    */
