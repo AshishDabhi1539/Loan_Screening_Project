@@ -49,10 +49,12 @@ public class ProfileCompletionServiceImpl implements ProfileCompletionService {
     @Override
     public ProfileStatusResponse getProfileStatus(User user) {
         boolean hasDetails = hasPersonalDetails(user);
+        String displayName = getDisplayName(user);
         
         if (hasDetails) {
             return ProfileStatusResponse.builder()
                 .hasPersonalDetails(true)
+                .displayName(displayName)
                 .message("✅ Personal details completed. You can now apply for loans.")
                 .nextAction("Apply for Loan")
                 .nextActionUrl("/api/loan-application/create")
@@ -60,6 +62,7 @@ public class ProfileCompletionServiceImpl implements ProfileCompletionService {
         } else {
             return ProfileStatusResponse.builder()
                 .hasPersonalDetails(false)
+                .displayName(displayName)
                 .message("⚠️ Personal details required. Please complete your profile to apply for loans.")
                 .nextAction("Complete Profile")
                 .nextActionUrl("/api/loan-application/personal-details")

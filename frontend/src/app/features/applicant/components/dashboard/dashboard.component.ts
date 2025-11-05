@@ -43,12 +43,14 @@ export class DashboardComponent implements OnInit {
   
   // Computed values
   userDisplayName = computed(() => {
-    const profile = this.userProfile();
-    if (profile) {
-      return this.userProfileService.getDisplayName(profile);
-    }
+    // Always prioritize currentUser data from AuthService (has actual name from login)
     const user = this.currentUser();
-    return user?.displayName || user?.email?.split('@')[0] || 'User';
+    if (user?.displayName && user.displayName !== user.email) {
+      return user.displayName;
+    }
+    
+    // Fallback to email username
+    return user?.email?.split('@')[0] || 'User';
   });
 
   canApplyForLoan = computed(() => {
@@ -117,9 +119,14 @@ export class DashboardComponent implements OnInit {
             email: currentUser.email || 'user@example.com',
             role: currentUser.role || 'APPLICANT',
             status: currentUser.status || 'ACTIVE',
-            displayName: currentUser.displayName || currentUser.email?.split('@')[0] || 'User'
+            displayName: profile.displayName || currentUser.displayName || currentUser.email?.split('@')[0] || 'User'
           };
           this.userProfile.set(mergedProfile);
+          
+          // Update AuthService currentUser with displayName from profile
+          if (profile.displayName && profile.displayName !== currentUser.displayName) {
+            this.authService.updateCurrentUser({ displayName: profile.displayName });
+          }
         } else {
           this.userProfile.set(profile);
         }

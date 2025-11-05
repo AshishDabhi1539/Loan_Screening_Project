@@ -7,11 +7,14 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import com.tss.loan.entity.applicant.ApplicantPersonalDetails;
+import com.tss.loan.entity.user.User;
 
 @Repository
 public interface ApplicantPersonalDetailsRepository extends JpaRepository<ApplicantPersonalDetails, UUID> {
     
     Optional<ApplicantPersonalDetails> findByUserId(UUID userId);
+    
+    Optional<ApplicantPersonalDetails> findByUser(User user);
     
     boolean existsByUserId(UUID userId);
     

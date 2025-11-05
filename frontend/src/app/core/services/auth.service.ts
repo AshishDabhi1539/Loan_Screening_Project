@@ -124,6 +124,7 @@ export class AuthService {
           const user: User = {
             id: response.userId,
             email: response.email,
+            displayName: response.displayName || response.email.split('@')[0],
             role: response.role as any,
             status: 'ACTIVE'
           };
@@ -226,6 +227,7 @@ export class AuthService {
           const user: User = {
             id: response.userId,
             email: response.email,
+            displayName: response.displayName || response.email.split('@')[0],
             role: response.role as any,
             status: 'ACTIVE'
           };

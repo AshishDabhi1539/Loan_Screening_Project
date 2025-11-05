@@ -20,6 +20,7 @@ public class LoginResponse {
     private LocalDateTime expiresAt;
     private UUID userId;
     private String email;
+    private String displayName;  // User's full name for display
     private String role;
     private String message;
 }
