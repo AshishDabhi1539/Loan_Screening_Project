@@ -1,192 +1,198 @@
-<div class="min-h-screen bg-gray-50 py-8">
-  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-    <!-- Loading State -->
-    @if (isLoading()) {
-      <div class="flex items-center justify-center py-12">
-        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-      </div>
-    } @else if (personalDetails()) {
-      <!-- Header -->
-      <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
-        <div class="px-6 py-4 border-b border-gray-200">
-          <div class="flex items-center justify-between">
-            <div>
-              <h1 class="text-2xl font-bold text-gray-900">My Profile</h1>
-              <p class="text-sm text-gray-600 mt-1">View your personal information</p>
-            </div>
-            <div>
-              <button
-                type="button"
-                (click)="editProfile()"
-                class="px-4 py-2 text-sm font-medium text-white bg-primary-600 border border-transparent rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+<div class="space-y-6">
+  @if (isLoading()) {
+    <div class="flex items-center justify-center py-12">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      <span class="ml-3 text-gray-600">Loading profile...</span>
+    </div>
+  } @else if (personalDetails()) {
+    <!-- Content -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+      <!-- Basic Info Card -->
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5 lg:col-span-1 self-start">
+        <div class="flex flex-col items-center">
+          <!-- Profile Photo -->
+          <div class="relative mb-4">
+            @if (profilePhotoUrl()) {
+              <img 
+                [src]="profilePhotoUrl()!" 
+                [alt]="applicantName()"
+                class="w-28 h-28 rounded-full object-cover border-4 border-primary-100 shadow-md"
               >
-                <svg class="w-4 h-4 mr-2 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            } @else {
+              <div class="w-28 h-28 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-bold text-3xl border-4 border-primary-200 shadow-md">
+                {{ applicantInitials() }}
+              </div>
+            }
+            
+            <!-- Upload Button Overlay -->
+            <button
+              type="button"
+              (click)="triggerFileInput()"
+              [disabled]="isUploading()"
+              class="absolute bottom-0 right-0 bg-primary-600 hover:bg-primary-700 text-white rounded-full p-2 shadow-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Upload Profile Photo"
+            >
+              @if (isUploading()) {
+                <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                Edit Profile
-              </button>
-            </div>
+              } @else {
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              }
+            </button>
+            
+            <!-- Hidden File Input -->
+            <input
+              type="file"
+              id="profile-photo-input"
+              accept="image/*"
+              (change)="onFileSelected($event)"
+              class="hidden"
+            >
+          </div>
+          
+          <!-- Name and Info -->
+          <div class="text-center">
+            <p class="text-base font-semibold text-gray-900">{{ applicantName() }}</p>
+            <p class="text-sm text-gray-600 mt-1">{{ userEmail() }}</p>
+            <p class="text-sm text-gray-600 mt-1">Role: {{ userRole() }}</p>
+            <button
+              type="button"
+              (click)="editProfile()"
+              class="mt-4 px-4 py-2 text-sm font-medium text-white bg-primary-600 border border-transparent rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+            >
+              <svg class="w-4 h-4 mr-2 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+              Edit Profile
+            </button>
           </div>
         </div>
       </div>
 
-    <!-- Personal Information Card -->
-      <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
-        <div class="px-6 py-4 border-b border-gray-200">
-          <h2 class="text-lg font-semibold text-gray-900">Personal Information</h2>
-          <p class="text-sm text-gray-600 mt-1">Basic personal details and identity information</p>
-        </div>
-        <div class="px-6 py-6">
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <!-- First Name -->
+      <!-- Right: Tabbed Content -->
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 lg:col-span-2">
+        <!-- Content Section -->
+        <div>
+          <div class="space-y-6">
+            <!-- Basic Information -->
             <div>
-              <label class="block text-sm font-medium text-gray-500 mb-1">First Name</label>
-              <p class="text-base font-semibold text-gray-900">{{ personalDetails()?.firstName || 'N/A' }}</p>
-            </div>
-
-            <!-- Middle Name -->
-            <div>
-              <label class="block text-sm font-medium text-gray-500 mb-1">Middle Name</label>
-              <p class="text-base font-semibold text-gray-900">{{ personalDetails()?.middleName || 'N/A' }}</p>
-            </div>
-
-            <!-- Last Name -->
-            <div>
-              <label class="block text-sm font-medium text-gray-500 mb-1">Last Name</label>
-              <p class="text-base font-semibold text-gray-900">{{ personalDetails()?.lastName || 'N/A' }}</p>
-            </div>
-
-            <!-- Date of Birth -->
-            <div>
-              <label class="block text-sm font-medium text-gray-500 mb-1">Date of Birth</label>
-              <p class="text-base font-semibold text-gray-900">{{ formatDate(personalDetails()?.dateOfBirth || '') }}</p>
-            </div>
-
-            <!-- Gender -->
-            <div>
-              <label class="block text-sm font-medium text-gray-500 mb-1">Gender</label>
-              <p class="text-base font-semibold text-gray-900">{{ getGenderDisplay(personalDetails()?.gender || '') }}</p>
-            </div>
-
-            <!-- Marital Status -->
-            <div>
-              <label class="block text-sm font-medium text-gray-500 mb-1">Marital Status</label>
-              <p class="text-base font-semibold text-gray-900">{{ getMaritalStatusDisplay(personalDetails()?.maritalStatus || '') }}</p>
-            </div>
-
-            <!-- Father's Name -->
-            <div>
-              <label class="block text-sm font-medium text-gray-500 mb-1">Father's Name</label>
-              <p class="text-base font-semibold text-gray-900">{{ personalDetails()?.fatherName || 'N/A' }}</p>
-            </div>
-
-            <!-- Mother's Name -->
-            <div>
-              <label class="block text-sm font-medium text-gray-500 mb-1">Mother's Name</label>
-              <p class="text-base font-semibold text-gray-900">{{ personalDetails()?.motherName || 'N/A' }}</p>
-            </div>
-
-            <!-- Spouse Name (conditional) -->
-            @if (personalDetails()?.maritalStatus === 'MARRIED' && personalDetails()?.spouseName) {
-              <div>
-                <label class="block text-sm font-medium text-gray-500 mb-1">Spouse's Name</label>
-                <p class="text-base font-semibold text-gray-900">{{ personalDetails()?.spouseName }}</p>
-              </div>
-            }
-          </div>
-        </div>
-      </div>
-
-      <!-- Identity Information -->
-      <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
-        <div class="px-6 py-4 border-b border-gray-200">
-          <h2 class="text-lg font-semibold text-gray-900">Identity Information</h2>
-          <p class="text-sm text-gray-600 mt-1">Government issued identity documents</p>
-        </div>
-        <div class="px-6 py-6">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- PAN Number -->
-            <div>
-              <label class="block text-sm font-medium text-gray-500 mb-1">PAN Number</label>
-              <p class="text-base font-semibold text-gray-900">{{ personalDetails()?.panNumber || 'N/A' }}</p>
-            </div>
-
-            <!-- Aadhaar Number -->
-            <div>
-              <label class="block text-sm font-medium text-gray-500 mb-1">Aadhaar Number</label>
-              <p class="text-base font-semibold text-gray-900">{{ personalDetails()?.aadhaarNumber || 'N/A' }}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Address Information -->
-      <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
-        <div class="px-6 py-4 border-b border-gray-200">
-          <h2 class="text-lg font-semibold text-gray-900">Address Information</h2>
-          <p class="text-sm text-gray-600 mt-1">Current and permanent address details</p>
-        </div>
-        <div class="px-6 py-6">
-          <!-- Current Address -->
-          <div class="mb-8">
-            <h3 class="text-md font-medium text-gray-900 mb-4">Current Address</h3>
-            <div class="bg-gray-50 rounded-lg p-4">
-              <p class="text-base text-gray-900">
-                {{ personalDetails()?.currentAddressLine1 }}<br>
-                @if (personalDetails()?.currentAddressLine2) {
-                  {{ personalDetails()?.currentAddressLine2 }}<br>
+              <h2 class="text-base font-semibold text-gray-900 mb-3">Basic Information</h2>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p class="text-xs text-gray-500">Full Name</p>
+                  <p class="text-sm font-medium text-gray-900">{{ applicantName() }}</p>
+                </div>
+                <div>
+                  <p class="text-xs text-gray-500">Gender</p>
+                  <p class="text-sm font-medium text-gray-900">{{ getGenderDisplay(personalDetails()!.gender) }}</p>
+                </div>
+                <div>
+                  <p class="text-xs text-gray-500">Date of Birth</p>
+                  <p class="text-sm font-medium text-gray-900">{{ formatDate(personalDetails()!.dateOfBirth) }}</p>
+                </div>
+                <div>
+                  <p class="text-xs text-gray-500">Marital Status</p>
+                  <p class="text-sm font-medium text-gray-900">{{ getMaritalStatusDisplay(personalDetails()!.maritalStatus) }}</p>
+                </div>
+                <div>
+                  <p class="text-xs text-gray-500">Father's Name</p>
+                  <p class="text-sm font-medium text-gray-900">{{ personalDetails()!.fatherName }}</p>
+                </div>
+                <div>
+                  <p class="text-xs text-gray-500">Mother's Name</p>
+                  <p class="text-sm font-medium text-gray-900">{{ personalDetails()!.motherName }}</p>
+                </div>
+                @if (personalDetails()!.maritalStatus === 'MARRIED' && personalDetails()!.spouseName) {
+                  <div>
+                    <p class="text-xs text-gray-500">Spouse's Name</p>
+                    <p class="text-sm font-medium text-gray-900">{{ personalDetails()!.spouseName }}</p>
+                  </div>
                 }
-                {{ personalDetails()?.currentCity }}, {{ personalDetails()?.currentState }} - {{ personalDetails()?.currentPincode }}
-              </p>
-            </div>
-          </div>
-
-          <!-- Permanent Address -->
-          @if (!personalDetails()?.sameAsCurrent) {
-            <div>
-              <h3 class="text-md font-medium text-gray-900 mb-4">Permanent Address</h3>
-              <div class="bg-gray-50 rounded-lg p-4">
-                <p class="text-base text-gray-900">
-                  {{ personalDetails()?.permanentAddressLine1 }}<br>
-                  @if (personalDetails()?.permanentAddressLine2) {
-                    {{ personalDetails()?.permanentAddressLine2 }}<br>
-                  }
-                  {{ personalDetails()?.permanentCity }}, {{ personalDetails()?.permanentState }} - {{ personalDetails()?.permanentPincode }}
-                </p>
+                @if (personalDetails()!.dependentsCount !== undefined) {
+                  <div>
+                    <p class="text-xs text-gray-500">Number of Dependents</p>
+                    <p class="text-sm font-medium text-gray-900">{{ personalDetails()!.dependentsCount }}</p>
+                  </div>
+                }
               </div>
             </div>
-          } @else {
-            <div>
-              <p class="text-sm text-gray-600 italic">Permanent address is same as current address</p>
-            </div>
-          }
-        </div>
-      </div>
 
-      <!-- Additional Information -->
-      <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
-        <div class="px-6 py-4 border-b border-gray-200">
-          <h2 class="text-lg font-semibold text-gray-900">Additional Information</h2>
-          <p class="text-sm text-gray-600 mt-1">Optional additional details</p>
-        </div>
-        <div class="px-6 py-6">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Alternate Phone Number -->
-            @if (personalDetails()?.alternatePhoneNumber) {
-              <div>
-                <label class="block text-sm font-medium text-gray-500 mb-1">Alternate Phone Number</label>
-                <p class="text-base font-semibold text-gray-900">{{ personalDetails()?.alternatePhoneNumber }}</p>
+            <!-- Identity Information -->
+            <div>
+              <h2 class="text-base font-semibold text-gray-900 mb-3">Identity Information</h2>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p class="text-xs text-gray-500">PAN Number</p>
+                  <p class="text-sm font-medium text-gray-900">{{ personalDetails()!.panNumber }}</p>
+                </div>
+                <div>
+                  <p class="text-xs text-gray-500">Aadhaar Number</p>
+                  <p class="text-sm font-medium text-gray-900">{{ personalDetails()!.aadhaarNumber }}</p>
+                </div>
               </div>
-            }
+            </div>
 
-            <!-- Number of Dependents -->
+            <!-- Contact Information -->
             <div>
-              <label class="block text-sm font-medium text-gray-500 mb-1">Number of Dependents</label>
-              <p class="text-base font-semibold text-gray-900">{{ personalDetails()?.dependentsCount || 0 }}</p>
+              <h2 class="text-base font-semibold text-gray-900 mb-3">Contact Information</h2>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p class="text-xs text-gray-500">E-mail</p>
+                  <p class="text-sm font-medium text-primary-700">{{ userEmail() }}</p>
+                </div>
+                @if (personalDetails()!.alternatePhoneNumber) {
+                  <div>
+                    <p class="text-xs text-gray-500">Alternate Phone</p>
+                    <p class="text-sm font-medium text-gray-900">{{ personalDetails()!.alternatePhoneNumber }}</p>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- Address Information -->
+            <div>
+              <h2 class="text-base font-semibold text-gray-900 mb-3">Address Information</h2>
+              <div class="space-y-4">
+                <div>
+                  <p class="text-xs text-gray-500 mb-2">Current Address</p>
+                  <div class="bg-gray-50 rounded-lg p-3">
+                    <p class="text-sm text-gray-900">
+                      {{ personalDetails()!.currentAddressLine1 }}<br>
+                      @if (personalDetails()!.currentAddressLine2) {
+                        {{ personalDetails()!.currentAddressLine2 }}<br>
+                      }
+                      {{ personalDetails()!.currentCity }}, {{ personalDetails()!.currentState }} - {{ personalDetails()!.currentPincode }}
+                    </p>
+                  </div>
+                </div>
+                @if (!personalDetails()!.sameAsCurrent) {
+                  <div>
+                    <p class="text-xs text-gray-500 mb-2">Permanent Address</p>
+                    <div class="bg-gray-50 rounded-lg p-3">
+                      <p class="text-sm text-gray-900">
+                        {{ personalDetails()!.permanentAddressLine1 }}<br>
+                        @if (personalDetails()!.permanentAddressLine2) {
+                          {{ personalDetails()!.permanentAddressLine2 }}<br>
+                        }
+                        {{ personalDetails()!.permanentCity }}, {{ personalDetails()!.permanentState }} - {{ personalDetails()!.permanentPincode }}
+                      </p>
+                    </div>
+                  </div>
+                } @else {
+                  <div>
+                    <p class="text-xs text-gray-500 italic">Permanent address is same as current address</p>
+                  </div>
+                }
+              </div>
             </div>
           </div>
         </div>
       </div>
-    }
-  </div>
+    </div>
+  }
 </div>

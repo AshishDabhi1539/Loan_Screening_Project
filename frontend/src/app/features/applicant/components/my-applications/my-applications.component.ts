@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 
@@ -25,11 +25,49 @@ export class MyApplicationsComponent implements OnInit {
   applications = signal<LoanApplicationSummary[]>([]);
   filterStatus = signal<string>('ALL');
 
+  // Pagination signals
+  currentPage = signal(1);
+  itemsPerPage = signal(10);
+  itemsPerPageOptions = [5, 10, 25, 50, 100];
+
   filteredApplications = computed(() => {
     const status = this.filterStatus();
     if (status === 'ALL') return this.applications();
     return this.applications().filter(a => a.status === status);
   });
+
+  // Computed: Paginated applications
+  paginatedApplications = computed(() => {
+    const filtered = this.filteredApplications();
+    const start = (this.currentPage() - 1) * this.itemsPerPage();
+    const end = start + this.itemsPerPage();
+    return filtered.slice(start, end);
+  });
+
+  // Computed: Pagination info
+  totalPages = computed(() => Math.ceil(this.filteredApplications().length / this.itemsPerPage()));
+  totalItems = computed(() => this.filteredApplications().length);
+  showingFrom = computed(() => {
+    const filtered = this.filteredApplications();
+    return filtered.length === 0 ? 0 : (this.currentPage() - 1) * this.itemsPerPage() + 1;
+  });
+  showingTo = computed(() => {
+    const filtered = this.filteredApplications();
+    const to = this.currentPage() * this.itemsPerPage();
+    return to > filtered.length ? filtered.length : to;
+  });
+  canGoPrevious = computed(() => this.currentPage() > 1);
+  canGoNext = computed(() => this.currentPage() < this.totalPages());
+
+  constructor() {
+    // Reset to first page when filter changes
+    effect(() => {
+      this.filterStatus();
+      if (this.applications().length > 0) {
+        this.currentPage.set(1);
+      }
+    });
+  }
 
   ngOnInit(): void {
     this.loadApplications();
@@ -83,6 +121,41 @@ export class MyApplicationsComponent implements OnInit {
     this.filterStatus.set(status);
   }
 
+  /**
+   * Change items per page
+   */
+  onItemsPerPageChange(value: number): void {
+    this.itemsPerPage.set(value);
+    this.currentPage.set(1);
+  }
+
+  /**
+   * Go to previous page
+   */
+  previousPage(): void {
+    if (this.canGoPrevious()) {
+      this.currentPage.update(page => page - 1);
+    }
+  }
+
+  /**
+   * Go to next page
+   */
+  nextPage(): void {
+    if (this.canGoNext()) {
+      this.currentPage.update(page => page + 1);
+    }
+  }
+
+  /**
+   * Go to specific page
+   */
+  goToPage(page: number): void {
+    if (page >= 1 && page <= this.totalPages()) {
+      this.currentPage.set(page);
+    }
+  }
+
   getStatusDisplay(status: string): string {
     return this.dashboardService.getStatusDisplay(status);
   }
@@ -100,33 +173,57 @@ export class MyApplicationsComponent implements OnInit {
   }
 
   viewApplication(applicationId: string): void {
+    // Always navigate to application-details page
+    this.router.navigate(['/applicant/application-details', applicationId]);
+  }
+
+  /**
+   * Resume incomplete application - navigate to the step where user left off
+   * Application flow: Apply for Loan -> Employment Details -> Document Upload -> Submit
+   */
+  resumeApplication(applicationId: string): void {
     const app = this.applications().find(a => a.id === applicationId);
+    
     if (!app) {
       this.notificationService.error('Error', 'Application not found');
       return;
     }
 
-    // Draft vs submitted handling similar to dashboard
+    // Only resume if status is DRAFT
     if (app.status !== 'DRAFT') {
-      this.router.navigate(['/applicant/application-details', app.id]);
       return;
     }
 
-    // For draft, navigate to personal or employment based on what we know
-    if (!app.hasPersonalDetails) {
-      this.router.navigate(['/applicant/personal-details']);
-      return;
-    }
-    if (!app.hasFinancialProfile) {
+    // Check if employment details are filled (hasFinancialProfile = true means employment details are complete)
+    const employmentDetailsFilled = app.hasFinancialProfile === true;
+
+    if (!employmentDetailsFilled) {
+      // Step 1: Employment & Financial Details not filled -> go to employment-details
+      this.notificationService.info('Continue Application', 'Please complete employment and financial details');
       this.router.navigate(['/applicant/employment-details'], {
         queryParams: { applicationId: app.id }
       });
       return;
     }
 
-    this.router.navigate(['/applicant/document-upload'], {
-      queryParams: { applicationId: app.id }
-    });
+    // Step 2: Employment details are filled -> go directly to document upload
+    // Check if documents are uploaded
+    const documentsUploaded = app.documentsCount && app.documentsCount > 0;
+
+    if (!documentsUploaded) {
+      this.notificationService.info('Upload Documents', 'Please upload required documents');
+      this.router.navigate(['/applicant/document-upload'], {
+        queryParams: {
+          applicationId: app.id,
+          employmentType: app.employmentType || 'SALARIED'
+        }
+      });
+      return;
+    }
+
+    // Step 3: All application steps complete but still DRAFT -> show summary for final submission
+    this.notificationService.info('Application Ready', 'Your application is ready for submission');
+    this.router.navigate(['/applicant/application-details', app.id]);
   }
 }
 

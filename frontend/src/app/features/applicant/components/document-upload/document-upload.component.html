@@ -203,13 +203,13 @@
     <div class="mt-8  p-6">
       <div class="flex justify-end items-center gap-3">
         <button type="button" (click)="saveAndExit()"
-          class="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-semibold">
+          class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium">
           Save & Exit
         </button>
 
         <button type="button" (click)="submitAndContinue()"
           [disabled]="!isComplete()"
-          class="px-8 py-3 text-white rounded-lg transition-all duration-200 font-semibold"
+          class="px-4 py-2 text-white rounded-lg transition-all duration-200 text-sm font-medium"
           [class.bg-primary-600]="isComplete()"
           [class.hover:bg-primary-700]="isComplete()"
           [class.bg-gray-300]="!isComplete()"
@@ -217,7 +217,7 @@
           @if (isComplete()) {
             <span class="flex items-center">
               <span>Submit & Continue</span>
-              <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
               </svg>
             </span>

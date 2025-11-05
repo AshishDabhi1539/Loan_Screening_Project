@@ -279,4 +279,11 @@ export class UserProfileService {
       })
     );
   }
+
+  /**
+   * Upload profile photo for applicant
+   */
+  uploadProfilePhoto(file: File): Observable<string> {
+    return this.apiService.uploadFile<string>('/applicant/profile/profile-photo', file);
+  }
 }

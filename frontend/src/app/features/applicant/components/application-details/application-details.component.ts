@@ -25,6 +25,9 @@ export class ApplicationDetailsComponent implements OnInit {
 
   isLoading = signal(false);
   app = signal<LoanApplicationResponse | null>(null);
+  applicationSummary = signal<any | null>(null);
+  documents = signal<any[]>([]);
+  isLoadingDocuments = signal(false);
 
   ngOnInit(): void {
     const qpId = this.route.snapshot.queryParamMap.get('applicationId');
@@ -43,12 +46,64 @@ export class ApplicationDetailsComponent implements OnInit {
     this.loanAppService.getApplicationById(id).subscribe({
       next: (data) => {
         this.app.set(data);
+        // Also fetch application summary to get progress info (hasPersonalDetails, hasFinancialProfile, documentsCount)
+        this.loadApplicationSummary(id);
+        // Load documents for submitted applications
+        if (data.status !== 'DRAFT') {
+          this.loadDocuments(id);
+        }
         this.isLoading.set(false);
       },
       error: (err) => {
         console.error('Failed to load application', err);
         this.notification.error('Error', 'Could not load application');
         this.isLoading.set(false);
+      }
+    });
+  }
+
+  /**
+   * Load documents for the application
+   */
+  private loadDocuments(applicationId: string): void {
+    this.isLoadingDocuments.set(true);
+    this.loanAppService.getDocuments(applicationId).subscribe({
+      next: (docs) => {
+        this.documents.set(docs || []);
+        this.isLoadingDocuments.set(false);
+      },
+      error: (err) => {
+        console.error('Failed to load documents', err);
+        this.documents.set([]);
+        this.isLoadingDocuments.set(false);
+      }
+    });
+  }
+
+  /**
+   * Load application summary to get progress information
+   * The API response includes hasPersonalDetails, hasFinancialProfile, documentsCount, employmentType
+   * even though they're not in the LoanApplicationResponse interface
+   */
+  private loadApplicationSummary(id: string): void {
+    this.loanAppService.getMyApplications().subscribe({
+      next: (apps) => {
+        // Find the application - API response may have additional fields
+        const summary = (apps as any[]).find((a: any) => a.id === id);
+        if (summary) {
+          // Extract progress information from API response
+          this.applicationSummary.set({
+            hasPersonalDetails: summary.hasPersonalDetails,
+            hasFinancialProfile: summary.hasFinancialProfile,
+            documentsCount: summary.documentsCount || 0,
+            employmentType: summary.employmentType
+          });
+        }
+      },
+      error: (err) => {
+        console.error('Failed to load application summary', err);
+        // Don't show error to user, just continue without summary data
+        // Resume button will still work but may not route as intelligently
       }
     });
   }
@@ -208,10 +263,56 @@ export class ApplicationDetailsComponent implements OnInit {
     window.print();
   }
 
-  viewDocuments(): void {
-    const application = this.app();
-    if (!application) return;
-    this.router.navigate(['/applicant/document-viewer', application.id]);
+  /**
+   * Download a specific document
+   */
+  downloadDocument(documentId: number, fileName: string): void {
+    this.apiService.downloadFile(`/loan-application/documents/${documentId}/download`).subscribe({
+      next: (blob: Blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        a.click();
+        window.URL.revokeObjectURL(url);
+      },
+      error: () => {
+        this.notification.error('Download failed', 'Unable to download document');
+      }
+    });
+  }
+
+  /**
+   * Get document type display name
+   */
+  getDocumentTypeDisplay(documentType: string): string {
+    return documentType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  }
+
+  /**
+   * Format file size
+   */
+  formatFileSize(bytes: number): string {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+  }
+
+  /**
+   * Format date for display
+   */
+  formatDate(date: Date | string): string {
+    if (!date) return 'N/A';
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    return dateObj.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   }
 
   editApplication(): void {
@@ -223,6 +324,60 @@ export class ApplicationDetailsComponent implements OnInit {
         mode: 'edit'
       } 
     });
+  }
+
+  /**
+   * Resume incomplete application - navigate to the step where user left off
+   * Application flow: Apply for Loan -> Employment Details -> Document Upload -> Submit
+   */
+  resumeApplication(): void {
+    const application = this.app();
+    const summary = this.applicationSummary();
+    
+    if (!application) return;
+
+    // Only resume if status is DRAFT
+    if (application.status !== 'DRAFT') {
+      return;
+    }
+
+    // Check if employment details are filled (hasFinancialProfile = true means employment details are complete)
+    const employmentDetailsFilled = summary?.hasFinancialProfile === true;
+
+    if (!employmentDetailsFilled) {
+      // Step 1: Employment & Financial Details not filled -> go to employment-details
+      this.notification.info('Continue Application', 'Please complete employment and financial details');
+      this.router.navigate(['/applicant/employment-details'], {
+        queryParams: { applicationId: application.id }
+      });
+      return;
+    }
+
+    // Step 2: Employment details are filled -> go directly to document upload
+    // Check if documents are uploaded
+    const documentsUploaded = summary?.documentsCount && summary.documentsCount > 0;
+
+    if (!documentsUploaded) {
+      this.notification.info('Upload Documents', 'Please upload required documents');
+      this.router.navigate(['/applicant/document-upload'], {
+        queryParams: {
+          applicationId: application.id,
+          employmentType: summary?.employmentType || 'SALARIED'
+        }
+      });
+      return;
+    }
+
+    // Step 3: All application steps complete but still DRAFT -> show summary for final submission
+    this.notification.info('Application Ready', 'Your application is ready for submission');
+  }
+
+  /**
+   * Check if application is incomplete (DRAFT status)
+   */
+  isIncomplete(): boolean {
+    const application = this.app();
+    return application?.status === 'DRAFT';
   }
 
   getLoanTypeDisplay(loanType: string): string {
