@@ -16,6 +16,11 @@ export interface NavigationItem {
   children?: NavigationItem[];
 }
 
+export interface Breadcrumb {
+  label: string;
+  route: string | null;
+}
+
 @Component({
   selector: 'app-main-layout',
   standalone: true,
@@ -38,6 +43,7 @@ export class MainLayoutComponent {
   userMenuOpen = signal(false);
   mobileMenuOpen = signal(false);
   pageTitle = signal('Dashboard');
+  breadcrumbs = signal<Breadcrumb[]>([]);
 
   // Navigation items based on roles
   private navigationItems: NavigationItem[] = [
@@ -219,15 +225,17 @@ export class MainLayoutComponent {
   });
 
   constructor() {
-    // Listen to route changes and update page title
+    // Listen to route changes and update page title and breadcrumbs
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
     ).subscribe(() => {
       this.updatePageTitle();
+      this.updateBreadcrumbs();
     });
     
-    // Set initial page title
+    // Set initial page title and breadcrumbs
     this.updatePageTitle();
+    this.updateBreadcrumbs();
   }
 
   /**
@@ -262,7 +270,7 @@ export class MainLayoutComponent {
       } else if (segments.includes('document-upload')) {
         this.pageTitle.set('Document Upload');
       } else if (segments.includes('employment-details')) {
-        this.pageTitle.set('Employment Details');
+        this.pageTitle.set('Employment & Financial Details');
       } else if (segments.includes('personal-details')) {
         this.pageTitle.set('Personal Details');
       } else if (segments.includes('notifications')) {
@@ -294,6 +302,162 @@ export class MainLayoutComponent {
         this.pageTitle.set('Dashboard');
       }
     }
+  }
+
+  /**
+   * Generate breadcrumbs based on current route
+   */
+  private updateBreadcrumbs(): void {
+    const currentUrl = this.router.url;
+    const urlWithoutQuery = currentUrl.split('?')[0];
+    const segments = urlWithoutQuery.split('/').filter(s => s);
+    
+    const crumbs: Breadcrumb[] = [];
+    
+    // Route label mapping
+    const routeLabels: { [key: string]: string } = {
+      'applications': 'My Applications',
+      'application-details': 'Application Details',
+      'document-upload': 'Document Upload',
+      'employment-details': 'Employment Details',
+      'application-summary': 'Application Summary',
+      'document-resubmission': 'Document Resubmission',
+      'compliance-document-resubmission': 'Document Resubmission',
+      'document-viewer': 'Documents',
+      'apply-loan': 'Apply for Loan',
+      'personal-details': 'Personal Details',
+      'profile': 'Profile',
+      'assigned': 'Assigned Applications',
+      'post-compliance': 'Post-Compliance Review',
+      'ready-for-decision': 'Ready for Decision',
+      'completed': 'Application History',
+      'decision': 'Ready for Decision',
+      'history': 'Application History'
+    };
+    
+    // Find the best matching navigation item (parent route)
+    let matchedNavItem: NavigationItem | null = null;
+    let matchedPath = '';
+    
+    // Try to find the longest matching navigation item
+    for (const navItem of this.navigationItems) {
+      const navSegments = navItem.route.split('/').filter(s => s);
+      if (navSegments.length > 0 && segments.length >= navSegments.length) {
+        // Check if all nav segments match
+        const matches = navSegments.every((seg, idx) => segments[idx] === seg);
+        if (matches && navItem.route.length > matchedPath.length) {
+          matchedNavItem = navItem;
+          matchedPath = navItem.route;
+        }
+      }
+    }
+    
+    // Start breadcrumb from the matched navigation item
+    if (matchedNavItem) {
+      const navSegments = matchedNavItem.route.split('/').filter(s => s);
+      const isExactMatch = segments.length === navSegments.length || 
+                          (segments.length === navSegments.length + 1 && 
+                           /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(segments[navSegments.length]));
+      
+      // Add the navigation item as first breadcrumb (clickable if not exact match)
+      crumbs.push({
+        label: matchedNavItem.label,
+        route: isExactMatch ? null : matchedNavItem.route
+      });
+      
+      // Add child segments after the nav item
+      for (let i = navSegments.length; i < segments.length; i++) {
+        const segment = segments[i];
+        
+        // Skip UUIDs
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(segment);
+        if (isUUID) {
+          continue;
+        }
+        
+        const isLast = i === segments.length - 1 || 
+                      (i === segments.length - 2 && segments[i + 1] && 
+                       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(segments[i + 1]));
+        
+        let label = routeLabels[segment] || segment
+          .split('-')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ');
+        
+        // Build parent route for nested items
+        let route: string | null = null;
+        if (!isLast) {
+          const parentSegments = segments.slice(0, i + 1);
+          route = '/' + parentSegments.join('/');
+        }
+        
+        // Special handling for nested routes
+        if (segment === 'application-details' && segments.includes('applications')) {
+          route = '/applicant/applications';
+        } else if (segment === 'document-viewer' && segments.includes('applications')) {
+          route = '/applicant/applications';
+        } else if (segment === 'employment-details') {
+          route = '/applicant/apply-loan';
+        } else if (segment === 'document-upload') {
+          // Document upload is part of loan application flow
+          if (segments.includes('apply-loan') || segments.includes('employment-details')) {
+            route = '/applicant/apply-loan';
+          }
+        }
+        
+        if (label && !crumbs.some(c => c.label === label)) {
+          crumbs.push({ label, route });
+        }
+      }
+    } else {
+      // No matching nav item found, build breadcrumbs from segments
+      let currentPath = '';
+      for (let i = 0; i < segments.length; i++) {
+        const segment = segments[i];
+        
+        // Skip UUIDs
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(segment);
+        if (isUUID) {
+          continue;
+        }
+        
+        currentPath += '/' + segment;
+        const isLast = i === segments.length - 1 || 
+                      (i === segments.length - 2 && segments[i + 1] && 
+                       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(segments[i + 1]));
+        
+        let label = routeLabels[segment] || segment
+          .split('-')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ');
+        
+        const route: string | null = isLast ? null : currentPath;
+        
+        if (label && !crumbs.some(c => c.label === label)) {
+          crumbs.push({ label, route });
+        }
+      }
+    }
+    
+    // If no breadcrumbs generated, add Dashboard as fallback
+    if (crumbs.length === 0) {
+      const role = this.userRole();
+      let dashboardRoute = '/applicant/dashboard';
+      
+      if (role === 'APPLICANT') {
+        dashboardRoute = '/applicant/dashboard';
+      } else if (role === 'LOAN_OFFICER' || role === 'SENIOR_LOAN_OFFICER') {
+        dashboardRoute = '/loan-officer/dashboard';
+      } else if (role === 'COMPLIANCE_OFFICER' || role === 'SENIOR_COMPLIANCE_OFFICER') {
+        dashboardRoute = '/compliance-officer/dashboard';
+      } else if (role === 'ADMIN') {
+        dashboardRoute = '/admin/dashboard';
+      }
+      
+      crumbs.push({ label: 'Dashboard', route: dashboardRoute });
+    }
+    
+    this.breadcrumbs.set(crumbs);
   }
 
   /**
