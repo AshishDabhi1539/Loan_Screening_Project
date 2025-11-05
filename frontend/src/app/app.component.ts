@@ -1,6 +1,7 @@
 import { Component, inject, OnInit } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { RouterOutlet, Router, NavigationEnd, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { filter } from 'rxjs/operators';
 
 import { AuthService } from './core/services/auth.service';
 import { NotificationService } from './core/services/notification.service';
@@ -10,7 +11,7 @@ import { MainLayoutComponent } from './shared/components/layout/main-layout.comp
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, CommonModule, ToastComponent, MainLayoutComponent],
+  imports: [RouterOutlet, RouterModule, CommonModule, ToastComponent, MainLayoutComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css'
 })
@@ -19,15 +20,26 @@ export class AppComponent implements OnInit {
   
   private authService = inject(AuthService);
   private notificationService = inject(NotificationService);
+  private router = inject(Router);
 
   // Expose auth state to template
   isAuthenticated = this.authService.isAuthenticated;
   currentUser = this.authService.currentUser;
   isLoading = this.authService.isLoading;
+  
+  // Track current route
+  currentRoute = '';
 
   ngOnInit() {
-    // Test notification service
-    this.notificationService.info('System Ready', 'Loan Screening Application is ready to use!');
+    // Track route changes
+    this.router.events.pipe(
+      filter(event => event instanceof NavigationEnd)
+    ).subscribe((event: any) => {
+      this.currentRoute = event.url;
+    });
+    
+    // Set initial route
+    this.currentRoute = this.router.url;
   }
 
   testNotification(type: 'success' | 'error' | 'warning' | 'info') {

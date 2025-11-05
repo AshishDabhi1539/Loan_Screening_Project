@@ -3,11 +3,10 @@ import { AuthGuard } from './core/guards/auth.guard';
 import { RoleGuard } from './core/guards/role.guard';
 
 export const routes: Routes = [
-  // Default redirect
+  // Landing page
   {
     path: '',
-    redirectTo: '/auth/login',
-    pathMatch: 'full'
+    loadComponent: () => import('./features/landing/components/landing/landing.component').then(m => m.LandingComponent)
   },
   
   // Authentication routes (public)
