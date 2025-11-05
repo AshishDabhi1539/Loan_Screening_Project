@@ -57,9 +57,11 @@ export class ErrorInterceptor implements HttpInterceptor {
         });
 
         // Handle specific error scenarios
-        if (error.status === 401) {
-          // Redirect to login for unauthorized access
-          this.router.navigate(['/auth/login']);
+        // Note: 401 errors are handled by AuthInterceptor for token refresh
+        // Only redirect if it's not an auth endpoint (which means refresh failed)
+        if (error.status === 401 && !req.url.includes('/auth/')) {
+          // Only redirect if we're not already on login page and auth interceptor couldn't refresh
+          // The auth interceptor will handle logout, so we don't need to redirect here
         }
 
         return throwError(() => ({

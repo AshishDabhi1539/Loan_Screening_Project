@@ -48,7 +48,8 @@ export class InAppNotificationService {
    */
   getUnreadNotifications(): Observable<InAppNotification[]> {
     this.loadingSignal.set(true);
-    return this.http.get<InAppNotification[]>(`${this.API_URL}/unread`).pipe(
+    return this.http.get<NotificationPage>(`${this.API_URL}/unread`).pipe(
+      map(page => page.content),
       tap(notifications => {
         this.notificationsSignal.set(notifications);
         this.unreadCountSignal.set(notifications.length);

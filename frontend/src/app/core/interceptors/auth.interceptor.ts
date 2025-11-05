@@ -55,6 +55,16 @@ export class AuthInterceptor implements HttpInterceptor {
    * Handle 401 unauthorized errors with token refresh
    */
   private handle401Error(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
+    // Check if we have a refresh token before attempting refresh
+    const refreshToken = localStorage.getItem(environment.auth.refreshTokenKey) || 
+                        sessionStorage.getItem(environment.auth.refreshTokenKey);
+    
+    if (!refreshToken) {
+      // No refresh token available, logout immediately
+      this.authService.logout();
+      return throwError(() => new Error('No refresh token available'));
+    }
+    
     if (!this.isRefreshing) {
       this.isRefreshing = true;
       this.refreshTokenSubject.next(null);
@@ -62,13 +72,15 @@ export class AuthInterceptor implements HttpInterceptor {
       return this.authService.refreshToken().pipe(
         switchMap((response: any) => {
           this.isRefreshing = false;
-          this.refreshTokenSubject.next(response.data.token);
+          const newToken = response.token || response.data?.token;
+          this.refreshTokenSubject.next(newToken);
           
           // Retry the original request with new token
           return next.handle(this.addTokenHeader(request));
         }),
         catchError((error) => {
           this.isRefreshing = false;
+          this.refreshTokenSubject.next(null); // Signal failure to waiting requests
           
           // Refresh failed, logout user
           this.authService.logout();
@@ -76,11 +88,18 @@ export class AuthInterceptor implements HttpInterceptor {
         })
       );
     } else {
-      // Wait for refresh to complete
+      // Wait for refresh to complete, but timeout after 5 seconds
       return this.refreshTokenSubject.pipe(
         filter(token => token !== null),
         take(1),
-        switchMap(() => next.handle(this.addTokenHeader(request)))
+        switchMap((token) => {
+          if (token) {
+            return next.handle(this.addTokenHeader(request));
+          } else {
+            // Refresh failed, return error
+            return throwError(() => new Error('Token refresh failed'));
+          }
+        })
       );
     }
   }

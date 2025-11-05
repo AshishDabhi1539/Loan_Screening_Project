@@ -128,7 +128,7 @@ export class AuthService {
             role: response.role as any,
             status: 'ACTIVE'
           };
-          this.setAuthData(response.token, response.refreshToken, user);
+          this.setAuthData(response.token, response.refreshToken, user, credentials.rememberMe || false);
         }
       }),
       catchError(error => {
@@ -221,6 +221,9 @@ export class AuthService {
       return throwError(() => new Error('No refresh token available'));
     }
 
+    // Preserve remember me setting
+    const rememberMe = this.isRememberMeEnabled();
+
     return this.apiService.post<LoginResponse>('/auth/refresh-token', { refreshToken }).pipe(
       tap(response => {
         if (response.token) {
@@ -231,7 +234,8 @@ export class AuthService {
             role: response.role as any,
             status: 'ACTIVE'
           };
-          this.setAuthData(response.token, response.refreshToken, user);
+          // Preserve remember me setting when refreshing
+          this.setAuthData(response.token, response.refreshToken, user, rememberMe);
         }
       }),
       catchError(error => {
@@ -254,20 +258,34 @@ export class AuthService {
   }
 
   /**
-   * Set authentication data
+   * Set authentication data with Remember Me support
    */
-  private setAuthData(token: string, refreshToken: string, user: User): void {
-    localStorage.setItem(environment.auth.tokenKey, token);
-    localStorage.setItem(environment.auth.refreshTokenKey, refreshToken);
+  private setAuthData(token: string, refreshToken: string, user: User, rememberMe: boolean = false): void {
+    // Clear old tokens from both storages first to prevent using expired tokens
+    this.clearAuthData();
+    
+    // Use localStorage for Remember Me, sessionStorage otherwise
+    const storage = rememberMe ? localStorage : sessionStorage;
+    
+    storage.setItem(environment.auth.tokenKey, token);
+    storage.setItem(environment.auth.refreshTokenKey, refreshToken);
+    storage.setItem(environment.auth.rememberMeKey, rememberMe.toString());
     
     this._currentUser.set(user);
     this._isAuthenticated.set(true);
     
-    // Connect to SSE for real-time notifications
-    this.sseService.connect(token);
-    
-    // Load initial notification count
-    this.notificationService.getUnreadCount().subscribe();
+    // Delay SSE connection and notification loading to ensure token is available
+    setTimeout(() => {
+      // Only connect if we still have a valid token (prevent using expired tokens)
+      const currentToken = this.getStoredToken();
+      if (currentToken === token && !this.isTokenExpired()) {
+        // Connect to SSE for real-time notifications
+        this.sseService.connect(token);
+        
+        // Load initial notification count
+        this.notificationService.getUnreadCount().subscribe();
+      }
+    }, 100);
     
     // Only navigate after login, not during initialization
     if (!this.isInitializing()) {
@@ -276,11 +294,17 @@ export class AuthService {
   }
 
   /**
-   * Clear authentication data
+   * Clear authentication data from both storages
    */
   private clearAuthData(): void {
+    // Clear from both localStorage and sessionStorage
     localStorage.removeItem(environment.auth.tokenKey);
     localStorage.removeItem(environment.auth.refreshTokenKey);
+    localStorage.removeItem(environment.auth.rememberMeKey);
+    
+    sessionStorage.removeItem(environment.auth.tokenKey);
+    sessionStorage.removeItem(environment.auth.refreshTokenKey);
+    sessionStorage.removeItem(environment.auth.rememberMeKey);
     
     // Disconnect from SSE
     this.sseService.disconnect();
@@ -293,17 +317,28 @@ export class AuthService {
   }
 
   /**
-   * Get stored token
+   * Get stored token from either storage
    */
   getStoredToken(): string | null {
-    return localStorage.getItem(environment.auth.tokenKey);
+    return localStorage.getItem(environment.auth.tokenKey) || 
+           sessionStorage.getItem(environment.auth.tokenKey);
   }
 
   /**
-   * Get stored refresh token
+   * Get stored refresh token from either storage
    */
   private getStoredRefreshToken(): string | null {
-    return localStorage.getItem(environment.auth.refreshTokenKey);
+    return localStorage.getItem(environment.auth.refreshTokenKey) || 
+           sessionStorage.getItem(environment.auth.refreshTokenKey);
+  }
+
+  /**
+   * Check if Remember Me is enabled
+   */
+  private isRememberMeEnabled(): boolean {
+    const rememberMe = localStorage.getItem(environment.auth.rememberMeKey) || 
+                       sessionStorage.getItem(environment.auth.rememberMeKey);
+    return rememberMe === 'true';
   }
 
   /**

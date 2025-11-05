@@ -198,14 +198,25 @@ export class MainLayoutComponent {
     );
   });
 
-  // User display name
+  // User display name - shows only first name and last name
   userDisplayName = computed(() => {
     const user = this.currentUser();
     if (!user) return 'Guest';
     
-    // If displayName exists, use it
+    // If displayName exists, extract first and last name only
     if (user.displayName) {
-      return user.displayName;
+      const nameParts = user.displayName.trim().split(/\s+/);
+      
+      if (nameParts.length === 1) {
+        // Only one name part (first name)
+        return nameParts[0];
+      } else if (nameParts.length === 2) {
+        // First name and last name
+        return `${nameParts[0]} ${nameParts[1]}`;
+      } else if (nameParts.length >= 3) {
+        // First name, middle name(s), last name - show only first and last
+        return `${nameParts[0]} ${nameParts[nameParts.length - 1]}`;
+      }
     }
     
     // If email exists, extract username part (before @)
