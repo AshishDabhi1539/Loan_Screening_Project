@@ -831,20 +831,26 @@ export class ApplicationDetailsComponent implements OnInit {
     
     this.complianceService.triggerDecision(this.applicationId(), { summaryNotes }).subscribe({
       next: () => {
-        // Success - navigate immediately to decision page
-        // The decision page will load fresh data from server
+        // Optimistically update local state so the page reflects new status instantly
+        const app = this.application();
+        if (app && app.applicationInfo) {
+          app.applicationInfo.status = 'AWAITING_COMPLIANCE_DECISION';
+          this.application.set({ ...app });
+        }
+
+        // Clear any cached investigation data as we are moving to decision stage
+        this.clearInvestigationResults(this.applicationId());
+
+        // Success toast
         this.notificationService.success(
-          'Decision Triggered', 
+          'Decision Triggered',
           'Application moved to decision stage. Redirecting to decision page...'
         );
-        
-        // Navigate to decision page (it will load fresh data)
-        setTimeout(() => {
-          this.router.navigate(['/compliance-officer/decision']).then(() => {
-            // Reset loading state after navigation
-            this.isLoading.set(false);
-          });
-        }, 300); // Small delay to show notification
+
+        // Navigate to decision page and replace URL to avoid back-navigation glitch
+        this.router.navigate(['/compliance-officer/decision'], { replaceUrl: true }).finally(() => {
+          this.isLoading.set(false);
+        });
       },
       error: (err: any) => {
         console.error('Error triggering decision:', err);
