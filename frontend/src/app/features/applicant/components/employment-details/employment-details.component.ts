@@ -829,6 +829,86 @@ export class EmploymentDetailsComponent implements OnInit {
     return Math.round((completedSteps / this.totalSteps) * 100);
   }
   
+  /** Steps for the Employment & Financial Details flow (for stepper UI) */
+  getEmploymentSteps(): { label: string; status: 'completed' | 'current' | 'pending' }[] {
+    const labels = [
+      'Employment Details',
+      'Income Details',
+      'Banking Details',
+      'Financial Obligations'
+    ];
+    
+    const currentFormStep = this.currentStep() || 1; // Ensure it defaults to 1
+    
+    // Map form steps to stepper steps:
+    // Form step 1 = Select Employment Type -> Stepper step 1 (Employment Details) - current
+    // Form step 2 = Fill Employment Details -> Stepper step 1 (Employment Details) - current (still working on it)
+    // Form step 3 = Income Details -> Stepper step 2 - current
+    // Form step 4 = Banking Details -> Stepper step 3 - current
+    // Form step 5 = Financial Obligations -> Stepper step 4 - current
+    
+    let currentStepperStep: number;
+    if (currentFormStep <= 2) {
+      currentStepperStep = 1; // Both form steps 1 and 2 are "Employment Details"
+    } else {
+      currentStepperStep = currentFormStep - 1; // Form step 3->4, 4->5, 5->6 map to stepper 2, 3, 4
+    }
+    
+    return labels.map((label, index) => {
+      const stepIndex = index + 1;
+      let status: 'completed' | 'current' | 'pending';
+      
+      if (stepIndex < currentStepperStep) {
+        status = 'completed';
+      } else if (stepIndex === currentStepperStep) {
+        status = 'current';
+      } else {
+        status = 'pending';
+      }
+      
+      return { label, status };
+    });
+  }
+
+  /** Percentage for the active progress line between step circles */
+  getStepperLinePercentage(): number {
+    const totalStepperSteps = 4;
+    if (totalStepperSteps <= 1) return 0;
+    
+    const currentFormStep = this.currentStep();
+    let currentStepperStep: number;
+    
+    if (currentFormStep <= 2) {
+      currentStepperStep = 1;
+    } else {
+      currentStepperStep = currentFormStep - 1;
+    }
+    
+    // Progress line fills based on completed connections between steps
+    // Step 1: 0% (no connections completed yet)
+    // Step 2: 33% (1 of 3 connections completed)
+    // Step 3: 67% (2 of 3 connections completed)  
+    // Step 4: 100% (3 of 3 connections completed)
+    const completedConnections = Math.max(currentStepperStep - 1, 0);
+    const totalConnections = totalStepperSteps - 1;
+    return totalConnections > 0 ? Math.round((completedConnections / totalConnections) * 100) : 0;
+  }
+
+  getCompletedStepsCount(): number {
+    return Math.max(this.currentStep() - 1, 0);
+  }
+
+  /** Get CSS classes for step circle based on status */
+  getStepCircleClass(status: 'completed' | 'current' | 'pending'): string {
+    if (status === 'current') {
+      return 'bg-gradient-to-br from-primary-600 to-primary-700 shadow-xl shadow-primary-500/40 scale-110';
+    } else if (status === 'completed') {
+      return 'bg-gradient-to-br from-green-500 to-green-600 shadow-lg shadow-green-500/30';
+    } else {
+      return 'bg-gray-300 opacity-60';
+    }
+  }
+  
   /**
    * Get current year for max date validation
    */

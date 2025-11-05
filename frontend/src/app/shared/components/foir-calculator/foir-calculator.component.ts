@@ -9,105 +9,115 @@ import { FOIRCalculationResponse } from '../../../core/models/eligibility.model'
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
   template: `
-    <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-200">
-      <div class="flex items-center mb-4">
-        <div class="text-2xl mr-3">📊</div>
+    <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-200">
+      <div class="flex items-center mb-3">
+        <div class="text-xl mr-2">📊</div>
         <div>
-          <h3 class="text-lg font-semibold text-gray-900">FOIR Calculator</h3>
-          <p class="text-xs text-gray-600">Fixed Obligation to Income Ratio</p>
+          <h3 class="text-base font-semibold text-gray-900">FOIR Calculator</h3>
+          <p class="text-[11px] text-gray-600">Fixed Obligation to Income Ratio</p>
         </div>
       </div>
 
-      <form [formGroup]="calculatorForm" class="space-y-4">
-        <!-- Monthly Income -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">
-            Monthly Income *
-          </label>
-          <div class="relative">
-            <span class="absolute left-3 top-2.5 text-gray-500">₹</span>
-            <input 
-              type="number" 
-              formControlName="monthlyIncome"
-              class="w-full pl-8 pr-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
-              placeholder="80,000"
-              (input)="onInputChange()">
+      <form [formGroup]="calculatorForm">
+        <div class="grid grid-cols-2 gap-3">
+          <!-- Left Column: Input Fields -->
+          <div class="space-y-2.5">
+            <!-- Monthly Income and Existing EMI side by side -->
+            <div class="grid grid-cols-2 gap-2">
+              <!-- Monthly Income -->
+              <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">
+                  Monthly Income *
+                </label>
+                <div class="relative">
+                  <span class="absolute left-2 top-2 text-gray-500 text-xs">₹</span>
+                  <input 
+                    type="number" 
+                    formControlName="monthlyIncome"
+                    class="w-full pl-6 pr-2 py-1.5 text-sm border rounded-md focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+                    placeholder="80,000"
+                    (input)="onInputChange()">
+                </div>
+              </div>
+
+              <!-- Existing EMI -->
+              <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">
+                  Existing EMI
+                </label>
+                <div class="relative">
+                  <span class="absolute left-2 top-2 text-gray-500 text-xs">₹</span>
+                  <input 
+                    type="number" 
+                    formControlName="existingObligations"
+                    class="w-full pl-6 pr-2 py-1.5 text-sm border rounded-md focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+                    placeholder="10,000"
+                    (input)="onInputChange()">
+                </div>
+              </div>
+            </div>
+
+            <!-- New EMI -->
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">
+                New EMI (Estimated) *
+              </label>
+              <div class="relative">
+                <span class="absolute left-2 top-2 text-gray-500 text-xs">₹</span>
+                <input 
+                  type="number" 
+                  formControlName="newEmi"
+                  class="w-full pl-6 pr-2 py-1.5 text-sm border rounded-md focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+                  placeholder="16,000"
+                  (input)="onInputChange()">
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column: Calculate Button -->
+          <div class="flex items-end">
+            <button 
+              type="button" 
+              (click)="calculateFOIR()"
+              [disabled]="!calculatorForm.valid || isCalculating()"
+              class="w-full bg-primary-600 text-white py-2.5 px-4 rounded-md hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition text-sm font-medium">
+              @if (isCalculating()) {
+                <span class="inline-block animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-white mr-2"></span>
+              }
+              Calculate FOIR
+            </button>
           </div>
         </div>
-
-        <!-- Existing Obligations -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">
-            Existing EMIs (if any)
-          </label>
-          <div class="relative">
-            <span class="absolute left-3 top-2.5 text-gray-500">₹</span>
-            <input 
-              type="number" 
-              formControlName="existingObligations"
-              class="w-full pl-8 pr-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
-              placeholder="10,000"
-              (input)="onInputChange()">
-          </div>
-        </div>
-
-        <!-- New EMI -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">
-            New EMI (Estimated)
-          </label>
-          <div class="relative">
-            <span class="absolute left-3 top-2.5 text-gray-500">₹</span>
-            <input 
-              type="number" 
-              formControlName="newEmi"
-              class="w-full pl-8 pr-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
-              placeholder="16,000"
-              (input)="onInputChange()">
-          </div>
-        </div>
-
-        <!-- Calculate Button -->
-        <button 
-          type="button" 
-          (click)="calculateFOIR()"
-          [disabled]="!calculatorForm.valid || isCalculating()"
-          class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition">
-          @if (isCalculating()) {
-            <span class="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></span>
-          }
-          Calculate FOIR
-        </button>
       </form>
 
       <!-- Results -->
       @if (foirResult()) {
-        <div class="mt-6 space-y-4">
+        <div class="mt-4 space-y-3">
           <!-- Summary Cards -->
-          <div class="grid grid-cols-2 gap-3">
-            <div class="bg-white rounded-lg p-3 border">
-              <div class="text-xs text-gray-600">Total Income</div>
-              <div class="text-lg font-semibold text-gray-900">
+          <div class="grid grid-cols-2 gap-2">
+            <div class="bg-white rounded-lg p-2.5 border">
+              <div class="text-[10px] text-gray-600 mb-0.5">Total Income</div>
+              <div class="text-base font-semibold text-gray-900">
                 ₹{{ foirResult()!.monthlyIncome.toLocaleString('en-IN') }}
               </div>
             </div>
-            <div class="bg-white rounded-lg p-3 border">
-              <div class="text-xs text-gray-600">Total Obligations</div>
-              <div class="text-lg font-semibold text-gray-900">
+            <div class="bg-white rounded-lg p-2.5 border">
+              <div class="text-[10px] text-gray-600 mb-0.5">Total Obligations</div>
+              <div class="text-base font-semibold text-gray-900">
                 ₹{{ foirResult()!.totalObligations.toLocaleString('en-IN') }}
               </div>
             </div>
           </div>
 
           <!-- FOIR Percentage -->
-          <div class="bg-white rounded-lg p-4 border-2" 
+          <div class="bg-white rounded-lg p-3 border-2" 
             [class.border-green-500]="foirResult()!.status === 'EXCELLENT' || foirResult()!.status === 'GOOD'"
             [class.border-yellow-500]="foirResult()!.status === 'ACCEPTABLE'"
             [class.border-red-500]="foirResult()!.status === 'HIGH_RISK'">
             
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-sm font-medium text-gray-700">FOIR</span>
-              <span class="text-2xl font-bold" 
+            <div class="flex items-center justify-between mb-1.5">
+              <span class="text-xs font-medium text-gray-700">FOIR</span>
+              <span class="text-xl font-bold" 
                 [class.text-green-600]="foirResult()!.status === 'EXCELLENT' || foirResult()!.status === 'GOOD'"
                 [class.text-yellow-600]="foirResult()!.status === 'ACCEPTABLE'"
                 [class.text-red-600]="foirResult()!.status === 'HIGH_RISK'">
@@ -116,9 +126,9 @@ import { FOIRCalculationResponse } from '../../../core/models/eligibility.model'
             </div>
 
             <!-- Progress Bar -->
-            <div class="w-full bg-gray-200 rounded-full h-3 mb-3">
+            <div class="w-full bg-gray-200 rounded-full h-2 mb-2">
               <div 
-                class="h-3 rounded-full transition-all duration-500"
+                class="h-2 rounded-full transition-all duration-500"
                 [class.bg-green-500]="foirResult()!.status === 'EXCELLENT' || foirResult()!.status === 'GOOD'"
                 [class.bg-yellow-500]="foirResult()!.status === 'ACCEPTABLE'"
                 [class.bg-red-500]="foirResult()!.status === 'HIGH_RISK'"
@@ -128,7 +138,7 @@ import { FOIRCalculationResponse } from '../../../core/models/eligibility.model'
 
             <!-- Status Badge -->
             <div class="flex items-center justify-between">
-              <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium"
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium"
                 [class.bg-green-100]="foirResult()!.status === 'EXCELLENT' || foirResult()!.status === 'GOOD'"
                 [class.text-green-800]="foirResult()!.status === 'EXCELLENT' || foirResult()!.status === 'GOOD'"
                 [class.bg-yellow-100]="foirResult()!.status === 'ACCEPTABLE'"
@@ -145,7 +155,7 @@ import { FOIRCalculationResponse } from '../../../core/models/eligibility.model'
           </div>
 
           <!-- Message -->
-          <div class="text-sm p-3 rounded-lg"
+          <div class="text-xs p-2 rounded-lg"
             [class.bg-green-50]="foirResult()!.status === 'EXCELLENT' || foirResult()!.status === 'GOOD'"
             [class.text-green-700]="foirResult()!.status === 'EXCELLENT' || foirResult()!.status === 'GOOD'"
             [class.bg-yellow-50]="foirResult()!.status === 'ACCEPTABLE'"
@@ -156,9 +166,9 @@ import { FOIRCalculationResponse } from '../../../core/models/eligibility.model'
           </div>
 
           <!-- Disposable Income -->
-          <div class="bg-white rounded-lg p-3 border">
-            <div class="text-xs text-gray-600 mb-1">Disposable Income (After EMIs)</div>
-            <div class="text-xl font-semibold"
+          <div class="bg-white rounded-lg p-2.5 border">
+            <div class="text-[10px] text-gray-600 mb-0.5">Disposable Income (After EMIs)</div>
+            <div class="text-lg font-semibold"
               [class.text-green-600]="foirResult()!.disposableIncome > 20000"
               [class.text-yellow-600]="foirResult()!.disposableIncome > 10000 && foirResult()!.disposableIncome <= 20000"
               [class.text-red-600]="foirResult()!.disposableIncome <= 10000">
@@ -167,9 +177,9 @@ import { FOIRCalculationResponse } from '../../../core/models/eligibility.model'
           </div>
 
           <!-- Guidelines -->
-          <div class="bg-blue-50 border-l-4 border-blue-500 p-3 text-xs">
+          <div class="bg-blue-50 border-l-4 border-blue-500 p-2.5 text-[10px]">
             <p class="font-semibold text-blue-900 mb-1">FOIR Guidelines:</p>
-            <ul class="text-blue-700 space-y-1 ml-4 list-disc">
+            <ul class="text-blue-700 space-y-0.5 ml-4 list-disc">
               <li>0-40%: Excellent financial health</li>
               <li>40-55%: Good repayment capacity</li>
               <li>55-70%: Acceptable (meets criteria)</li>

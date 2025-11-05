@@ -56,13 +56,33 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Load notifications
+   * Load notifications - show same notifications as main page (newest first)
    */
   loadNotifications(): void {
     this.notificationService.getUnreadCount().subscribe();
-    this.notificationService.getUnreadNotifications().subscribe(notifications => {
-      // Show only recent 5 notifications
-      this.recentNotifications.set(notifications.slice(0, 5));
+    
+    // Use the same endpoint as main notifications page to ensure consistency
+    this.notificationService.getNotifications(0, 50, undefined, undefined).subscribe(page => {
+      const notifications = page.content;
+      
+      // Filter notifications from last 7 days only
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      
+      const recentOnly = notifications.filter(notification => {
+        const notificationDate = new Date(notification.createdAt);
+        return notificationDate >= sevenDaysAgo;
+      });
+      
+      // Sort by creation date - NEWEST FIRST
+      const sortedNotifications = recentOnly.sort((a, b) => {
+        const dateA = new Date(a.createdAt).getTime();
+        const dateB = new Date(b.createdAt).getTime();
+        return dateB - dateA; // Descending order (newest first)
+      });
+      
+      // Show only top 5 most recent notifications
+      this.recentNotifications.set(sortedNotifications.slice(0, 5));
     });
   }
 

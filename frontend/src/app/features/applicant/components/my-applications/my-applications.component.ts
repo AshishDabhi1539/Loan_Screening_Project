@@ -1,6 +1,7 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 
 import { LoanApplicationService } from '../../../../core/services/loan-application.service';
 import { LoanApplicationResponse } from '../../../../core/models/loan-application.model';
@@ -11,7 +12,7 @@ import { NotificationService } from '../../../../core/services/notification.serv
 @Component({
   selector: 'app-my-applications',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, FormsModule],
   templateUrl: './my-applications.component.html',
   styleUrl: './my-applications.component.css'
 })
@@ -23,12 +24,76 @@ export class MyApplicationsComponent implements OnInit {
 
   isLoading = signal(false);
   applications = signal<LoanApplicationSummary[]>([]);
+  
+  // Filters
   filterStatus = signal<string>('ALL');
+  searchQuery = signal<string>('');
+  
+  // Pagination
+  currentPage = signal(1);
+  itemsPerPage = signal(10);
+  itemsPerPageOptions = [5, 10, 25, 50];
 
+  // Smart filtered applications with search
   filteredApplications = computed(() => {
+    let filtered = this.applications();
+    
+    // Status filter
     const status = this.filterStatus();
-    if (status === 'ALL') return this.applications();
-    return this.applications().filter(a => a.status === status);
+    if (status !== 'ALL') {
+      filtered = filtered.filter(a => a.status === status);
+    }
+    
+    // Search filter
+    const query = this.searchQuery().toLowerCase().trim();
+    if (query) {
+      filtered = filtered.filter(a => 
+        a.loanType?.toLowerCase().includes(query) ||
+        a.status?.toLowerCase().includes(query) ||
+        a.id?.toLowerCase().includes(query)
+      );
+    }
+    
+    // Sort by last updated (newest first)
+    return filtered.sort((a, b) => {
+      const dateA = new Date(a.lastUpdated).getTime();
+      const dateB = new Date(b.lastUpdated).getTime();
+      return dateB - dateA;
+    });
+  });
+  
+  // Paginated applications
+  paginatedApplications = computed(() => {
+    const filtered = this.filteredApplications();
+    const start = (this.currentPage() - 1) * this.itemsPerPage();
+    const end = start + this.itemsPerPage();
+    return filtered.slice(start, end);
+  });
+  
+  // Pagination info
+  totalPages = computed(() => Math.ceil(this.filteredApplications().length / this.itemsPerPage()));
+  totalItems = computed(() => this.filteredApplications().length);
+  showingFrom = computed(() => {
+    const filtered = this.filteredApplications();
+    return filtered.length === 0 ? 0 : (this.currentPage() - 1) * this.itemsPerPage() + 1;
+  });
+  showingTo = computed(() => {
+    const filtered = this.filteredApplications();
+    const end = this.currentPage() * this.itemsPerPage();
+    return Math.min(end, filtered.length);
+  });
+  
+  // Status counts for filter badges
+  statusCounts = computed(() => {
+    const apps = this.applications();
+    return {
+      all: apps.length,
+      draft: apps.filter(a => a.status === 'DRAFT').length,
+      submitted: apps.filter(a => a.status === 'SUBMITTED').length,
+      underReview: apps.filter(a => ['UNDER_REVIEW', 'DOCUMENT_VERIFICATION', 'EXTERNAL_VERIFICATION', 'COMPLIANCE_REVIEW'].includes(a.status)).length,
+      approved: apps.filter(a => a.status === 'APPROVED').length,
+      rejected: apps.filter(a => a.status === 'REJECTED').length
+    };
   });
 
   ngOnInit(): void {
@@ -81,6 +146,53 @@ export class MyApplicationsComponent implements OnInit {
 
   setFilter(status: string): void {
     this.filterStatus.set(status);
+    this.currentPage.set(1); // Reset to first page
+  }
+  
+  onSearchChange(query: string): void {
+    this.searchQuery.set(query);
+    this.currentPage.set(1); // Reset to first page
+  }
+  
+  onPageChange(page: number): void {
+    if (page >= 1 && page <= this.totalPages()) {
+      this.currentPage.set(page);
+    }
+  }
+  
+  onItemsPerPageChange(size: number): void {
+    this.itemsPerPage.set(size);
+    this.currentPage.set(1); // Reset to first page
+  }
+  
+  getPageNumbers(): number[] {
+    const total = this.totalPages();
+    const current = this.currentPage();
+    const pages: number[] = [];
+    
+    if (total <= 7) {
+      for (let i = 1; i <= total; i++) {
+        pages.push(i);
+      }
+    } else {
+      if (current <= 4) {
+        for (let i = 1; i <= 5; i++) pages.push(i);
+        pages.push(-1); // ellipsis
+        pages.push(total);
+      } else if (current >= total - 3) {
+        pages.push(1);
+        pages.push(-1); // ellipsis
+        for (let i = total - 4; i <= total; i++) pages.push(i);
+      } else {
+        pages.push(1);
+        pages.push(-1); // ellipsis
+        for (let i = current - 1; i <= current + 1; i++) pages.push(i);
+        pages.push(-1); // ellipsis
+        pages.push(total);
+      }
+    }
+    
+    return pages;
   }
 
   getStatusDisplay(status: string): string {
@@ -97,6 +209,29 @@ export class MyApplicationsComponent implements OnInit {
 
   formatDate(date: Date): string {
     return this.dashboardService.formatDate(date);
+  }
+  
+  getRelativeTime(date: Date): string {
+    const now = new Date();
+    const diffMs = now.getTime() - new Date(date).getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} min ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    
+    return this.formatDate(date);
+  }
+  
+  formatLoanType(loanType: string): string {
+    return loanType?.replace(/_/g, ' ') || 'N/A';
+  }
+  
+  formatStatus(status: string): string {
+    return this.getStatusDisplay(status);
   }
 
   viewApplication(applicationId: string): void {
