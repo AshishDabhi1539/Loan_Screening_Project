@@ -6,12 +6,11 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { DashboardService, DashboardStats, LoanApplicationSummary } from '../../../../core/services/dashboard.service';
 import { UserProfileService, UserProfile } from '../../../../core/services/user-profile.service';
-import { NotificationBellComponent } from '../../../../shared/components/notification-bell/notification-bell.component';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterLink, NotificationBellComponent],
+  imports: [CommonModule, RouterLink],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css'
 })

@@ -4,12 +4,11 @@ import { Router, RouterLink } from '@angular/router';
 import { ComplianceService, ComplianceDashboardResponse, LoanApplicationResponse } from '../../../../core/services/compliance.service';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { IdEncoderService } from '../../../../core/services/id-encoder.service';
-import { NotificationBellComponent } from '../../../../shared/components/notification-bell/notification-bell.component';
 
 @Component({
   selector: 'app-compliance-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterLink, NotificationBellComponent],
+  imports: [CommonModule, RouterLink],
   templateUrl: './compliance-dashboard.component.html',
   styleUrl: './compliance-dashboard.component.css'
 })

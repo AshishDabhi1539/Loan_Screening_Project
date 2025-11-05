@@ -18,7 +18,7 @@
 }
 
 .bell-button:hover {
-  background-color: rgba(102, 126, 234, 0.1);
+  background-color: rgba(0, 0, 0, 0.05);
 }
 
 .bell-button.has-unread {
@@ -28,11 +28,11 @@
 .bell-icon {
   width: 24px;
   height: 24px;
-  color: #ffffff;
+  color: #000000;
 }
 
 .bell-button:hover .bell-icon {
-  color: #f0f4ff;
+  color: #1a1a1a;
 }
 
 /* Badge */

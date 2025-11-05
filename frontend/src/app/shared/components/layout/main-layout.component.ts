@@ -6,6 +6,7 @@ import { filter } from 'rxjs/operators';
 import { AuthService } from '../../../core/services/auth.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { ToastComponent } from '../toast/toast.component';
+import { NotificationBellComponent } from '../notification-bell/notification-bell.component';
 
 export interface NavigationItem {
   label: string;
@@ -18,7 +19,7 @@ export interface NavigationItem {
 @Component({
   selector: 'app-main-layout',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, ToastComponent],
+  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, ToastComponent, NotificationBellComponent],
   templateUrl: './main-layout.component.html',
   styleUrl: './main-layout.component.css'
 })
@@ -65,6 +66,12 @@ export class MainLayoutComponent {
       icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z',
       roles: ['APPLICANT']
     },
+    {
+      label: 'Notifications',
+      route: '/notifications',
+      icon: 'M15 17h5l-5 5v-5zM4.868 19.718c.064-.316.106-.648.126-.99C5.126 16.729 6.881 15 9.083 15h5.834c2.202 0 3.957 1.729 4.089 3.728.02.342.062.674.126.99M9 12a3 3 0 006 0v-1a3 3 0 00-6 0v1z',
+      roles: ['APPLICANT']
+    },
 
     // Loan Officer Navigation
     {
@@ -95,6 +102,12 @@ export class MainLayoutComponent {
       label: 'Completed Applications',
       route: '/loan-officer/applications/completed',
       icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
+      roles: ['LOAN_OFFICER', 'SENIOR_LOAN_OFFICER']
+    },
+    {
+      label: 'Notifications',
+      route: '/notifications',
+      icon: 'M15 17h5l-5 5v-5zM4.868 19.718c.064-.316.106-.648.126-.99C5.126 16.729 6.881 15 9.083 15h5.834c2.202 0 3.957 1.729 4.089 3.728.02.342.062.674.126.99M9 12a3 3 0 006 0v-1a3 3 0 00-6 0v1z',
       roles: ['LOAN_OFFICER', 'SENIOR_LOAN_OFFICER']
     },
 
@@ -129,6 +142,12 @@ export class MainLayoutComponent {
       icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z',
       roles: ['COMPLIANCE_OFFICER', 'SENIOR_COMPLIANCE_OFFICER']
     },
+    {
+      label: 'Notifications',
+      route: '/notifications',
+      icon: 'M15 17h5l-5 5v-5zM4.868 19.718c.064-.316.106-.648.126-.99C5.126 16.729 6.881 15 9.083 15h5.834c2.202 0 3.957 1.729 4.089 3.728.02.342.062.674.126.99M9 12a3 3 0 006 0v-1a3 3 0 00-6 0v1z',
+      roles: ['COMPLIANCE_OFFICER', 'SENIOR_COMPLIANCE_OFFICER']
+    },
 
     // Admin Navigation
     {
@@ -159,6 +178,12 @@ export class MainLayoutComponent {
       label: 'System Reports',
       route: '/admin/system/reports',
       icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z',
+      roles: ['ADMIN']
+    },
+    {
+      label: 'Notifications',
+      route: '/notifications',
+      icon: 'M15 17h5l-5 5v-5zM4.868 19.718c.064-.316.106-.648.126-.99C5.126 16.729 6.881 15 9.083 15h5.834c2.202 0 3.957 1.729 4.089 3.728.02.342.062.674.126.99M9 12a3 3 0 006 0v-1a3 3 0 00-6 0v1z',
       roles: ['ADMIN']
     }
   ];
@@ -240,6 +265,8 @@ export class MainLayoutComponent {
         this.pageTitle.set('Employment Details');
       } else if (segments.includes('personal-details')) {
         this.pageTitle.set('Personal Details');
+      } else if (segments.includes('notifications')) {
+        this.pageTitle.set('Notifications');
       } else if (segments.length > 0) {
         // Default: use the last non-UUID segment
         const lastSegment = segments[segments.length - 1];
