@@ -57,20 +57,34 @@ export class ComplianceDashboardComponent implements OnInit {
   });
 
   /**
-   * Approved by Compliance: count of applications for which this officer submitted APPROVE
-   * We consider applications currently in READY_FOR_DECISION status and with complianceNotes containing "Compliance Decision: APPROVE".
+   * Approved by Compliance: count of applications with APPROVED status
    */
   approvedByComplianceCount = computed(() => {
-    const apps = this.completedApplications();
-    return apps.filter(app => {
+    const assignedApps = this.assignedApplications();
+    const completedApps = this.completedApplications();
+    
+    // Count from both assigned (final status) and completed (READY_FOR_DECISION with notes)
+    const approvedInAssigned = assignedApps.filter(app => app.status === 'APPROVED').length;
+    const approvedInCompleted = completedApps.filter(app => {
       const notes = app.complianceNotes || '';
       return /Compliance Decision:\s*APPROVE/i.test(notes);
     }).length;
+    
+    return approvedInAssigned + approvedInCompleted;
   });
 
   rejected = computed(() => {
-    const apps = this.assignedApplications();
-    return apps.filter(app => app.status === 'REJECTED').length;
+    const assignedApps = this.assignedApplications();
+    const completedApps = this.completedApplications();
+    
+    // Count from both assigned (final status) and completed (READY_FOR_DECISION with notes)
+    const rejectedInAssigned = assignedApps.filter(app => app.status === 'REJECTED').length;
+    const rejectedInCompleted = completedApps.filter(app => {
+      const notes = app.complianceNotes || '';
+      return /Compliance Decision:\s*REJECT/i.test(notes);
+    }).length;
+    
+    return rejectedInAssigned + rejectedInCompleted;
   });
 
   // Top 5 assigned applications
@@ -78,35 +92,22 @@ export class ComplianceDashboardComponent implements OnInit {
     return this.assignedApplications().slice(0, 5);
   });
 
-  // Pie chart data for performance metrics
+  // Pie chart data for performance metrics - based on completed reviews
   performanceChartData = computed(() => {
-    const data = this.dashboard();
-    console.log('📊 Performance Metrics Data:', {
-      dashboard: data,
-      totalCasesResolved: data?.totalCasesResolved,
-      applicationsClearedToday: data?.applicationsClearedToday,
-      complianceViolationsFound: data?.complianceViolationsFound
-    });
+    const approved = this.approvedByComplianceCount();
+    const rejected = this.rejected();
+    const total = approved + rejected;
     
-    if (!data) {
-      console.log('⚠️ No dashboard data available');
-      return [];
-    }
+    console.log('📊 Performance Metrics:', { total, approved, rejected });
     
-    const total = data.totalCasesResolved || 0;
     if (total === 0) {
-      console.log('⚠️ No cases resolved yet (totalCasesResolved = 0)');
+      console.log('⚠️ No completed compliance reviews yet');
       return [];
     }
-    
-    const cleared = data.applicationsClearedToday || 0;
-    const violations = data.complianceViolationsFound || 0;
-    const others = Math.max(0, total - cleared - violations);
     
     const chartData = [
-      { label: 'Cleared', value: cleared, color: '#10b981', percentage: total > 0 ? (cleared / total * 100) : 0 },
-      { label: 'Violations', value: violations, color: '#ef4444', percentage: total > 0 ? (violations / total * 100) : 0 },
-      { label: 'Others', value: others, color: '#6b7280', percentage: total > 0 ? (others / total * 100) : 0 }
+      { label: 'Approved', value: approved, color: '#10b981', percentage: total > 0 ? (approved / total * 100) : 0 },
+      { label: 'Rejected', value: rejected, color: '#ef4444', percentage: total > 0 ? (rejected / total * 100) : 0 }
     ].filter(item => item.value > 0);
     
     console.log('✅ Chart Data:', chartData);
