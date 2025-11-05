@@ -23,7 +23,6 @@ import com.tss.loan.service.UserService;
 import com.tss.loan.entity.enums.NotificationType;
 import org.springframework.web.bind.annotation.RequestBody;
 import java.util.List;
-import com.tss.loan.security.JwtTokenProvider;
 
 @RestController
 @RequestMapping("/api/notifications")
@@ -37,9 +36,6 @@ public class NotificationController {
 
     @Autowired
     private UserService userService;
-
-    @Autowired
-    private JwtTokenProvider jwtTokenProvider;
 
     @GetMapping
     public Page<NotificationResponse> list(@RequestParam(defaultValue = "0") int page,
@@ -93,41 +89,8 @@ public class NotificationController {
     }
 
     @GetMapping("/stream")
-    public SseEmitter stream(@RequestParam(value = "access_token", required = false) String accessToken) {
-        User user = null;
-        
-        // If a token is provided as query param (for native EventSource), validate and use it
-        if (accessToken != null && !accessToken.isEmpty()) {
-            if (jwtTokenProvider.validateToken(accessToken)) {
-                try {
-                    String email = jwtTokenProvider.getUserEmailFromToken(accessToken);
-                    user = userService.findByEmail(email);
-                } catch (Exception e) {
-                    // Token validation failed, will return null user
-                }
-            }
-        }
-        
-        // If no valid user from token, try security context (for direct HTTP requests with Authorization header)
-        if (user == null) {
-            try {
-                Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-                if (authentication != null && authentication.isAuthenticated() && 
-                    !"anonymousUser".equals(authentication.getName())) {
-                    user = getCurrentUser();
-                }
-            } catch (Exception e) {
-                // Security context lookup failed
-            }
-        }
-        
-        // If still no user, create an error emitter
-        if (user == null) {
-            SseEmitter emitter = new SseEmitter(0L); // Immediate timeout
-            emitter.completeWithError(new RuntimeException("Authentication required"));
-            return emitter;
-        }
-        
+    public SseEmitter stream() {
+        User user = getCurrentUser();
         return notificationStreamService.register(user.getId());
     }
 

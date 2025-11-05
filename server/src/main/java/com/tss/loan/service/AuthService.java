@@ -16,7 +16,6 @@ public interface AuthService {
     LoginResponse login(UserLoginRequest request);
     VerificationResponse verifyEmailOtp(OtpVerificationRequest request);
     boolean resendEmailOtp(String email);
-    LoginResponse refreshToken(String refreshToken);
     void logout(String token);
     ForgotPasswordResponse forgotPassword(ForgotPasswordRequest request);
     ResetPasswordResponse resetPassword(ResetPasswordRequest request);
