@@ -232,7 +232,9 @@ public class OtpService {
             
             // Send email (only for email-based OTPs)
             boolean sent = false;
-            if (otpType.contains("EMAIL") || sentTo.contains("@")) {
+            if (otpType.equals("PASSWORD_RESET")) {
+                sent = emailService.sendPasswordResetOtpEmail(sentTo, otpCode, user);
+            } else if (otpType.contains("EMAIL") || sentTo.contains("@")) {
                 sent = emailService.sendOtpEmail(sentTo, otpCode, user);
             } else {
                 // For SMS or other types, implement accordingly

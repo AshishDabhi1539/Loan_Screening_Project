@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, OnInit, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -14,7 +14,7 @@ import { NotificationService } from '../../../../core/services/notification.serv
   templateUrl: './login.component.html',
   styleUrl: './login.component.css'
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit, AfterViewInit {
   private fb = inject(FormBuilder);
   private authService = inject(AuthService);
   private notificationService = inject(NotificationService);
@@ -24,6 +24,11 @@ export class LoginComponent {
   isLoading = this.authService.isLoading;
   showPassword = signal(false);
   loginError = signal<string | null>(null);
+  
+  // CAPTCHA
+  @ViewChild('captchaCanvas', { static: false }) captchaCanvas!: ElementRef<HTMLCanvasElement>;
+  captchaText = signal<string>('');
+  captchaError = signal<string | null>(null);
 
   loginForm: FormGroup = this.fb.group({
     emailOrPhone: ['', [
@@ -34,6 +39,7 @@ export class LoginComponent {
       Validators.required,
       Validators.minLength(8)
     ]],
+    captcha: ['', [Validators.required]],
     rememberMe: [false]
   });
 
@@ -44,6 +50,14 @@ export class LoginComponent {
     }
   }
 
+  ngOnInit(): void {
+    this.generateCaptcha();
+  }
+
+  ngAfterViewInit(): void {
+    this.drawCaptcha();
+  }
+
   /**
    * Toggle password visibility
    */
@@ -52,10 +66,120 @@ export class LoginComponent {
   }
 
   /**
+   * Generate random CAPTCHA text (6 alphanumeric characters)
+   */
+  generateCaptcha(): void {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+    let captcha = '';
+    for (let i = 0; i < 6; i++) {
+      captcha += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    this.captchaText.set(captcha);
+    this.captchaError.set(null);
+    this.loginForm.patchValue({ captcha: '' });
+  }
+
+  /**
+   * Draw CAPTCHA on canvas with styling
+   */
+  drawCaptcha(): void {
+    if (!this.captchaCanvas) return;
+    
+    const canvas = this.captchaCanvas.nativeElement;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Background with gradient
+    const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+    gradient.addColorStop(0, '#f3f4f6');
+    gradient.addColorStop(1, '#e5e7eb');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Add noise lines
+    for (let i = 0; i < 5; i++) {
+      ctx.strokeStyle = `rgba(${Math.random() * 100}, ${Math.random() * 100}, ${Math.random() * 100}, 0.3)`;
+      ctx.beginPath();
+      ctx.moveTo(Math.random() * canvas.width, Math.random() * canvas.height);
+      ctx.lineTo(Math.random() * canvas.width, Math.random() * canvas.height);
+      ctx.stroke();
+    }
+
+    // Draw CAPTCHA text
+    const captcha = this.captchaText();
+    ctx.font = 'bold 32px Arial';
+    ctx.textBaseline = 'middle';
+    
+    const spacing = canvas.width / (captcha.length + 1);
+    
+    for (let i = 0; i < captcha.length; i++) {
+      // Random color for each character
+      const hue = Math.random() * 360;
+      ctx.fillStyle = `hsl(${hue}, 70%, 40%)`;
+      
+      // Random rotation
+      const x = spacing * (i + 1);
+      const y = canvas.height / 2;
+      const angle = (Math.random() - 0.5) * 0.4;
+      
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(angle);
+      ctx.fillText(captcha[i], 0, 0);
+      ctx.restore();
+    }
+
+    // Add noise dots
+    for (let i = 0; i < 50; i++) {
+      ctx.fillStyle = `rgba(0, 0, 0, ${Math.random() * 0.3})`;
+      ctx.fillRect(
+        Math.random() * canvas.width,
+        Math.random() * canvas.height,
+        2,
+        2
+      );
+    }
+  }
+
+  /**
+   * Refresh CAPTCHA
+   */
+  refreshCaptcha(): void {
+    this.generateCaptcha();
+    setTimeout(() => this.drawCaptcha(), 0);
+  }
+
+  /**
+   * Validate CAPTCHA
+   */
+  validateCaptcha(): boolean {
+    const userInput = this.loginForm.get('captcha')?.value?.trim();
+    const isValid = userInput === this.captchaText();
+    
+    if (!isValid) {
+      this.captchaError.set('CAPTCHA does not match. Please try again.');
+      this.refreshCaptcha();
+    } else {
+      this.captchaError.set(null);
+    }
+    
+    return isValid;
+  }
+
+  /**
    * Handle form submission
    */
   onSubmit(): void {
     if (this.loginForm.valid) {
+      // Validate CAPTCHA first
+      if (!this.validateCaptcha()) {
+        this.markFormGroupTouched();
+        return;
+      }
+      
       this.loginError.set(null);
       
       const loginData: LoginRequest = {
@@ -114,7 +238,8 @@ export class LoginComponent {
   private getFieldLabel(fieldName: string): string {
     const labels: { [key: string]: string } = {
       emailOrPhone: 'Email or Phone',
-      password: 'Password'
+      password: 'Password',
+      captcha: 'CAPTCHA'
     };
     return labels[fieldName] || fieldName;
   }

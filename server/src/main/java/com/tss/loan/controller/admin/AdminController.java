@@ -59,6 +59,61 @@ public class AdminController {
     private LoanApplicationMapper loanApplicationMapper;
     
     /**
+     * Get Admin Dashboard Statistics
+     */
+    @GetMapping("/dashboard")
+    public ResponseEntity<java.util.Map<String, Object>> getAdminDashboard() {
+        log.info("Fetching admin dashboard statistics");
+        
+        // Get all users
+        List<User> allUsers = userService.findAllUsers();
+        List<User> officers = userService.findAllOfficers();
+        
+        // Get all applications
+        List<LoanApplication> allApplications = loanApplicationRepository.findAll();
+        
+        // Calculate statistics
+        int totalUsers = allUsers.size();
+        int totalOfficers = officers.size();
+        int totalApplications = allApplications.size();
+        
+        int pendingApplications = (int) allApplications.stream()
+            .filter(app -> app.getStatus() == com.tss.loan.entity.enums.ApplicationStatus.SUBMITTED ||
+                          app.getStatus() == com.tss.loan.entity.enums.ApplicationStatus.DOCUMENT_VERIFICATION ||
+                          app.getStatus() == com.tss.loan.entity.enums.ApplicationStatus.UNDER_REVIEW ||
+                          app.getStatus() == com.tss.loan.entity.enums.ApplicationStatus.READY_FOR_DECISION)
+            .count();
+        
+        int approvedApplications = (int) allApplications.stream()
+            .filter(app -> app.getStatus() == com.tss.loan.entity.enums.ApplicationStatus.APPROVED)
+            .count();
+        
+        int rejectedApplications = (int) allApplications.stream()
+            .filter(app -> app.getStatus() == com.tss.loan.entity.enums.ApplicationStatus.REJECTED)
+            .count();
+        
+        int activeUsers = (int) allUsers.stream()
+            .filter(user -> user.getStatus() == com.tss.loan.entity.enums.UserStatus.ACTIVE)
+            .count();
+        
+        // Build response
+        java.util.Map<String, Object> stats = new java.util.HashMap<>();
+        stats.put("totalUsers", totalUsers);
+        stats.put("totalOfficers", totalOfficers);
+        stats.put("totalApplications", totalApplications);
+        stats.put("pendingApplications", pendingApplications);
+        stats.put("approvedApplications", approvedApplications);
+        stats.put("rejectedApplications", rejectedApplications);
+        stats.put("activeUsers", activeUsers);
+        stats.put("systemHealth", pendingApplications > 50 ? "warning" : "good");
+        
+        log.info("Admin dashboard stats: {} users, {} officers, {} applications", 
+                totalUsers, totalOfficers, totalApplications);
+        
+        return ResponseEntity.ok(stats);
+    }
+    
+    /**
      * Create Officer Account
      */
     @PostMapping("/create-officer")

@@ -159,6 +159,69 @@
                 }
               </div>
 
+              <!-- CAPTCHA Section - Compact Layout -->
+              <div>
+                <label for="captcha" class="block text-sm font-semibold text-gray-700 mb-2">
+                  Security Verification
+                </label>
+                
+                <!-- CAPTCHA Canvas, Input and Refresh in one row -->
+                <div class="flex items-center gap-2">
+                  <!-- CAPTCHA Canvas -->
+                  <div class="relative flex-shrink-0">
+                    <canvas 
+                      #captchaCanvas
+                      width="180" 
+                      height="50" 
+                      class="border-2 border-gray-300 rounded-lg shadow-sm"
+                    ></canvas>
+                  </div>
+                  
+                  <!-- CAPTCHA Input -->
+                  <input
+                    id="captcha"
+                    name="captcha"
+                    type="text"
+                    formControlName="captcha"
+                    placeholder="Enter code"
+                    maxlength="6"
+                    autocomplete="off"
+                    [class.border-red-500]="hasFieldError('captcha') || captchaError()"
+                    [class.focus:ring-red-500]="hasFieldError('captcha') || captchaError()"
+                    class="flex-1 px-3 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 text-center text-base font-semibold tracking-wider"
+                  />
+                  
+                  <!-- Refresh Button -->
+                  <button
+                    type="button"
+                    (click)="refreshCaptcha()"
+                    class="flex-shrink-0 p-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    title="Refresh CAPTCHA"
+                  >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                  </button>
+                </div>
+                
+                <!-- CAPTCHA Error Messages -->
+                @if (captchaError()) {
+                  <p class="mt-1.5 text-xs text-red-600 animate-slideDown flex items-center">
+                    <svg class="h-3.5 w-3.5 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                    </svg>
+                    {{ captchaError() }}
+                  </p>
+                } @else if (getFieldError('captcha')) {
+                  <p class="mt-1.5 text-xs text-red-600 animate-slideDown flex items-center">
+                    <svg class="h-3.5 w-3.5 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                    </svg>
+                    {{ getFieldError('captcha') }}
+                  </p>
+                }
+              </div>
+
               <!-- Remember Me & Forgot Password -->
               <div class="flex items-center justify-between">
                 <div class="flex items-center">

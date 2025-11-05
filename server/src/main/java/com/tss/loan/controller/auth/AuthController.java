@@ -9,12 +9,16 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.tss.loan.dto.request.ForgotPasswordRequest;
 import com.tss.loan.dto.request.OtpResendRequest;
 import com.tss.loan.dto.request.OtpVerificationRequest;
+import com.tss.loan.dto.request.ResetPasswordRequest;
 import com.tss.loan.dto.request.UserLoginRequest;
 import com.tss.loan.dto.request.UserRegistrationRequest;
+import com.tss.loan.dto.response.ForgotPasswordResponse;
 import com.tss.loan.dto.response.LoginResponse;
 import com.tss.loan.dto.response.RegistrationResponse;
+import com.tss.loan.dto.response.ResetPasswordResponse;
 import com.tss.loan.dto.response.VerificationResponse;
 import com.tss.loan.service.AuthService;
 
@@ -107,5 +111,31 @@ public class AuthController {
         
         log.info("Logout successful");
         return ResponseEntity.ok("Logged out successfully");
+    }
+    
+    /**
+     * Forgot Password - Send OTP
+     */
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ForgotPasswordResponse> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        log.info("Forgot password request received for email: {}", request.getEmail());
+        
+        ForgotPasswordResponse response = authService.forgotPassword(request);
+        
+        log.info("Password reset OTP sent successfully to: {}", request.getEmail());
+        return ResponseEntity.ok(response);
+    }
+    
+    /**
+     * Reset Password - Verify OTP and Update Password
+     */
+    @PostMapping("/reset-password")
+    public ResponseEntity<ResetPasswordResponse> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        log.info("Reset password request received for email: {}", request.getEmail());
+        
+        ResetPasswordResponse response = authService.resetPassword(request);
+        
+        log.info("Password reset successful for: {}", request.getEmail());
+        return ResponseEntity.ok(response);
     }
 }

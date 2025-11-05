@@ -33,9 +33,19 @@ public class JwtTokenProvider {
     @Value("${app.jwt.refresh-expiration}")
     private int refreshExpirationInMs;
     
+    // Extended expiration for "Remember Me" (30 days)
+    private static final int REMEMBER_ME_EXPIRATION_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+    private static final int REMEMBER_ME_REFRESH_EXPIRATION_MS = 90 * 24 * 60 * 60 * 1000; // 90 days
+    
     public String generateToken(User user) {
+        return generateToken(user, false);
+    }
+    
+    public String generateToken(User user, boolean rememberMe) {
         Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + jwtExpirationInMs);
+        // Use extended expiration if Remember Me is enabled
+        int expirationTime = rememberMe ? REMEMBER_ME_EXPIRATION_MS : jwtExpirationInMs;
+        Date expiryDate = new Date(now.getTime() + expirationTime);
         
         return Jwts.builder()
                 .claim("userId", user.getId().toString())
@@ -52,8 +62,14 @@ public class JwtTokenProvider {
     }
     
     public String generateRefreshToken(User user) {
+        return generateRefreshToken(user, false);
+    }
+    
+    public String generateRefreshToken(User user, boolean rememberMe) {
         Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + refreshExpirationInMs);
+        // Use extended expiration if Remember Me is enabled
+        int expirationTime = rememberMe ? REMEMBER_ME_REFRESH_EXPIRATION_MS : refreshExpirationInMs;
+        Date expiryDate = new Date(now.getTime() + expirationTime);
         
         return Jwts.builder()
                 .claim("userId", user.getId().toString())

@@ -6,11 +6,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.tss.loan.dto.request.ForgotPasswordRequest;
 import com.tss.loan.dto.request.OtpVerificationRequest;
+import com.tss.loan.dto.request.ResetPasswordRequest;
 import com.tss.loan.dto.request.UserLoginRequest;
 import com.tss.loan.dto.request.UserRegistrationRequest;
+import com.tss.loan.dto.response.ForgotPasswordResponse;
 import com.tss.loan.dto.response.LoginResponse;
 import com.tss.loan.dto.response.RegistrationResponse;
+import com.tss.loan.dto.response.ResetPasswordResponse;
 import com.tss.loan.dto.response.VerificationResponse;
 import com.tss.loan.entity.user.User;
 import com.tss.loan.exception.LoanApiException;
@@ -112,9 +116,10 @@ public class AuthServiceImpl implements AuthService {
             // Reset failed login attempts on successful login
             resetFailedLoginAttempts(user);
             
-            // Generate JWT tokens
-            String accessToken = jwtTokenProvider.generateToken(user);
-            String refreshToken = jwtTokenProvider.generateRefreshToken(user);
+            // Generate JWT tokens with Remember Me support
+            boolean rememberMe = request.isRememberMe();
+            String accessToken = jwtTokenProvider.generateToken(user, rememberMe);
+            String refreshToken = jwtTokenProvider.generateRefreshToken(user, rememberMe);
             LocalDateTime expiresAt = jwtTokenProvider.getExpirationDateFromToken(accessToken);
             
             // Update last login
@@ -347,6 +352,95 @@ public class AuthServiceImpl implements AuthService {
             user.setFailedLoginAttempts(0);
             user.setUpdatedAt(LocalDateTime.now());
             userService.updateUser(user);
+        }
+    }
+    
+    @Override
+    public ForgotPasswordResponse forgotPassword(ForgotPasswordRequest request) {
+        try {
+            // Find user by email
+            User user = userService.findByEmail(request.getEmail());
+            
+            // Check if account is active
+            if (user.getStatus().toString().equals("BLOCKED") || user.getStatus().toString().equals("SUSPENDED")) {
+                throw new LoanApiException("Your account is " + user.getStatus().toString().toLowerCase() + ". Please contact support.");
+            }
+            
+            // Generate and send password reset OTP
+            boolean otpSent = otpService.generateAndSendPasswordResetOtp(user);
+            
+            if (!otpSent) {
+                throw new LoanApiException("Failed to send password reset email. Please try again.");
+            }
+            
+            auditLogService.logAction(user, "PASSWORD_RESET_REQUESTED", "User", null, 
+                "Password reset OTP sent to email");
+            
+            return ForgotPasswordResponse.builder()
+                    .message("Password reset OTP has been sent to your email address. Please check your inbox.")
+                    .email(request.getEmail())
+                    .otpExpiryMinutes(15)
+                    .timestamp(LocalDateTime.now())
+                    .build();
+                    
+        } catch (LoanApiException e) {
+            throw e;
+        } catch (Exception e) {
+            auditLogService.logAction(null, "PASSWORD_RESET_ERROR", "User", null, 
+                "Password reset error for email: " + request.getEmail());
+            throw new LoanApiException("Failed to process password reset request: " + e.getMessage());
+        }
+    }
+    
+    @Override
+    public ResetPasswordResponse resetPassword(ResetPasswordRequest request) {
+        try {
+            // Validate password confirmation
+            if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+                throw new LoanApiException("Passwords do not match");
+            }
+            
+            // Find user by email
+            User user = userService.findByEmail(request.getEmail());
+            
+            // Verify OTP
+            boolean otpValid = otpService.verifyPasswordResetOtp(user, request.getOtpCode());
+            
+            if (!otpValid) {
+                auditLogService.logAction(user, "PASSWORD_RESET_FAILED", "User", null, 
+                    "Invalid or expired OTP");
+                throw new LoanApiException("Invalid or expired OTP. Please request a new password reset.");
+            }
+            
+            // Update password
+            String newPasswordHash = passwordEncoder.encode(request.getNewPassword());
+            user.setPasswordHash(newPasswordHash);
+            user.setUpdatedAt(LocalDateTime.now());
+            
+            // Reset failed login attempts
+            user.setFailedLoginAttempts(0);
+            
+            userService.updateUser(user);
+            
+            auditLogService.logAction(user, "PASSWORD_RESET_SUCCESS", "User", null, 
+                "Password successfully reset");
+            
+            // Send success email notification
+            emailService.sendPasswordResetSuccessEmail(user.getEmail(), user);
+            
+            return ResetPasswordResponse.builder()
+                    .message("Your password has been successfully reset. You can now login with your new password.")
+                    .email(request.getEmail())
+                    .success(true)
+                    .timestamp(LocalDateTime.now())
+                    .build();
+                    
+        } catch (LoanApiException e) {
+            throw e;
+        } catch (Exception e) {
+            auditLogService.logAction(null, "PASSWORD_RESET_ERROR", "User", null, 
+                "Password reset error for email: " + request.getEmail());
+            throw new LoanApiException("Failed to reset password: " + e.getMessage());
         }
     }
 }

@@ -8,4 +8,6 @@ public interface EmailService {
     boolean sendLoanStatusEmail(String toEmail, String status, String applicationId, User user);
     boolean sendOfficerCredentials(String toEmail, String tempPassword, String role, User createdBy);
     boolean sendGenericHtml(String toEmail, String subject, String htmlContent, User user, String eventType);
+    boolean sendPasswordResetOtpEmail(String toEmail, String otpCode, User user);
+    boolean sendPasswordResetSuccessEmail(String toEmail, User user);
 }

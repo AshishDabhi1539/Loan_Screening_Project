@@ -125,17 +125,36 @@ export class AdminService {
   }
 
   /**
-   * Get admin dashboard data
+   * Get admin dashboard data from backend
    */
   getAdminDashboardData(): Observable<{ stats: AdminStats; recentActivities: RecentActivity[] }> {
-    return this.getSystemStats().pipe(
-      map(stats => ({
+    return this.apiService.get<any>('/admin/dashboard').pipe(
+      map(backendStats => ({
         stats: {
-          ...stats,
-          systemHealth: this.calculateSystemHealth(stats)
+          totalUsers: backendStats.totalUsers || 0,
+          totalOfficers: backendStats.totalOfficers || 0,
+          totalApplications: backendStats.totalApplications || 0,
+          pendingApplications: backendStats.pendingApplications || 0,
+          approvedApplications: backendStats.approvedApplications || 0,
+          rejectedApplications: backendStats.rejectedApplications || 0,
+          activeUsers: backendStats.activeUsers || 0,
+          systemHealth: backendStats.systemHealth || 'good'
         },
         recentActivities: [] // Will be populated when activity log API is available
-      }))
+      })),
+      catchError(error => {
+        console.error('Error fetching admin dashboard:', error);
+        // Fallback to old method if backend fails
+        return this.getSystemStats().pipe(
+          map(stats => ({
+            stats: {
+              ...stats,
+              systemHealth: this.calculateSystemHealth(stats)
+            },
+            recentActivities: []
+          }))
+        );
+      })
     );
   }
 

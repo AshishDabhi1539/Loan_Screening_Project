@@ -81,19 +81,36 @@ export class ComplianceDashboardComponent implements OnInit {
   // Pie chart data for performance metrics
   performanceChartData = computed(() => {
     const data = this.dashboard();
-    if (!data) return [];
+    console.log('📊 Performance Metrics Data:', {
+      dashboard: data,
+      totalCasesResolved: data?.totalCasesResolved,
+      applicationsClearedToday: data?.applicationsClearedToday,
+      complianceViolationsFound: data?.complianceViolationsFound
+    });
+    
+    if (!data) {
+      console.log('⚠️ No dashboard data available');
+      return [];
+    }
+    
     const total = data.totalCasesResolved || 0;
-    if (total === 0) return [];
+    if (total === 0) {
+      console.log('⚠️ No cases resolved yet (totalCasesResolved = 0)');
+      return [];
+    }
     
     const cleared = data.applicationsClearedToday || 0;
     const violations = data.complianceViolationsFound || 0;
     const others = Math.max(0, total - cleared - violations);
     
-    return [
+    const chartData = [
       { label: 'Cleared', value: cleared, color: '#10b981', percentage: total > 0 ? (cleared / total * 100) : 0 },
       { label: 'Violations', value: violations, color: '#ef4444', percentage: total > 0 ? (violations / total * 100) : 0 },
       { label: 'Others', value: others, color: '#6b7280', percentage: total > 0 ? (others / total * 100) : 0 }
     ].filter(item => item.value > 0);
+    
+    console.log('✅ Chart Data:', chartData);
+    return chartData;
   });
 
   // Todo list - pending tasks

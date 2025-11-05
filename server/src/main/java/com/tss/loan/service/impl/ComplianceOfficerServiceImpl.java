@@ -137,6 +137,39 @@ public class ComplianceOfficerServiceImpl implements ComplianceOfficerService {
                 .map(this::mapToRecentActivity)
                 .collect(Collectors.toList());
         
+        // ✅ Performance Metrics - Calculate real-time data
+        LocalDateTime todayStart = LocalDateTime.now().toLocalDate().atStartOfDay();
+        
+        // Get all applications this officer has completed (READY_FOR_DECISION status)
+        List<LoanApplication> completedApplications = loanApplicationRepository
+            .findByAssignedComplianceOfficerOrderByCreatedAtDesc(complianceOfficer)
+            .stream()
+            .filter(app -> app.getStatus() == ApplicationStatus.READY_FOR_DECISION)
+            .collect(Collectors.toList());
+        
+        int totalCasesResolved = completedApplications.size();
+        
+        // Count applications cleared today (moved to READY_FOR_DECISION today)
+        int applicationsClearedToday = (int) completedApplications.stream()
+            .filter(app -> app.getUpdatedAt() != null && app.getUpdatedAt().isAfter(todayStart))
+            .count();
+        
+        // Count compliance violations found (applications with complianceNotes containing "REJECT" or "Violation")
+        int complianceViolationsFound = (int) completedApplications.stream()
+            .filter(app -> {
+                String notes = app.getComplianceNotes();
+                return notes != null && (
+                    notes.contains("REJECT") || 
+                    notes.contains("Violation") || 
+                    notes.contains("violation") ||
+                    notes.contains("Compliance Decision: REJECT")
+                );
+            })
+            .count();
+        
+        log.info("📊 Performance Metrics for {}: totalCasesResolved={}, clearedToday={}, violations={}", 
+            complianceOfficer.getEmail(), totalCasesResolved, applicationsClearedToday, complianceViolationsFound);
+        
         return ComplianceDashboardResponse.builder()
             .officerId(complianceOfficer.getId())
             .officerName(officerProfileService.getOfficerDisplayName(complianceOfficer)) // ✅ FIXED: Using proper name resolution
@@ -150,6 +183,10 @@ public class ComplianceOfficerServiceImpl implements ComplianceOfficerService {
             .highPriorityApplications(highPriority)
             .mediumPriorityApplications(mediumPriority)
             .lowPriorityApplications(lowPriority)
+            // ✅ Performance Metrics
+            .totalCasesResolved(totalCasesResolved)
+            .applicationsClearedToday(applicationsClearedToday)
+            .complianceViolationsFound(complianceViolationsFound)
             .recentActivities(recentActivities)
             .hasCapacityForNewCases(assignmentService.getCurrentComplianceWorkload(complianceOfficer) < getMaxCapacity(complianceOfficer))
             .lastUpdated(LocalDateTime.now())
