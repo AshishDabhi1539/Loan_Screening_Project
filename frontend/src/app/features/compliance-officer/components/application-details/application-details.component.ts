@@ -2,7 +2,8 @@ import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { ComplianceService, LoanApplicationResponse, ComplianceInvestigationResponse, ComplianceDocumentRequest } from '../../../../core/services/compliance.service';
+import { ComplianceService } from '../../../../core/services/compliance.service';
+import { LoanApplicationResponse, ComplianceInvestigationResponse, ComplianceDocumentRequest } from '../../../../core/models/compliance.model';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { IdEncoderService } from '../../../../core/services/id-encoder.service';
 

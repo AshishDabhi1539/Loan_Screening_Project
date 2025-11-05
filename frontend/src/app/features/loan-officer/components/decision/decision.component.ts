@@ -4,7 +4,8 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormArray } from '@angular/forms';
 
 import { NotificationService } from '../../../../core/services/notification.service';
-import { LoanOfficerService, LoanDecisionRequest, ComplianceFlagRequest, CompleteApplicationDetailsResponse } from '../../../../core/services/loan-officer.service';
+import { LoanOfficerService } from '../../../../core/services/loan-officer.service';
+import { LoanDecisionRequest, ComplianceFlagRequest, CompleteApplicationDetailsResponse } from '../../../../core/models/officer.model';
 
 @Component({
   selector: 'app-decision',

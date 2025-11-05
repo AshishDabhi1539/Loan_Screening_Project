@@ -458,18 +458,18 @@
               <div class="bg-gray-50 rounded-lg p-4">
                 <div class="text-sm text-gray-500">Current Address</div>
                 <div class="text-base font-medium text-gray-900 mt-1">
-                  {{ personal.addresses.currentAddress || 'N/A' }}
+                  {{ personal.address.currentAddress || 'N/A' }}
                 </div>
-                @if (personal.addresses.permanentAddress && personal.addresses.permanentAddress !== personal.addresses.currentAddress) {
+                @if (personal.address.permanentAddress && personal.address.permanentAddress !== personal.address.currentAddress) {
                   <div class="mt-4">
                     <div class="text-sm text-gray-500">Permanent Address</div>
                     <div class="text-base font-medium text-gray-900 mt-1">
-                      {{ personal.addresses.permanentAddress }}
+                      {{ personal.address.permanentAddress }}
                     </div>
                   </div>
                 }
                 <div class="mt-2 text-sm text-gray-500">
-                  {{ personal.addresses.city }}, {{ personal.addresses.state }} - {{ personal.addresses.pincode }}
+                  {{ personal.address.city }}, {{ personal.address.state }} - {{ personal.address.pincode }}
                 </div>
               </div>
             </div>

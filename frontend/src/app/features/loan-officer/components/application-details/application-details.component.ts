@@ -3,7 +3,8 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 
 import { NotificationService } from '../../../../core/services/notification.service';
-import { LoanOfficerService, CompleteApplicationDetailsResponse, DocumentInfo } from '../../../../core/services/loan-officer.service';
+import { LoanOfficerService } from '../../../../core/services/loan-officer.service';
+import { CompleteApplicationDetailsResponse, DocumentInfo } from '../../../../core/models/officer.model';
 
 @Component({
   selector: 'app-loan-officer-application-details',

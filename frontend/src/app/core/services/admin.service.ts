@@ -1,105 +1,15 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable, map, catchError, of, forkJoin } from 'rxjs';
 import { ApiService } from './api.service';
-
-// Admin-specific interfaces
-export interface AdminStats {
-  totalUsers: number;
-  totalOfficers: number;
-  totalApplications: number;
-  pendingApplications: number;
-  approvedApplications: number;
-  rejectedApplications: number;
-  systemHealth: 'good' | 'warning' | 'critical';
-  activeUsers: number;
-}
-
-export interface OfficerResponse {
-  id: string;
-  email: string;
-  role: string;
-  status: string;
-  createdAt: string;
-  lastLoginAt?: string;
-  displayName?: string;
-}
-
-export interface UserResponse {
-  id: string;
-  email: string;
-  phone?: string;
-  role: string;
-  status: string;
-  isEmailVerified: boolean;
-  isPhoneVerified: boolean;
-  createdAt: string;
-  lastLoginAt?: string;
-  displayName?: string;
-}
-
-export interface OfficerDetailsResponse {
-  // User Account Information
-  id: string;
-  email: string;
-  phone: string;
-  role: string;
-  status: string;
-  isEmailVerified: boolean;
-  isPhoneVerified: boolean;
-  failedLoginAttempts: number;
-  lastLoginAt?: string;
-  createdAt: string;
-  updatedAt: string;
-  
-  // Officer Personal Details
-  firstName?: string;
-  lastName?: string;
-  middleName?: string;
-  fullName?: string;
-  employeeId?: string;
-  department?: string;
-  designation?: string;
-  phoneNumber?: string;
-  workLocation?: string;
-  
-  // Statistics
-  totalAssignedApplications?: number;
-  activeApplications?: number;
-  completedApplications?: number;
-}
-
-export interface OfficerCreationRequest {
-  email: string;
-  phone: string;
-  role: 'LOAN_OFFICER' | 'COMPLIANCE_OFFICER';
-  password: string;
-  firstName: string;
-  lastName: string;
-  middleName?: string;
-  department?: string;
-  designation?: string;
-  phoneNumber?: string;
-  workLocation?: string;
-}
-
-export interface SystemStats {
-  totalUsers: number;
-  totalOfficers: number;
-  totalApplications: number;
-  pendingApplications: number;
-  approvedApplications: number;
-  rejectedApplications: number;
-  activeUsers: number;
-}
-
-export interface RecentActivity {
-  id: string;
-  type: 'USER_REGISTRATION' | 'OFFICER_CREATED' | 'APPLICATION_SUBMITTED' | 'APPLICATION_APPROVED' | 'APPLICATION_REJECTED';
-  description: string;
-  timestamp: Date;
-  userId?: string;
-  userEmail?: string;
-}
+import {
+  AdminStats,
+  OfficerResponse,
+  UserResponse,
+  OfficerDetailsResponse,
+  OfficerCreationRequest,
+  SystemStats,
+  RecentActivity
+} from '../models/admin.model';
 
 @Injectable({
   providedIn: 'root'

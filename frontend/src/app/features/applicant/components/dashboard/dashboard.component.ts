@@ -4,8 +4,10 @@ import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 
 import { AuthService } from '../../../../core/services/auth.service';
 import { NotificationService } from '../../../../core/services/notification.service';
-import { DashboardService, DashboardStats, LoanApplicationSummary } from '../../../../core/services/dashboard.service';
-import { UserProfileService, UserProfile } from '../../../../core/services/user-profile.service';
+import { DashboardService } from '../../../../core/services/dashboard.service';
+import { DashboardStats, LoanApplicationSummary } from '../../../../core/models/dashboard.model';
+import { UserProfileService } from '../../../../core/services/user-profile.service';
+import { UserProfile } from '../../../../core/models/user.model';
 
 @Component({
   selector: 'app-dashboard',

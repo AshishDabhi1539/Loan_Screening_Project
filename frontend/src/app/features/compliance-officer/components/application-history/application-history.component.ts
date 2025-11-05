@@ -2,7 +2,8 @@ import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { ComplianceService, LoanApplicationResponse } from '../../../../core/services/compliance.service';
+import { ComplianceService } from '../../../../core/services/compliance.service';
+import { LoanApplicationResponse } from '../../../../core/models/compliance.model';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { IdEncoderService } from '../../../../core/services/id-encoder.service';
 
@@ -56,8 +57,8 @@ export class ApplicationHistoryComponent implements OnInit {
 
     // Sort by last updated (most recent first)
     return filtered.sort((a, b) => {
-      const dateA = new Date(a.lastUpdated || a.createdAt).getTime();
-      const dateB = new Date(b.lastUpdated || b.createdAt).getTime();
+      const dateA = new Date(a.lastUpdated || a.createdAt || Date.now()).getTime();
+      const dateB = new Date(b.lastUpdated || b.createdAt || Date.now()).getTime();
       return dateB - dateA;
     });
   });

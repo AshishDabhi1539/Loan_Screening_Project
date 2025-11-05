@@ -169,8 +169,8 @@
             <div>
               <label class="block text-sm font-medium text-gray-500 mb-1">Failed Login Attempts</label>
               <p class="text-base text-gray-900">
-                <span [class]="officer()!.failedLoginAttempts > 0 ? 'text-red-600 font-semibold' : 'text-green-600'">
-                  {{ officer()!.failedLoginAttempts }}
+                <span [class]="(officer()!.failedLoginAttempts || 0) > 0 ? 'text-red-600 font-semibold' : 'text-green-600'">
+                  {{ officer()!.failedLoginAttempts || 0 }}
                 </span>
               </p>
             </div>

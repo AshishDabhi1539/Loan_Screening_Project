@@ -1,43 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable, map, catchError, of } from 'rxjs';
 import { ApiService } from './api.service';
-
-export interface DashboardStats {
-  totalApplications: number;
-  activeApplications: number;
-  approvedApplications: number;
-  rejectedApplications: number;
-  pendingAmount: number;
-  approvedAmount: number;
-}
-
-export interface LoanApplicationSummary {
-  id: string;
-  loanType: string;
-  requestedAmount: number;
-  status: string;
-  submittedDate: Date;
-  lastUpdated: Date;
-  nextAction?: string;
-  progress: number;
-  applicantName?: string;
-  assignedOfficerName?: string;
-  // Progress tracking
-  hasPersonalDetails?: boolean;
-  hasFinancialProfile?: boolean;
-  documentsCount?: number;
-  employmentType?: string;
-  // Approved loan fields (for active loans)
-  approvedAmount?: number;
-  approvedInterestRate?: number;
-  approvedTenureMonths?: number;
-}
-
-export interface DashboardData {
-  stats: DashboardStats;
-  recentApplications: LoanApplicationSummary[];
-  pendingActions: LoanApplicationSummary[];
-}
+import { DashboardStats, LoanApplicationSummary, DashboardData } from '../models/dashboard.model';
 
 @Injectable({
   providedIn: 'root'

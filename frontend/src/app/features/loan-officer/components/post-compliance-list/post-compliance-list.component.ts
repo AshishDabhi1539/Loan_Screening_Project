@@ -1,7 +1,8 @@
 import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { LoanOfficerService, LoanApplicationResponse } from '../../../../core/services/loan-officer.service';
+import { LoanOfficerService } from '../../../../core/services/loan-officer.service';
+import { LoanApplicationResponse } from '../../../../core/models/officer.model';
 
 @Component({
   selector: 'app-post-compliance-list',

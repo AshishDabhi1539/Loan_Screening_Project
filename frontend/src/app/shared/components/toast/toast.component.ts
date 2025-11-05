@@ -3,7 +3,8 @@ import { CommonModule } from '@angular/common';
 import { trigger, transition, style, animate, query, stagger } from '@angular/animations';
 import { Subscription } from 'rxjs';
 
-import { NotificationService, NotificationMessage } from '../../../core/services/notification.service';
+import { NotificationService } from '../../../core/services/notification.service';
+import { NotificationMessage } from '../../../core/models/notification.model';
 
 @Component({
   selector: 'app-toast',

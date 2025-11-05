@@ -4,7 +4,8 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, FormArray, Validators, FormControl } from '@angular/forms';
 
 import { NotificationService } from '../../../../core/services/notification.service';
-import { LoanOfficerService, CompleteApplicationDetailsResponse, DocumentVerificationRequest } from '../../../../core/services/loan-officer.service';
+import { LoanOfficerService } from '../../../../core/services/loan-officer.service';
+import { CompleteApplicationDetailsResponse, DocumentVerificationRequest } from '../../../../core/models/officer.model';
 
 @Component({
   selector: 'app-document-verification',
@@ -248,7 +249,7 @@ export class DocumentVerificationComponent implements OnInit {
   }
 
   getAddressDetails() {
-    return this.applicationDetails()?.applicantIdentity?.personalDetails?.addresses;
+    return this.applicationDetails()?.applicantIdentity?.personalDetails?.address;
   }
 
   getEmploymentDetails() {

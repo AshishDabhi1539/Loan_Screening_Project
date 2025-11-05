@@ -172,16 +172,16 @@
               <div class="flex items-start space-x-3">
                 <!-- Activity Icon -->
                 <div class="flex-shrink-0">
-                  <div [class]="'w-8 h-8 rounded-lg flex items-center justify-center ' + getActivityColor(activity.type)">
+                  <div [class]="'w-8 h-8 rounded-lg flex items-center justify-center ' + getActivityColor(activity.type || activity.action || '')">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" [attr.d]="getActivityIcon(activity.type)" />
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" [attr.d]="getActivityIcon(activity.type || activity.action || '')" />
                     </svg>
                   </div>
                 </div>
 
                 <!-- Activity Info -->
                 <div class="flex-1 min-w-0">
-                  <p class="text-sm text-gray-900">{{ activity.description }}</p>
+                  <p class="text-sm text-gray-900">{{ activity.description || activity.action || 'Activity' }}</p>
                   <p class="text-xs text-gray-500 mt-1">{{ getRelativeTime(activity.timestamp) }}</p>
                 </div>
               </div>

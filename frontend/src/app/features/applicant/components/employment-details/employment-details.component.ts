@@ -4,7 +4,8 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angula
 import { Router, ActivatedRoute } from '@angular/router';
 import { LoanApplicationService } from '../../../../core/services/loan-application.service';
 import { NotificationService } from '../../../../core/services/notification.service';
-import { LoanEligibilityService, EmploymentTypeEligibility } from '../../../../core/services/loan-eligibility.service';
+import { LoanEligibilityService } from '../../../../core/services/loan-eligibility.service';
+import { EmploymentTypeEligibility } from '../../../../core/models/eligibility.model';
 
 // Employment & Financial Details Request Interface (matching backend)
 export interface EmploymentFinancialRequest {

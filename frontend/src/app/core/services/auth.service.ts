@@ -7,71 +7,15 @@ import { ApiService } from './api.service';
 import { NotificationSseService } from './notification-sse.service';
 import { InAppNotificationService } from './in-app-notification.service';
 import { environment } from '../../../environments/environment';
-
-export interface User {
-  id: string;
-  email: string;
-  phone?: string;
-  role: 'APPLICANT' | 'LOAN_OFFICER' | 'SENIOR_LOAN_OFFICER' | 'COMPLIANCE_OFFICER' | 'SENIOR_COMPLIANCE_OFFICER' | 'ADMIN';
-  status: 'ACTIVE' | 'INACTIVE' | 'PENDING_VERIFICATION' | 'SUSPENDED' | 'BLOCKED' | 'LOCKED';
-  displayName?: string;
-  hasPersonalDetails?: boolean;
-  requiresPersonalDetails?: boolean;
-}
-
-export interface LoginRequest {
-  emailOrPhone: string;
-  password: string;
-  rememberMe?: boolean;
-}
-
-export interface LoginResponse {
-  token: string;
-  refreshToken: string;
-  type: string;
-  expiresAt: string;
-  userId: string;
-  email: string;
-  role: string;
-  message: string;
-}
-
-export interface RegisterRequest {
-  email: string;
-  phone: string;
-  password: string;
-  confirmPassword: string;
-  acceptTerms: boolean;
-}
-
-export interface RegistrationResponse {
-  userId: string;
-  email: string;
-  status: string;
-  role: string;
-  requiresEmailVerification: boolean;
-  requiresPhoneVerification: boolean;
-  message: string;
-  timestamp: string;
-}
-
-export interface VerificationRequest {
-  email: string;
-  otpCode: string;
-  otpType: 'EMAIL_VERIFICATION' | 'LOGIN_2FA' | 'PASSWORD_RESET';
-}
-
-export interface VerificationResponse {
-  message: string;
-  timestamp: string;
-  success: boolean;
-  userId: string;
-  email: string;
-  status: string;
-  role: string;
-  requiresEmailVerification: boolean;
-  requiresPhoneVerification: boolean;
-}
+import {
+  User,
+  LoginRequest,
+  LoginResponse,
+  RegisterRequest,
+  RegistrationResponse,
+  VerificationRequest,
+  VerificationResponse
+} from '../models/auth.model';
 
 @Injectable({
   providedIn: 'root'

@@ -2,7 +2,8 @@ import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../../core/services/auth.service';
-import { ComplianceService, OfficerDetailsResponse, OfficerPersonalDetailsResponse, OfficerProfileResponse } from '../../../../core/services/compliance.service';
+import { ComplianceService } from '../../../../core/services/compliance.service';
+import { OfficerDetailsResponse, OfficerPersonalDetailsResponse, OfficerProfileResponse } from '../../../../core/models/compliance.model';
 import { NotificationService } from '../../../../core/services/notification.service';
 
 @Component({

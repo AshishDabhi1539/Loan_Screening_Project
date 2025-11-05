@@ -7,12 +7,19 @@
  * Admin statistics
  */
 export interface AdminStats {
-  totalOfficers: number;
-  activeOfficers: number;
-  totalApplicants: number;
-  activeApplications: number;
-  totalDisbursed: number;
-  systemHealth: number;
+  totalOfficers?: number;
+  activeOfficers?: number;
+  totalApplicants?: number;
+  activeApplications?: number;
+  totalDisbursed?: number;
+  systemHealth: 'good' | 'warning' | 'critical' | number;
+  // Service-specific fields
+  totalUsers?: number;
+  totalApplications?: number;
+  pendingApplications?: number;
+  approvedApplications?: number;
+  rejectedApplications?: number;
+  activeUsers?: number;
 }
 
 /**
@@ -21,12 +28,13 @@ export interface AdminStats {
 export interface OfficerResponse {
   id: string;
   email: string;
-  displayName: string;
+  displayName?: string;
   role: string;
   status: string;
   createdAt: string;
   lastLogin?: string;
-  applicationsHandled: number;
+  lastLoginAt?: string;
+  applicationsHandled?: number;
 }
 
 /**
@@ -41,8 +49,12 @@ export interface UserResponse {
   status: string;
   createdAt: string;
   lastLogin?: string;
-  hasPersonalDetails: boolean;
-  applicationCount: number;
+  lastLoginAt?: string;
+  hasPersonalDetails?: boolean;
+  applicationCount?: number;
+  // Service-specific fields
+  isEmailVerified?: boolean;
+  isPhoneVerified?: boolean;
 }
 
 /**
@@ -51,14 +63,33 @@ export interface UserResponse {
 export interface OfficerDetailsResponse {
   id: string;
   email: string;
-  displayName: string;
+  displayName?: string;
   role: string;
   status: string;
   createdAt: string;
   lastLogin?: string;
+  lastLoginAt?: string;
   personalDetails?: OfficerPersonalDetails;
-  stats: OfficerStats;
-  recentApplications: OfficerApplicationSummary[];
+  stats?: OfficerStats;
+  recentApplications?: OfficerApplicationSummary[];
+  // Service-specific flat structure fields
+  phone?: string;
+  isEmailVerified?: boolean;
+  isPhoneVerified?: boolean;
+  failedLoginAttempts?: number;
+  updatedAt?: string;
+  firstName?: string;
+  lastName?: string;
+  middleName?: string;
+  fullName?: string;
+  employeeId?: string;
+  department?: string;
+  designation?: string;
+  phoneNumber?: string;
+  workLocation?: string;
+  totalAssignedApplications?: number;
+  activeApplications?: number;
+  completedApplications?: number;
 }
 
 /**
@@ -124,6 +155,10 @@ export interface OfficerCreationRequest {
   phone: string;
   designation?: string;
   department?: string;
+  // Service-specific fields
+  middleName?: string;
+  phoneNumber?: string;
+  workLocation?: string;
 }
 
 /**
@@ -133,12 +168,13 @@ export interface SystemStats {
   totalUsers: number;
   totalOfficers: number;
   totalApplications: number;
-  activeApplications: number;
+  activeApplications?: number;
   approvedApplications: number;
   rejectedApplications: number;
-  totalAmountDisbursed: number;
-  averageProcessingTime: number;
-  systemHealth: number;
+  totalAmountDisbursed?: number;
+  averageProcessingTime?: number;
+  systemHealth?: number;
+  pendingApplications: number;
 }
 
 /**
@@ -146,13 +182,17 @@ export interface SystemStats {
  */
 export interface RecentActivity {
   id: string;
-  userId: string;
-  userName: string;
-  action: string;
-  entityType: string;
-  entityId: string;
-  timestamp: string;
+  userId?: string;
+  userName?: string;
+  action?: string;
+  entityType?: string;
+  entityId?: string;
+  timestamp: string | Date;
   details?: string;
+  // Service-specific fields
+  type?: 'USER_REGISTRATION' | 'OFFICER_CREATED' | 'APPLICATION_SUBMITTED' | 'APPLICATION_APPROVED' | 'APPLICATION_REJECTED';
+  description?: string;
+  userEmail?: string;
 }
 
 /**

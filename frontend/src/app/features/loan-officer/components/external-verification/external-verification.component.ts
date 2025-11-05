@@ -3,7 +3,8 @@ import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 
 import { NotificationService } from '../../../../core/services/notification.service';
-import { LoanOfficerService, ExternalVerificationResponse } from '../../../../core/services/loan-officer.service';
+import { LoanOfficerService } from '../../../../core/services/loan-officer.service';
+import { ExternalVerificationResponse } from '../../../../core/models/officer.model';
 
 @Component({
   selector: 'app-external-verification',

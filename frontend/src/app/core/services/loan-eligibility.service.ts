@@ -2,33 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-
-export interface EmploymentTypeEligibility {
-  employmentType: string;
-  eligible: boolean;
-  reason: string;
-  minimumDurationMonths?: number;
-}
-
-export interface LoanEligibilityResponse {
-  loanType: string;
-  employmentTypes: EmploymentTypeEligibility[];
-  minimumIncome: number;
-  maxFOIR: number;
-  additionalCriteria: any;
-}
-
-export interface FOIRCalculationResponse {
-  monthlyIncome: number;
-  existingObligations: number;
-  newEmi: number;
-  totalObligations: number;
-  disposableIncome: number;
-  foirPercentage: number;
-  acceptable: boolean;
-  status: 'EXCELLENT' | 'GOOD' | 'ACCEPTABLE' | 'HIGH_RISK';
-  message: string;
-}
+import { EmploymentTypeEligibility, LoanEligibilityResponse, FOIRCalculationResponse } from '../models/eligibility.model';
 
 @Injectable({
   providedIn: 'root'

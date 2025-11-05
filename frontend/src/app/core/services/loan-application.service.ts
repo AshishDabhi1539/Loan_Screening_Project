@@ -1,81 +1,14 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
-
-// Loan Application Request (matches backend LoanApplicationRequest.java)
-export interface LoanApplicationRequest {
-  loanType: string;  // LoanType enum
-  loanAmount: number;  // Backend uses loanAmount, not requestedAmount
-  tenureMonths: number;  // Backend uses tenureMonths
-  purpose: string;
-  additionalNotes?: string;
-}
-
-// Loan Application Create Response (matches backend LoanApplicationCreateResponse.java)
-export interface LoanApplicationCreateResponse {
-  id: string;
-  loanType: string;
-  requestedAmount: number;
-  tenureMonths: number;
-  status: string;
-  message: string;
-  createdAt: string;
-  nextStep: string;
-  nextStepUrl: string;
-}
-
-// Full Loan Application Response
-export interface LoanApplicationResponse {
-  id: string;
-  applicantName: string;
-  applicantEmail: string;
-  applicantPhone: string;
-  loanType: string;
-  requestedAmount: number;
-  tenureMonths: number;
-  purpose: string;
-  status: string;
-  riskLevel?: string;
-  priority?: string;
-  submittedAt: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface DocumentUploadResponse {
-  id: number;
-  fileName: string;
-  documentType: string;
-  uploadedAt: Date;
-  status: string;
-}
-
-export interface DocumentRequirement {
-  documentType: string;
-  documentTypeName: string;
-  currentStatus: string; // VERIFIED, REJECTED, MISSING, PENDING
-  canReupload: boolean;
-  rejectionReason?: string;
-  requiredAction: string;
-  specificInstructions?: string;
-  isRequired: boolean;
-  lastUploadedAt?: string;
-  fileName?: string;
-  currentDocumentId?: number;
-}
-
-export interface ResubmissionRequirementsResponse {
-  applicationId: string;
-  applicationStatus: string;
-  hasResubmissionRequirements: boolean;
-  resubmissionDeadline?: string;
-  additionalInstructions?: string;
-  documentRequirements: DocumentRequirement[];
-  requestedAt?: string;
-  requestedByOfficer?: string;
-  totalDocumentsRequired: number;
-  documentsAlreadyVerified: number;
-}
+import {
+  LoanApplicationRequest,
+  LoanApplicationCreateResponse,
+  LoanApplicationResponse,
+  DocumentUploadResponse,
+  DocumentRequirement,
+  ResubmissionRequirementsResponse
+} from '../models/loan-application.model';
 
 @Injectable({
   providedIn: 'root'

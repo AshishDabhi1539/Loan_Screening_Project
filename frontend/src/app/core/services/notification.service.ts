@@ -1,15 +1,6 @@
 import { Injectable, signal } from '@angular/core';
 import { Observable, Subject } from 'rxjs';
-
-export interface NotificationMessage {
-  id: string;
-  type: 'success' | 'error' | 'warning' | 'info';
-  title: string;
-  message: string;
-  duration?: number;
-  persistent?: boolean;
-  timestamp: Date;
-}
+import { NotificationMessage } from '../models/notification.model';
 
 @Injectable({
   providedIn: 'root'

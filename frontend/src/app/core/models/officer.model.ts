@@ -8,13 +8,77 @@ export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'VERY_HIGH';
 export type Priority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 
 /**
- * Officer dashboard response
+ * Officer dashboard response (actual API structure)
  */
 export interface OfficerDashboardResponse {
-  stats: OfficerStats;
-  workload: WorkloadInfo;
-  recentActivities: RecentActivity[];
-  performanceMetrics: PerformanceMetrics;
+  // Officer Info
+  officerId?: string;
+  officerName: string;
+  officerEmail: string;
+  role: string;
+  
+  // Application Statistics
+  totalAssigned: number;
+  verified: number; // Applications that passed verification
+  rejected: number; // Applications that were rejected
+  inProgress: number; // Applications currently being processed
+  completedToday: number;
+  completedThisWeek?: number;
+  completedThisMonth?: number;
+  
+  // Performance Metrics
+  avgProcessingTime: number;
+  applicationsProcessedToday?: number;
+  applicationsProcessedThisWeek?: number;
+  
+  // Priority Breakdown
+  priorityBreakdown: {
+    high: number;
+    medium: number;
+    low: number;
+  };
+  
+  // Recent Data
+  recentApplications: LoanApplicationSummaryOfficer[];
+  recentActivities: RecentActivityOfficer[];
+  
+  // Workload Status
+  lastLoginAt?: Date;
+  lastActivityAt?: Date;
+  hasCapacityForNewApplications?: boolean;
+  maxWorkloadCapacity?: number;
+  currentWorkload?: number;
+  urgentApplications?: number;
+  highValueApplications?: number;
+  flaggedApplications?: number;
+}
+
+/**
+ * Loan application summary for officer (actual API structure)
+ */
+export interface LoanApplicationSummaryOfficer {
+  id: string;
+  applicantName: string;
+  applicantEmail: string;
+  loanType: string;
+  requestedAmount: number;
+  tenureMonths: number;
+  status: string;
+  priority: string;
+  submittedAt: Date;
+  assignedAt: Date;
+}
+
+/**
+ * Recent activity for officer (actual API structure)
+ */
+export interface RecentActivityOfficer {
+  id: string;
+  action: string;
+  applicantName: string;
+  applicationId: string;
+  timestamp: Date;
+  status: string;
 }
 
 /**
@@ -84,47 +148,55 @@ export interface LoanApplicationSummary {
 }
 
 /**
- * Complete application details response
+ * Complete application details response (for officer service)
  */
 export interface CompleteApplicationDetailsResponse {
   applicationInfo: ApplicationInfo;
   applicantIdentity: ApplicantIdentity;
-  personalDetails: PersonalDetailsNested;
   employmentDetails: EmploymentDetails;
-  financialAssessment: FinancialAssessment;
   documents: DocumentInfo[];
-  externalVerification: ExternalVerificationInfo;
+  financialAssessment: FinancialAssessment;
   verificationSummary: VerificationSummary;
-  timeline: AuditEntry[];
+  externalVerification: ExternalVerificationInfo | null;
 }
 
 /**
- * Application information
+ * Application information (for officer service)
  */
 export interface ApplicationInfo {
   id: string;
-  loanType: string;
-  requestedAmount: number;
+  status: string;
+  loanAmount: number;
   tenureMonths: number;
   purpose: string;
-  status: string;
-  priority: Priority;
-  submittedAt: string;
-  assignedAt: string;
-  lastUpdated: string;
-  assignedOfficerName: string;
+  loanType: string;
+  submittedAt: Date;
+  assignedAt?: Date;
+  assignedOfficerName?: string;
+  priority: string;
+  daysInReview?: number;
+  fromCompliance?: boolean;
+  complianceNotes?: string;
 }
 
 /**
- * Applicant identity information
+ * Applicant identity information (for officer service)
  */
 export interface ApplicantIdentity {
-  userId: string;
-  email: string;
-  phone: string;
-  displayName: string;
-  accountStatus: string;
-  registeredAt: string;
+  personalDetails: PersonalDetailsNested;
+  contactInfo: ContactInfo;
+  verificationStatus: VerificationStatusType;
+}
+
+/**
+ * Verification status type (for officer service)
+ */
+export interface VerificationStatusType {
+  identityVerified: boolean;
+  addressVerified: boolean;
+  phoneVerified: boolean;
+  emailVerified: boolean;
+  identityVerificationNotes?: string;
 }
 
 /**
@@ -149,17 +221,14 @@ export interface PersonalDetailsNested {
 }
 
 /**
- * Address information
+ * Address information (for officer service - nested structure)
  */
 export interface AddressInfo {
-  addressLine1: string;
-  addressLine2?: string;
+  permanentAddress: string;
+  currentAddress: string;
   city: string;
   state: string;
   pincode: string;
-  country: string;
-  residenceType: string;
-  yearsAtCurrentAddress: number;
 }
 
 /**
@@ -172,49 +241,58 @@ export interface ContactInfo {
 }
 
 /**
- * Employment details
+ * Employment details (for officer service)
  */
 export interface EmploymentDetails {
+  companyName: string;
+  designation: string;
+  workExperience: string;
   employmentType: string;
-  employerName?: string;
-  designation?: string;
-  yearsInCurrentJob?: number;
-  totalWorkExperience?: number;
   monthlyIncome: number;
-  companyContact?: CompanyContact;
-  bankDetails?: BankDetails;
+  annualIncome: number;
+  companyContact: CompanyContact;
+  bankDetails: BankDetails;
   verificationStatus: EmploymentVerificationStatus;
+  // Financial Obligations
+  existingLoanEmi?: number;
+  creditCardOutstanding?: number;
+  monthlyExpenses?: number;
 }
 
 /**
- * Company contact information
+ * Company contact information (for officer service)
  */
 export interface CompanyContact {
-  companyName: string;
-  contactPerson?: string;
-  contactNumber?: string;
-  email?: string;
-  address?: string;
+  companyPhone?: string;
+  companyEmail?: string;
+  hrPhone?: string;
+  hrEmail?: string;
+  managerName?: string;
+  managerPhone?: string;
+  companyAddress?: string;
 }
 
 /**
- * Bank details
+ * Bank details (for officer service)
  */
 export interface BankDetails {
-  bankName?: string;
-  accountNumber?: string;
-  ifscCode?: string;
-  branchName?: string;
+  bankName: string;
+  accountNumber: string;
+  ifscCode: string;
+  accountType: string;
+  branchName: string;
 }
 
 /**
- * Employment verification status
+ * Employment verification status (for officer service)
  */
 export interface EmploymentVerificationStatus {
-  status: VerificationStatus;
-  verifiedAt?: string;
-  verifiedBy?: string;
-  notes?: string;
+  employmentVerified: boolean;
+  incomeVerified: boolean;
+  bankAccountVerified: boolean;
+  employmentVerificationNotes?: string;
+  incomeVerificationNotes?: string;
+  lastVerificationDate?: Date;
 }
 
 /**
@@ -228,73 +306,94 @@ export interface FinancialAssessment {
 }
 
 /**
- * Loan details
+ * Loan details (for officer service)
  */
 export interface LoanDetails {
   requestedAmount: number;
   tenureMonths: number;
+  purpose: string;
   estimatedEmi: number;
   estimatedInterestRate: number;
-  totalInterest: number;
-  totalRepayment: number;
 }
 
 /**
- * Existing loan information
+ * Existing loan information (for officer service)
  */
 export interface ExistingLoan {
   loanType: string;
-  lender: string;
+  emiAmount: number;
   outstandingAmount: number;
-  emi: number;
+  bankName: string;
   remainingTenure: number;
 }
 
 /**
- * Calculated financial ratios
+ * Calculated financial ratios (for officer service)
  */
 export interface CalculatedRatios {
-  foir: number;
-  dti: number;
-  loanToIncome: number;
-  disposableIncome: number;
-}
-
-/**
- * Risk assessment
- */
-export interface RiskAssessment {
-  overallRisk: RiskLevel;
-  creditScore?: number;
-  riskFactors: string[];
-  mitigatingFactors: string[];
+  emiToIncomeRatio: number;
+  debtToIncomeRatio: number;
+  loanToIncomeRatio: number;
+  affordabilityStatus: string;
   recommendation: string;
 }
 
 /**
- * Document information
+ * Risk assessment (for officer service)
  */
-export interface DocumentInfo {
-  id: string;
-  documentType: string;
-  fileName: string;
-  fileSize: number;
-  uploadedAt: string;
-  verificationStatus: VerificationStatus;
-  verifiedAt?: string;
-  verifiedBy?: string;
-  rejectionReason?: string;
-  category: string;
+export interface RiskAssessment {
+  riskLevel: string;
+  riskScore: number;
+  fraudScore: number;
+  riskFactors: string[];
+  overallAssessment: string;
 }
 
 /**
- * External verification information
+ * Document information (for officer service)
+ */
+export interface DocumentInfo {
+  documentId: number;
+  documentType: string;
+  fileName: string;
+  fileUrl: string;
+  uploadDate: Date;
+  verificationStatus: string;
+  verificationNotes?: string;
+  rejectionReason?: string;
+  isRequired: boolean;
+  isResubmitted: boolean;
+  verifiedAt?: Date;
+  verifiedByName?: string;
+  fileSizeBytes?: number;
+  fileType?: string;
+}
+
+/**
+ * External verification information (for officer service)
  */
 export interface ExternalVerificationInfo {
-  creditBureauCheck?: CreditBureauCheck;
-  fraudDetection?: FraudDetection;
-  employmentVerification?: EmploymentVerificationExternal;
-  addressVerification?: AddressVerification;
+  // Credit Scoring Results
+  creditScore: number | null;
+  riskLevel: string;             // LOW, MEDIUM, HIGH, INVALID, UNKNOWN
+  riskScoreNumeric: number;      // 0-100 numeric risk score
+  riskFactors: string;           // Detailed risk factors explanation
+  creditScoreReason?: string;
+  redAlertFlag: boolean;         // Critical risk indicator
+  
+  // Financial Metrics
+  totalOutstanding: number;      // Total outstanding loan amount
+  activeLoansCount: number;      // Number of active loans
+  totalMissedPayments: number;   // Total missed payments
+  hasDefaults: boolean;          // Loan default history flag
+  activeFraudCases: number;      // Active fraud cases count
+  
+  // Data Availability
+  dataFound: boolean;            // Whether external data was found
+  
+  // Metadata
+  recommendedAction: string;     // Recommended action based on scoring
+  verifiedAt: Date;
 }
 
 /**
@@ -339,114 +438,159 @@ export interface AddressVerification {
 }
 
 /**
- * Verification summary
+ * Verification summary (for officer service)
  */
 export interface VerificationSummary {
-  personalDetailsVerified: boolean;
-  employmentVerified: boolean;
-  documentsVerified: boolean;
+  identityVerificationComplete: boolean;
+  documentVerificationComplete: boolean;
+  employmentVerificationComplete: boolean;
+  financialVerificationComplete: boolean;
   externalVerificationComplete: boolean;
-  readyForDecision: boolean;
+  overallCompletionPercentage: number;
+  currentStage: string;
+  nextAction: string;
   pendingItems: string[];
+  rejectedItems: string[];
+  readyForExternalVerification: boolean;
+  readyForDecision: boolean;
 }
 
 /**
- * Audit entry for timeline
+ * Audit entry for timeline (for officer service)
  */
 export interface AuditEntry {
   id: string;
   action: string;
   performedBy: string;
-  performedByRole: string;
-  timestamp: string;
-  details?: string;
-  oldStatus?: string;
-  newStatus?: string;
+  timestamp: Date;
+  details: string;
+  status?: string;
 }
 
 /**
- * Document verification request
+ * Document verification request (for officer service)
  */
 export interface DocumentVerificationRequest {
-  documentId: string;
-  status: VerificationStatus;
-  notes?: string;
-  rejectionReason?: string;
+  documentVerifications: {
+    documentId: string;
+    verified: boolean;
+    verificationNotes?: string;
+    rejectionReason?: string;
+  }[];
+  identityVerified: boolean;
+  identityVerificationNotes?: string;
+  employmentVerified: boolean;
+  employmentVerificationNotes?: string;
+  incomeVerified: boolean;
+  incomeVerificationNotes?: string;
+  bankAccountVerified: boolean;
+  bankAccountVerificationNotes?: string;
+  addressVerified: boolean;
+  overallVerificationPassed: boolean;
+  generalNotes?: string;
 }
 
 /**
- * Document resubmission request
+ * Document resubmission request (for officer service)
  */
 export interface DocumentResubmissionRequest {
-  documentTypes: string[];
-  reason: string;
-  deadline?: string;
-  additionalNotes?: string;
+  rejectedDocuments: {
+    documentType: string;
+    rejectionReason: string;
+    requiredAction: string;
+    specificInstructions?: string;
+    isRequired: boolean;
+  }[];
+  resubmissionDeadline: string;
+  additionalInstructions?: string;
+  officerNotes?: string;
 }
 
 /**
- * Document resubmission response
+ * Document resubmission response (for officer service)
  */
 export interface DocumentResubmissionResponse {
-  applicationId: string;
-  requestedDocuments: string[];
-  requestedAt: string;
-  deadline?: string;
   message: string;
+  applicationId: string;
+  requiredDocuments: string[];
+  dueDate?: string;
+  status: string;
 }
 
 /**
- * Loan decision request
+ * Loan decision request (for officer service)
  */
 export interface LoanDecisionRequest {
-  decision: 'APPROVE' | 'REJECT';
+  decisionType?: 'APPROVED' | 'REJECTED' | 'CONDITIONAL_APPROVAL';
   approvedAmount?: number;
   approvedTenureMonths?: number;
-  interestRate?: number;
+  approvedInterestRate?: number;
+  decisionReason?: string;
   rejectionReason?: string;
-  conditions?: string[];
-  notes?: string;
+  additionalNotes?: string;
+  requiresComplianceReview?: boolean;
 }
 
 /**
- * Loan decision response
+ * Loan decision response (for officer service)
  */
 export interface LoanDecisionResponse {
-  applicationId: string;
-  decision: string;
-  approvedAmount?: number;
-  approvedTenureMonths?: number;
-  interestRate?: number;
-  emi?: number;
-  totalInterest?: number;
-  totalRepayment?: number;
-  processedAt: string;
-  processedBy: string;
   message: string;
+  applicationId: string;
+  status: string;
+  decisionType: string;
+  decisionMaker: string;
+  decisionMakerName: string;
+  decisionDate: Date;
+  nextStep?: string;
+  nextStepUrl?: string;
 }
 
 /**
- * Compliance flag request
+ * Compliance flag request (for officer service)
  */
 export interface ComplianceFlagRequest {
-  reason: string;
-  priority: Priority;
-  concernedDocuments?: string[];
-  additionalNotes?: string;
+  flagReason: string;
+  suspiciousActivities: string[];
+  priority: 'HIGH' | 'MEDIUM' | 'LOW';
+  additionalEvidence?: string;
 }
 
 /**
- * External verification response
+ * External verification response (for officer service)
  */
 export interface ExternalVerificationResponse {
+  // Application Status
+  message: string;
   applicationId: string;
-  verificationType: string;
-  status: string;
-  creditScore?: number;
-  riskScore?: number;
-  verifiedAt: string;
-  summary: string;
-  details: any;
+  previousStatus: string;
+  newStatus: string;
+  completedAt: Date;
+  
+  // Credit Scoring Results
+  creditScore: number | null;
+  riskType: string;              // LOW, MEDIUM, HIGH, INVALID, UNKNOWN
+  riskScoreNumeric: number;      // 0-100 numeric risk score
+  riskFactors: string;           // Detailed risk factors explanation
+  creditScoreReason: string;     // Explanation for credit score
+  redAlertFlag: boolean;         // Critical risk indicator
+  
+  // Financial Metrics
+  totalOutstanding: number;      // Total outstanding loan amount
+  activeLoansCount: number;      // Number of active loans
+  totalMissedPayments: number;   // Total missed payments
+  hasDefaults: boolean;          // Loan default history flag
+  activeFraudCases: number;      // Active fraud cases count
+  
+  // Data Availability
+  dataFound: boolean;            // Whether external data was found
+  
+  // Next Steps
+  nextSteps: string;
+  readyForDecision: boolean;
+  
+  // Banking Recommendation
+  recommendedAction: string;     // Recommended action based on scoring
 }
 
 /**
@@ -454,18 +598,78 @@ export interface ExternalVerificationResponse {
  */
 export interface LoanApplicationResponse {
   id: string;
+  applicantId: string;
   applicantName: string;
+  applicantEmail: string;
+  applicantPhone: string;
   loanType: string;
   requestedAmount: number;
   tenureMonths: number;
   purpose: string;
+  existingLoans: boolean;
+  existingEmi?: number;
   status: string;
-  priority: Priority;
-  submittedAt: string;
-  assignedAt?: string;
-  lastUpdated: string;
-  employmentType?: string;
-  monthlyIncome?: number;
-  riskLevel?: RiskLevel;
-  verificationProgress?: number;
+  priority: string;
+  riskLevel: string;
+  submittedAt: Date;
+  assignedAt?: Date;
+  hasPersonalDetails: boolean;
+  hasFinancialProfile: boolean;
+  documentsCount: number;
+  verifiedDocumentsCount: number;
+  fraudCheckResultsCount: number;
+  // Compliance review flags
+  fromCompliance?: boolean;
+  complianceReviewAcknowledged?: boolean;
+  complianceReviewAcknowledgedAt?: Date;
+}
+
+/**
+ * Personal details (flat structure for form submission)
+ */
+export interface PersonalDetails {
+  firstName: string;
+  lastName: string;
+  middleName?: string;
+  dateOfBirth: string;
+  gender: string;
+  maritalStatus: string;
+  fatherName: string;
+  motherName: string;
+  spouseName?: string;
+  panNumber: string;
+  aadhaarNumber: string;
+  currentAddressLine1: string;
+  currentAddressLine2?: string;
+  currentCity: string;
+  currentState: string;
+  currentPincode: string;
+  permanentAddressLine1?: string;
+  permanentAddressLine2?: string;
+  permanentCity?: string;
+  permanentState?: string;
+  permanentPincode?: string;
+  alternatePhoneNumber?: string;
+  dependentsCount?: number;
+}
+
+/**
+ * Financial details (flat structure for form submission)
+ */
+export interface FinancialDetails {
+  employmentType: string;
+  companyName?: string;
+  jobTitle?: string;
+  employmentStartDate?: string;
+  companyAddress?: string;
+  monthlyIncome: number;
+  additionalIncome?: number;
+  bankName: string;
+  accountNumber: string;
+  ifscCode: string;
+  accountType: string;
+  existingEmi?: number;
+  creditCardOutstanding?: number;
+  otherObligations?: number;
+  foir?: number;
 }

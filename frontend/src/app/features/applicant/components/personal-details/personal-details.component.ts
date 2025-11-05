@@ -5,7 +5,8 @@ import { Router, ActivatedRoute } from '@angular/router';
 
 import { AuthService } from '../../../../core/services/auth.service';
 import { NotificationService } from '../../../../core/services/notification.service';
-import { UserProfileService, PersonalDetailsRequest, AddressRequest } from '../../../../core/services/user-profile.service';
+import { UserProfileService } from '../../../../core/services/user-profile.service';
+import { PersonalDetailsRequest, AddressRequest } from '../../../../core/models/user.model';
 
 @Component({
   selector: 'app-personal-details',

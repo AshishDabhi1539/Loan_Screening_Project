@@ -2,7 +2,8 @@ import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Title } from '@angular/platform-browser';
-import { LoanApplicationService, ResubmissionRequirementsResponse, DocumentRequirement } from '../../../../core/services/loan-application.service';
+import { LoanApplicationService } from '../../../../core/services/loan-application.service';
+import { ResubmissionRequirementsResponse, DocumentRequirement } from '../../../../core/models/loan-application.model';
 import { NotificationService } from '../../../../core/services/notification.service';
 
 @Component({

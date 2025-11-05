@@ -1,7 +1,8 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
-import { ComplianceService, ComplianceDashboardResponse, LoanApplicationResponse } from '../../../../core/services/compliance.service';
+import { ComplianceService } from '../../../../core/services/compliance.service';
+import { ComplianceDashboardResponse, LoanApplicationResponse } from '../../../../core/models/compliance.model';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { IdEncoderService } from '../../../../core/services/id-encoder.service';
 
@@ -81,7 +82,7 @@ export class ComplianceDashboardComponent implements OnInit {
   performanceChartData = computed(() => {
     const data = this.dashboard();
     if (!data) return [];
-    const total = data.totalCasesResolved;
+    const total = data.totalCasesResolved || 0;
     if (total === 0) return [];
     
     const cleared = data.applicationsClearedToday || 0;

@@ -2,7 +2,8 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
-import { LoanApplicationService, LoanApplicationResponse } from '../../../../core/services/loan-application.service';
+import { LoanApplicationService } from '../../../../core/services/loan-application.service';
+import { LoanApplicationResponse } from '../../../../core/models/loan-application.model';
 import { DashboardService } from '../../../../core/services/dashboard.service';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { ApiService } from '../../../../core/services/api.service';

@@ -4,7 +4,8 @@ import { Router, RouterLink } from '@angular/router';
 
 import { AuthService } from '../../../../core/services/auth.service';
 import { NotificationService } from '../../../../core/services/notification.service';
-import { LoanOfficerService, OfficerDashboardResponse, LoanApplicationSummary } from '../../../../core/services/loan-officer.service';
+import { LoanOfficerService } from '../../../../core/services/loan-officer.service';
+import { OfficerDashboardResponse, LoanApplicationSummaryOfficer as LoanApplicationSummary } from '../../../../core/models/officer.model';
 
 @Component({
   selector: 'app-loan-officer-dashboard',

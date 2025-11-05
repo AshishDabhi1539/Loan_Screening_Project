@@ -4,7 +4,8 @@ import { RouterLink, Router } from '@angular/router';
 
 import { AuthService } from '../../../../core/services/auth.service';
 import { NotificationService } from '../../../../core/services/notification.service';
-import { AdminService, AdminStats, RecentActivity } from '../../../../core/services/admin.service';
+import { AdminService } from '../../../../core/services/admin.service';
+import { AdminStats, RecentActivity } from '../../../../core/models/admin.model';
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -134,7 +135,9 @@ export class DashboardComponent implements OnInit {
   /**
    * Get relative time (e.g., "2 hours ago")
    */
-  getRelativeTime(date: Date): string {
+  getRelativeTime(timestamp: string | Date): string {
+    const date = timestamp instanceof Date ? timestamp : new Date(timestamp);
+    if (isNaN(date.getTime())) return 'Unknown time';
     const now = new Date();
     const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
     

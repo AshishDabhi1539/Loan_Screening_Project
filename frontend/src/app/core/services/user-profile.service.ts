@@ -1,72 +1,13 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable, map, catchError, of } from 'rxjs';
 import { ApiService } from './api.service';
-
-export interface UserProfile {
-  id: string;
-  email: string;
-  role: string;
-  status: string;
-  displayName?: string;
-  hasPersonalDetails: boolean;
-  requiresPersonalDetails: boolean;
-  createdAt: Date;
-  lastLoginAt?: Date;
-}
-
-export interface PersonalDetailsRequest {
-  firstName: string;
-  lastName: string;
-  middleName?: string;
-  dateOfBirth: string;
-  gender: string;
-  maritalStatus: string;
-  phoneNumber: string;
-  alternatePhoneNumber?: string;
-  panNumber: string;
-  aadhaarNumber: string;
-  currentAddress: AddressRequest;
-  permanentAddress?: AddressRequest;
-  sameAsPermanent: boolean;
-}
-
-export interface AddressRequest {
-  addressLine1: string;
-  addressLine2?: string;
-  city: string;
-  state: string;
-  pincode: string;
-  country: string;
-}
-
-export interface PersonalDetailsResponse {
-  id: string;
-  firstName: string;
-  lastName: string;
-  middleName?: string;
-  fullName: string;
-  dateOfBirth: Date;
-  gender: string;
-  maritalStatus: string;
-  phoneNumber: string;
-  alternatePhoneNumber?: string;
-  panNumber: string;
-  aadhaarNumber: string;
-  currentAddress: AddressResponse;
-  permanentAddress?: AddressResponse;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface AddressResponse {
-  id: string;
-  addressLine1: string;
-  addressLine2?: string;
-  city: string;
-  state: string;
-  pincode: string;
-  country: string;
-}
+import {
+  UserProfile,
+  PersonalDetailsRequest,
+  PersonalDetailsResponse,
+  AddressRequest,
+  AddressResponse
+} from '../models/user.model';
 
 @Injectable({
   providedIn: 'root'

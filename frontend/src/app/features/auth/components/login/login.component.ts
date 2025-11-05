@@ -3,7 +3,8 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 
-import { AuthService, LoginRequest } from '../../../../core/services/auth.service';
+import { AuthService } from '../../../../core/services/auth.service';
+import { LoginRequest } from '../../../../core/models/auth.model';
 import { NotificationService } from '../../../../core/services/notification.service';
 
 @Component({

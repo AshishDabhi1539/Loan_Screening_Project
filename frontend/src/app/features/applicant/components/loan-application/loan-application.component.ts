@@ -2,7 +2,8 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { LoanApplicationService, LoanApplicationRequest } from '../../../../core/services/loan-application.service';
+import { LoanApplicationService } from '../../../../core/services/loan-application.service';
+import { LoanApplicationRequest } from '../../../../core/models/loan-application.model';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { UserProfileService } from '../../../../core/services/user-profile.service';
 

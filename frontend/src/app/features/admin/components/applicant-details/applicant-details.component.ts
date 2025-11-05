@@ -1,7 +1,8 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { AdminService, UserResponse } from '../../../../core/services/admin.service';
+import { AdminService } from '../../../../core/services/admin.service';
+import { UserResponse } from '../../../../core/models/admin.model';
 import { NotificationService } from '../../../../core/services/notification.service';
 
 @Component({

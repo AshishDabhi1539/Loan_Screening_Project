@@ -3,7 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 
-import { AdminService, UserResponse } from '../../../../core/services/admin.service';
+import { AdminService } from '../../../../core/services/admin.service';
+import { UserResponse } from '../../../../core/models/admin.model';
 import { NotificationService } from '../../../../core/services/notification.service';
 
 @Component({

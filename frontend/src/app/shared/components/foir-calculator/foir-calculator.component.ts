@@ -1,7 +1,8 @@
 import { Component, OnInit, inject, signal, computed, input, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { LoanEligibilityService, FOIRCalculationResponse } from '../../../core/services/loan-eligibility.service';
+import { LoanEligibilityService } from '../../../core/services/loan-eligibility.service';
+import { FOIRCalculationResponse } from '../../../core/models/eligibility.model';
 
 @Component({
   selector: 'app-foir-calculator',
