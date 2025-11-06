@@ -201,7 +201,8 @@ export class DocumentVerificationComponent implements OnInit {
   // Get documents by category - using computed signals to prevent excessive re-computation
   identityDocuments = computed(() => {
     const identityTypes = ['AADHAAR_CARD', 'PAN_CARD', 'PASSPORT', 'VOTER_ID', 'DRIVING_LICENSE', 'PHOTOGRAPH'];
-    return this.applicationDetails()?.documents.filter(doc => identityTypes.includes(doc.documentType)) || [];
+    const filtered = this.applicationDetails()?.documents.filter(doc => identityTypes.includes(doc.documentType)) || [];
+    return this.getSmartFilteredDocuments(filtered);
   });
 
   // Keep the old method for backward compatibility, but use the computed signal
@@ -229,9 +230,10 @@ export class DocumentVerificationComponent implements OnInit {
       'COMPANY_ID', 'PAYSLIP', 'EMPLOYMENT_PROOF'
     ];
 
-    return this.applicationDetails()?.documents.filter(doc => 
-      allEmploymentTypes.includes(doc.documentType)  // ✅ REMOVED compliance filter
+    const filtered = this.applicationDetails()?.documents.filter(doc => 
+      allEmploymentTypes.includes(doc.documentType)
     ) || [];
+    return this.getSmartFilteredDocuments(filtered);
   }
 
   getIncomeDocuments(): any[] {
@@ -253,9 +255,10 @@ export class DocumentVerificationComponent implements OnInit {
       'INCOME_TAX_RETURN', 'INCOME_PROOF'
     ];
 
-    return this.applicationDetails()?.documents.filter(doc => 
-      allIncomeTypes.includes(doc.documentType)  // ✅ REMOVED compliance filter
+    const filtered = this.applicationDetails()?.documents.filter(doc => 
+      allIncomeTypes.includes(doc.documentType)
     ) || [];
+    return this.getSmartFilteredDocuments(filtered);
   }
 
   getBankDocuments(): any[] {
@@ -267,7 +270,8 @@ export class DocumentVerificationComponent implements OnInit {
       'BANK_ACCOUNT_PROOF',
       'CHEQUE_BOOK_COPY'
     ];
-    return this.applicationDetails()?.documents.filter(doc => bankTypes.includes(doc.documentType)) || [];  // ✅ REMOVED compliance filter
+    const filtered = this.applicationDetails()?.documents.filter(doc => bankTypes.includes(doc.documentType)) || [];
+    return this.getSmartFilteredDocuments(filtered);
   }
 
   getAddressDocuments(): any[] {
@@ -284,7 +288,8 @@ export class DocumentVerificationComponent implements OnInit {
       'PROPERTY_DEED',
       'ADDRESS_PROOF'
     ];
-    return this.applicationDetails()?.documents.filter(doc => addressTypes.includes(doc.documentType)) || [];  // ✅ REMOVED compliance filter
+    const filtered = this.applicationDetails()?.documents.filter(doc => addressTypes.includes(doc.documentType)) || [];
+    return this.getSmartFilteredDocuments(filtered);
   }
 
   // Helper to check if category has documents

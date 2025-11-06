@@ -60,16 +60,31 @@
             <p class="text-base font-semibold text-gray-900">{{ applicantName() }}</p>
             <p class="text-sm text-gray-600 mt-1">{{ userEmail() }}</p>
             <p class="text-sm text-gray-600 mt-1">Role: {{ userRole() }}</p>
-            <button
-              type="button"
-              (click)="editProfile()"
-              class="mt-4 px-4 py-2 text-sm font-medium text-white bg-primary-600 border border-transparent rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-            >
-              <svg class="w-4 h-4 mr-2 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-              Edit Profile
-            </button>
+            
+            <!-- Action Buttons -->
+            <div class="mt-4 flex flex-col gap-2">
+              <button
+                type="button"
+                (click)="editProfile()"
+                class="px-4 py-2 text-sm font-medium text-white bg-primary-600 border border-transparent rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
+              >
+                <svg class="w-4 h-4 mr-2 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Edit Profile
+              </button>
+              
+              <button
+                type="button"
+                (click)="openPasswordModal()"
+                class="px-4 py-2 text-sm font-medium text-primary-700 bg-primary-50 border border-primary-200 rounded-md hover:bg-primary-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
+              >
+                <svg class="w-4 h-4 mr-2 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                </svg>
+                Reset Password
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -190,6 +205,294 @@
                 }
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Password Reset Modal -->
+  @if (showPasswordModal()) {
+    <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+      <!-- Background overlay with blur -->
+      <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <!-- Backdrop -->
+        <div 
+          class="fixed inset-0 bg-gray-500 bg-opacity-75 backdrop-blur-sm transition-opacity" 
+          (click)="closePasswordModal()"
+          aria-hidden="true"
+        ></div>
+
+        <!-- Center modal -->
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+        <!-- Modal panel -->
+        <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+          <!-- Modal Header -->
+          <div class="bg-gradient-to-r from-primary-600 to-primary-700 px-6 py-4">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center">
+                <div class="flex-shrink-0 flex items-center justify-center h-10 w-10 rounded-full bg-white bg-opacity-20">
+                  <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                  </svg>
+                </div>
+                <h3 class="ml-3 text-lg font-semibold text-white" id="modal-title">
+                  Reset Password
+                </h3>
+              </div>
+              <button
+                type="button"
+                (click)="closePasswordModal()"
+                class="text-white hover:text-gray-200 focus:outline-none transition-colors"
+              >
+                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Modal Body -->
+          <div class="px-6 py-5">
+            <!-- Phase 1: Email Confirmation (Before sending OTP) -->
+            @if (!isSendingOtp() && !isOtpSent()) {
+              <div class="space-y-4">
+                <!-- Info Message -->
+                <div class="bg-blue-50 border border-blue-200 rounded-md p-4">
+                  <div class="flex">
+                    <svg class="h-5 w-5 text-blue-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                    </svg>
+                    <div class="ml-3">
+                      <p class="text-sm font-medium text-blue-800">Password Reset Verification</p>
+                      <p class="text-xs text-blue-700 mt-1">We'll send a verification code to your registered email address.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Email Display -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Email Address
+                  </label>
+                  <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <input
+                      type="email"
+                      [value]="userEmail()"
+                      readonly
+                      class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-md bg-gray-50 text-gray-700 font-medium sm:text-sm cursor-not-allowed"
+                    >
+                  </div>
+                  <p class="mt-2 text-xs text-gray-500">
+                    <svg class="inline h-4 w-4 text-gray-400 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                    This email cannot be changed for security reasons
+                  </p>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex items-center justify-end gap-3 pt-4">
+                  <button
+                    type="button"
+                    (click)="closePasswordModal()"
+                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    (click)="sendOtp()"
+                    class="px-5 py-2 text-sm font-medium text-white bg-primary-600 border border-transparent rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors flex items-center"
+                  >
+                    <svg class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    Send OTP
+                  </button>
+                </div>
+              </div>
+            }
+
+            <!-- Phase 2: Sending OTP State -->
+            @if (isSendingOtp() && !isOtpSent()) {
+              <div class="flex items-center justify-center py-8">
+                <div class="text-center">
+                  <svg class="animate-spin h-12 w-12 text-primary-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <p class="text-gray-700 font-medium">Sending OTP to your email...</p>
+                  <p class="text-sm text-gray-500 mt-1">{{ userEmail() }}</p>
+                </div>
+              </div>
+            }
+
+            <!-- Phase 3: OTP Form (After OTP sent) -->
+            @if (isOtpSent()) {
+              <form [formGroup]="passwordForm" (ngSubmit)="onPasswordSubmit()">
+                <div class="space-y-4">
+                <!-- Success Message -->
+                <div class="bg-green-50 border border-green-200 rounded-md p-3 mb-4">
+                  <div class="flex">
+                    <svg class="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    <div class="ml-3">
+                      <p class="text-sm font-medium text-green-800">OTP sent successfully!</p>
+                      <p class="text-xs text-green-700 mt-1">Please check your email: {{ userEmail() }}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- OTP Code -->
+                <div>
+                  <label for="otp" class="block text-sm font-medium text-gray-700 mb-1">
+                    OTP Code <span class="text-red-500">*</span>
+                  </label>
+                  <input
+                    id="otp"
+                    formControlName="otp"
+                    type="text"
+                    maxlength="6"
+                    class="block w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm text-center text-lg tracking-widest font-mono"
+                    [class.border-red-300]="hasError('otp')"
+                    [class.border-gray-300]="!hasError('otp')"
+                    placeholder="000000"
+                  >
+                  @if (hasError('otp', 'required')) {
+                    <p class="mt-1 text-sm text-red-600">OTP code is required</p>
+                  }
+                  @if (hasError('otp', 'minlength') || hasError('otp', 'maxlength')) {
+                    <p class="mt-1 text-sm text-red-600">OTP must be exactly 6 digits</p>
+                  }
+                </div>
+
+              <!-- New Password -->
+              <div>
+                <label for="newPassword" class="block text-sm font-medium text-gray-700 mb-1">
+                  New Password <span class="text-red-500">*</span>
+                </label>
+                <div class="relative">
+                  <input
+                    id="newPassword"
+                    formControlName="newPassword"
+                    [type]="showNewPassword() ? 'text' : 'password'"
+                    class="block w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                    [class.border-red-300]="hasError('newPassword')"
+                    [class.border-gray-300]="!hasError('newPassword')"
+                    placeholder="Enter new password"
+                  >
+                  <button
+                    type="button"
+                    (click)="togglePasswordVisibility('new')"
+                    class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                  >
+                    @if (showNewPassword()) {
+                      <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                      </svg>
+                    } @else {
+                      <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    }
+                  </button>
+                </div>
+                @if (hasError('newPassword', 'required')) {
+                  <p class="mt-1 text-sm text-red-600">New password is required</p>
+                }
+                @if (hasError('newPassword', 'minlength')) {
+                  <p class="mt-1 text-sm text-red-600">Password must be at least 6 characters</p>
+                }
+              </div>
+
+              <!-- Confirm Password -->
+              <div>
+                <label for="confirmPassword" class="block text-sm font-medium text-gray-700 mb-1">
+                  Confirm New Password <span class="text-red-500">*</span>
+                </label>
+                <div class="relative">
+                  <input
+                    id="confirmPassword"
+                    formControlName="confirmPassword"
+                    [type]="showConfirmPassword() ? 'text' : 'password'"
+                    class="block w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                    [class.border-red-300]="hasError('confirmPassword') || !passwordsMatch"
+                    [class.border-gray-300]="!hasError('confirmPassword') && passwordsMatch"
+                    placeholder="Confirm new password"
+                  >
+                  <button
+                    type="button"
+                    (click)="togglePasswordVisibility('confirm')"
+                    class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                  >
+                    @if (showConfirmPassword()) {
+                      <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                      </svg>
+                    } @else {
+                      <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    }
+                  </button>
+                </div>
+                @if (hasError('confirmPassword', 'required')) {
+                  <p class="mt-1 text-sm text-red-600">Please confirm your password</p>
+                }
+                @if (!passwordsMatch && passwordForm.get('confirmPassword')?.touched) {
+                  <p class="mt-1 text-sm text-red-600">Passwords do not match</p>
+                }
+              </div>
+
+                <!-- Password Requirements -->
+                <div class="bg-blue-50 border border-blue-200 rounded-md p-3">
+                  <p class="text-xs font-medium text-blue-800 mb-1">Password Requirements:</p>
+                  <ul class="text-xs text-blue-700 space-y-1 list-disc list-inside">
+                    <li>Minimum 6 characters</li>
+                    <li>Both passwords must match</li>
+                    <li>Enter the 6-digit OTP sent to your email</li>
+                  </ul>
+                </div>
+              </div>
+
+              <!-- Modal Footer -->
+              <div class="mt-6 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  (click)="closePasswordModal()"
+                  [disabled]="isChangingPassword()"
+                  class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  [disabled]="passwordForm.invalid || isChangingPassword()"
+                  class="px-4 py-2 text-sm font-medium text-white bg-primary-600 border border-transparent rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center"
+                >
+                  @if (isChangingPassword()) {
+                    <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Resetting...
+                  } @else {
+                    Reset Password
+                  }
+                </button>
+              </div>
+              </form>
+            }
           </div>
         </div>
       </div>

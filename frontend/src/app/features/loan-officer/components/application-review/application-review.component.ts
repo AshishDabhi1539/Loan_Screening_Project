@@ -224,8 +224,9 @@ export class ApplicationReviewComponent implements OnInit {
       case 1: // Overview - can always proceed
         return true;
         
-      case 2: // Documents - all documents must be verified
-        const docs = details.documents || [];
+      case 2: // Documents - all ACTIVE documents must be verified
+        const allDocs = details.documents || [];
+        const docs = this.getFilteredDocuments(allDocs); // Use filtered documents only
         if (docs.length === 0) return false;
         const allVerified = docs.every(doc => doc.verificationStatus === 'VERIFIED');
         return allVerified;
@@ -335,6 +336,57 @@ export class ApplicationReviewComponent implements OnInit {
   }
 
   /**
+   * Smart document filtering - shows only active/recent versions
+   * Same logic as document-verification component
+   */
+  getFilteredDocuments(documents: any[]): any[] {
+    if (!documents || documents.length === 0) return [];
+    
+    const documentsByType = new Map<string, any[]>();
+    
+    // Group documents by document type
+    documents.forEach(doc => {
+      const type = doc.documentType;
+      if (!documentsByType.has(type)) {
+        documentsByType.set(type, []);
+      }
+      documentsByType.get(type)!.push(doc);
+    });
+    
+    const filteredDocuments: any[] = [];
+    
+    documentsByType.forEach((docs, type) => {
+      // Separate by verification status
+      const pending = docs.filter(d => d.verificationStatus === 'PENDING');
+      const verified = docs.filter(d => d.verificationStatus === 'VERIFIED');
+      const rejected = docs.filter(d => d.verificationStatus === 'REJECTED');
+      
+      if (pending.length > 0) {
+        // Show latest PENDING (re-uploaded document)
+        const latest = pending.sort((a, b) => {
+          const dateA = new Date(a.uploadedAt || a.createdAt).getTime();
+          const dateB = new Date(b.uploadedAt || b.createdAt).getTime();
+          return dateB - dateA;
+        })[0];
+        filteredDocuments.push(latest);
+      } else if (verified.length > 0) {
+        // Show VERIFIED document
+        filteredDocuments.push(verified[0]);
+      } else if (rejected.length > 0) {
+        // Show latest REJECTED (if not yet re-uploaded)
+        const latest = rejected.sort((a, b) => {
+          const dateA = new Date(a.uploadedAt || a.createdAt).getTime();
+          const dateB = new Date(b.uploadedAt || b.createdAt).getTime();
+          return dateB - dateA;
+        })[0];
+        filteredDocuments.push(latest);
+      }
+    });
+    
+    return filteredDocuments;
+  }
+
+  /**
    * Get count of verified documents
    */
   getVerifiedDocumentsCount(documents: any[]): number {
@@ -345,7 +397,8 @@ export class ApplicationReviewComponent implements OnInit {
    * Check if all documents are verified
    */
   isDocumentVerificationComplete(): boolean {
-    const docs = this.applicationDetails()?.documents || [];
+    const allDocs = this.applicationDetails()?.documents || [];
+    const docs = this.getFilteredDocuments(allDocs);
     if (docs.length === 0) return false;
     return this.getVerifiedDocumentsCount(docs) === docs.length;
   }

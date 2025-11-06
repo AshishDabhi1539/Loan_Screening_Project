@@ -1,6 +1,7 @@
 import { Component, inject, signal, OnInit, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, Router } from '@angular/router';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 
 import { AuthService } from '../../../../core/services/auth.service';
 import { NotificationService } from '../../../../core/services/notification.service';
@@ -37,7 +38,7 @@ interface PersonalDetails {
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, ReactiveFormsModule],
   templateUrl: './profile.component.html',
   styleUrl: './profile.component.css'
 })
@@ -46,11 +47,26 @@ export class ProfileComponent implements OnInit {
   private authService = inject(AuthService);
   private notificationService = inject(NotificationService);
   private userProfileService = inject(UserProfileService);
+  private fb = inject(FormBuilder);
 
   // State management
   isLoading = signal(true);
   isUploading = signal(false);
   personalDetails = signal<PersonalDetails | null>(null);
+  
+  // Password reset modal
+  showPasswordModal = signal(false);
+  isChangingPassword = signal(false);
+  isSendingOtp = signal(false);
+  isOtpSent = signal(false);
+  showNewPassword = signal(false);
+  showConfirmPassword = signal(false);
+  
+  passwordForm: FormGroup = this.fb.group({
+    otp: ['', [Validators.required, Validators.minLength(6), Validators.maxLength(6)]],
+    newPassword: ['', [Validators.required, Validators.minLength(6)]],
+    confirmPassword: ['', [Validators.required]]
+  }, { validators: this.passwordMatchValidator });
 
   currentUser = this.authService.currentUser;
   userEmail = computed(() => this.currentUser()?.email || 'N/A');
@@ -246,5 +262,135 @@ export class ProfileComponent implements OnInit {
     ];
     const option = options.find(opt => opt.value === status);
     return option ? option.label : status;
+  }
+
+  /**
+   * Password match validator
+   */
+  private passwordMatchValidator(group: FormGroup): { [key: string]: boolean } | null {
+    const newPassword = group.get('newPassword')?.value;
+    const confirmPassword = group.get('confirmPassword')?.value;
+    
+    if (newPassword && confirmPassword && newPassword !== confirmPassword) {
+      return { passwordMismatch: true };
+    }
+    return null;
+  }
+
+  /**
+   * Open password reset modal - show email confirmation step
+   */
+  openPasswordModal(): void {
+    this.showPasswordModal.set(true);
+    this.passwordForm.reset();
+    this.showNewPassword.set(false);
+    this.showConfirmPassword.set(false);
+    this.isOtpSent.set(false);
+    this.isSendingOtp.set(false);
+  }
+
+  /**
+   * Send OTP to user's email
+   */
+  sendOtp(): void {
+    const email = this.userEmail();
+    if (!email || email === 'N/A') {
+      this.notificationService.error('Error', 'User email not found');
+      return;
+    }
+
+    this.isSendingOtp.set(true);
+    this.authService.forgotPassword(email).subscribe({
+      next: () => {
+        this.isSendingOtp.set(false);
+        this.isOtpSent.set(true);
+        this.notificationService.success('OTP Sent', 'Please check your email for the OTP code');
+      },
+      error: (error: any) => {
+        this.isSendingOtp.set(false);
+        const errorMessage = error.error?.message || error.message || 'Failed to send OTP';
+        this.notificationService.error('Error', errorMessage);
+      }
+    });
+  }
+
+  /**
+   * Close password reset modal
+   */
+  closePasswordModal(): void {
+    this.showPasswordModal.set(false);
+    this.passwordForm.reset();
+    this.isOtpSent.set(false);
+    this.isSendingOtp.set(false);
+  }
+
+  /**
+   * Toggle password visibility
+   */
+  togglePasswordVisibility(field: 'new' | 'confirm'): void {
+    if (field === 'new') {
+      this.showNewPassword.update((v: boolean) => !v);
+    } else {
+      this.showConfirmPassword.update((v: boolean) => !v);
+    }
+  }
+
+  /**
+   * Submit password reset with OTP
+   */
+  onPasswordSubmit(): void {
+    if (this.passwordForm.invalid) {
+      Object.keys(this.passwordForm.controls).forEach(key => {
+        this.passwordForm.get(key)?.markAsTouched();
+      });
+      return;
+    }
+
+    const { otp, newPassword, confirmPassword } = this.passwordForm.value;
+    const email = this.userEmail();
+    
+    if (!email || email === 'N/A') {
+      this.notificationService.error('Error', 'User email not found');
+      return;
+    }
+    
+    this.isChangingPassword.set(true);
+    this.authService.resetPassword(email, otp, newPassword, confirmPassword).subscribe({
+      next: () => {
+        this.isChangingPassword.set(false);
+        this.notificationService.success('Success', 'Password reset successfully. Please login with your new password.');
+        this.closePasswordModal();
+        
+        // Logout user after password reset
+        setTimeout(() => {
+          this.authService.logout();
+        }, 2000);
+      },
+      error: (error: any) => {
+        this.isChangingPassword.set(false);
+        const errorMessage = error.error?.message || error.message || 'Failed to reset password';
+        this.notificationService.error('Error', errorMessage);
+      }
+    });
+  }
+
+  /**
+   * Check if form field has error
+   */
+  hasError(fieldName: string, errorType?: string): boolean {
+    const field = this.passwordForm.get(fieldName);
+    if (!field) return false;
+    
+    if (errorType) {
+      return field.hasError(errorType) && (field.dirty || field.touched);
+    }
+    return field.invalid && (field.dirty || field.touched);
+  }
+
+  /**
+   * Check if passwords match
+   */
+  get passwordsMatch(): boolean {
+    return !this.passwordForm.hasError('passwordMismatch');
   }
 }
