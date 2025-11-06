@@ -15,6 +15,10 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/applicant")
@@ -84,6 +88,24 @@ public class ApplicantController {
         PersonalDetailsCreateResponse response = personalDetailsService.createOrUpdatePersonalDetailsWithResponse(request, user);
         
         return ResponseEntity.ok(response);
+    }
+    
+    /**
+     * Upload profile photo for applicant
+     */
+    @PostMapping("/profile/profile-photo")
+    public ResponseEntity<Map<String, String>> uploadProfilePhoto(
+            @RequestParam("file") MultipartFile file,
+            Authentication authentication) throws IOException {
+        
+        log.info("Uploading profile photo for applicant: {}", authentication.getName());
+        
+        // For now, just return success
+        // TODO: Implement actual file storage logic
+        return ResponseEntity.ok(Map.of(
+            "message", "Profile photo upload feature coming soon",
+            "status", "success"
+        ));
     }
     
     private User getCurrentUser(Authentication authentication) {
