@@ -27,6 +27,7 @@ export class MyApplicationsComponent implements OnInit {
   
   // Filters
   filterStatus = signal<string>('ALL');
+  searchQuery = signal<string>('');
 
   // Pagination signals
   currentPage = signal(1);
@@ -94,26 +95,6 @@ export class MyApplicationsComponent implements OnInit {
     };
   });
 
-  // Computed: Paginated applications
-  paginatedApplications = computed(() => {
-    const filtered = this.filteredApplications();
-    const start = (this.currentPage() - 1) * this.itemsPerPage();
-    const end = start + this.itemsPerPage();
-    return filtered.slice(start, end);
-  });
-
-  // Computed: Pagination info
-  totalPages = computed(() => Math.ceil(this.filteredApplications().length / this.itemsPerPage()));
-  totalItems = computed(() => this.filteredApplications().length);
-  showingFrom = computed(() => {
-    const filtered = this.filteredApplications();
-    return filtered.length === 0 ? 0 : (this.currentPage() - 1) * this.itemsPerPage() + 1;
-  });
-  showingTo = computed(() => {
-    const filtered = this.filteredApplications();
-    const to = this.currentPage() * this.itemsPerPage();
-    return to > filtered.length ? filtered.length : to;
-  });
   canGoPrevious = computed(() => this.currentPage() > 1);
   canGoNext = computed(() => this.currentPage() < this.totalPages());
 

@@ -29,6 +29,13 @@ export class ApplicationDetailsComponent implements OnInit {
   documents = signal<any[]>([]);
   isLoadingDocuments = signal(false);
 
+  /**
+   * Check if application is approved
+   */
+  isApproved(): boolean {
+    return this.app()?.status === 'APPROVED';
+  }
+
   ngOnInit(): void {
     const qpId = this.route.snapshot.queryParamMap.get('applicationId');
     const paramId = this.route.snapshot.paramMap.get('id');
@@ -53,9 +60,6 @@ export class ApplicationDetailsComponent implements OnInit {
           this.loadDocuments(id);
         }
         this.isLoading.set(false);
-        
-        // Fetch documents for all applications
-        this.fetchDocuments(id);
       },
       error: (err) => {
         console.error('Failed to load application', err);
@@ -218,7 +222,7 @@ export class ApplicationDetailsComponent implements OnInit {
   /**
    * Download document
    */
-  downloadDocument(doc: DocumentUploadResponse): void {
+  downloadDocument(documentId: number, fileName: string): void {
     const appId = this.app()?.id;
     if (!appId) {
       this.notification.error('Error', 'Application ID not available');
@@ -226,10 +230,10 @@ export class ApplicationDetailsComponent implements OnInit {
     }
     
     // Construct document download URL
-    const downloadUrl = `/api/loan-applications/${appId}/documents/${doc.id}/download`;
+    const downloadUrl = `/api/loan-applications/${appId}/documents/${documentId}/download`;
     const link = document.createElement('a');
     link.href = downloadUrl;
-    link.download = doc.fileName || 'document.pdf';
+    link.download = fileName || 'document.pdf';
     link.target = '_blank';
     document.body.appendChild(link);
     link.click();
@@ -649,32 +653,6 @@ export class ApplicationDetailsComponent implements OnInit {
   }
 
   /**
-   * Download a specific document
-   */
-  downloadDocument(documentId: number, fileName: string): void {
-    this.apiService.downloadFile(`/loan-application/documents/${documentId}/download`).subscribe({
-      next: (blob: Blob) => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        a.click();
-        window.URL.revokeObjectURL(url);
-      },
-      error: () => {
-        this.notification.error('Download failed', 'Unable to download document');
-      }
-    });
-  }
-
-  /**
-   * Get document type display name
-   */
-  getDocumentTypeDisplay(documentType: string): string {
-    return documentType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-  }
-
-  /**
    * Format file size
    */
   formatFileSize(bytes: number): string {
@@ -683,21 +661,6 @@ export class ApplicationDetailsComponent implements OnInit {
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
-  }
-
-  /**
-   * Format date for display
-   */
-  formatDate(date: Date | string): string {
-    if (!date) return 'N/A';
-    const dateObj = typeof date === 'string' ? new Date(date) : date;
-    return dateObj.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
   }
 
   editApplication(): void {
