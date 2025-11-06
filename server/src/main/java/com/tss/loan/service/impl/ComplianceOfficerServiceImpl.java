@@ -198,12 +198,13 @@ public class ComplianceOfficerServiceImpl implements ComplianceOfficerService {
     public List<LoanApplicationResponse> getAssignedApplications(User complianceOfficer) {
         log.info("Fetching assigned applications for compliance officer: {}", complianceOfficer.getEmail());
         
-        // Get all assigned applications, but exclude READY_FOR_DECISION status
-        // (compliance can't do anything after submitting decision)
+        // Get all assigned applications. Include READY_FOR_DECISION so it appears both in
+        // assigned list and the dedicated ready-for-decision view. Exclude only final statuses.
         List<LoanApplication> applications = loanApplicationRepository
             .findByAssignedComplianceOfficerOrderByCreatedAtDesc(complianceOfficer)
             .stream()
-            .filter(app -> app.getStatus() != ApplicationStatus.READY_FOR_DECISION)
+            .filter(app -> app.getStatus() != ApplicationStatus.APPROVED &&
+                          app.getStatus() != ApplicationStatus.REJECTED)
             .collect(Collectors.toList());
         
         return applications.stream()
@@ -1391,13 +1392,18 @@ public class ComplianceOfficerServiceImpl implements ComplianceOfficerService {
         log.info("Fetching completed applications for compliance officer: {}", complianceOfficer.getEmail());
         
         // Show applications that compliance has completed and sent to loan officer with a decision
-        // These are applications in READY_FOR_DECISION (compliance marked APPROVE/REJECT when submitting decision)
+        // These include:
+        // - READY_FOR_DECISION: Compliance marked APPROVE/REJECT when submitting decision (pending loan officer final decision)
+        // - APPROVED: Final approval granted by loan officer
+        // - REJECTED: Final rejection by loan officer
         List<LoanApplication> applications = loanApplicationRepository
             .findByAssignedComplianceOfficerOrderByCreatedAtDesc(complianceOfficer)
             .stream()
             .filter(app -> {
                 ApplicationStatus status = app.getStatus();
-                return status == ApplicationStatus.READY_FOR_DECISION;
+                return status == ApplicationStatus.READY_FOR_DECISION ||
+                       status == ApplicationStatus.APPROVED ||
+                       status == ApplicationStatus.REJECTED;
             })
             .collect(Collectors.toList());
         
