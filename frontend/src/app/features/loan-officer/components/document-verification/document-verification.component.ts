@@ -129,6 +129,57 @@ export class DocumentVerificationComponent implements OnInit {
   }
 
   /**
+   * Smart document filtering - shows only active/recent versions
+   * Removes duplicates and old versions of documents
+   */
+  private getSmartFilteredDocuments(documents: any[]): any[] {
+    if (!documents || documents.length === 0) return [];
+    
+    const documentsByType = new Map<string, any[]>();
+    
+    // Group documents by document type
+    documents.forEach(doc => {
+      const type = doc.documentType;
+      if (!documentsByType.has(type)) {
+        documentsByType.set(type, []);
+      }
+      documentsByType.get(type)!.push(doc);
+    });
+    
+    const filteredDocuments: any[] = [];
+    
+    documentsByType.forEach((docs, type) => {
+      // Separate by verification status
+      const pending = docs.filter(d => d.verificationStatus === 'PENDING');
+      const verified = docs.filter(d => d.verificationStatus === 'VERIFIED');
+      const rejected = docs.filter(d => d.verificationStatus === 'REJECTED');
+      
+      if (pending.length > 0) {
+        // Show latest PENDING (re-uploaded document)
+        const latest = pending.sort((a, b) => {
+          const dateA = new Date(a.uploadedAt || a.createdAt).getTime();
+          const dateB = new Date(b.uploadedAt || b.createdAt).getTime();
+          return dateB - dateA;
+        })[0];
+        filteredDocuments.push(latest);
+      } else if (verified.length > 0) {
+        // Show VERIFIED document
+        filteredDocuments.push(verified[0]);
+      } else if (rejected.length > 0) {
+        // Show latest REJECTED (if not yet re-uploaded)
+        const latest = rejected.sort((a, b) => {
+          const dateA = new Date(a.uploadedAt || a.createdAt).getTime();
+          const dateB = new Date(b.uploadedAt || b.createdAt).getTime();
+          return dateB - dateA;
+        })[0];
+        filteredDocuments.push(latest);
+      }
+    });
+    
+    return filteredDocuments;
+  }
+
+  /**
    * PHASE 2: Helper methods to group documents and extract applicant data
    * SMART FILTERING: Shows only relevant documents based on employment type
    */
