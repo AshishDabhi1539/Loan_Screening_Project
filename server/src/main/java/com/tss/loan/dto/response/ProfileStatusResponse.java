@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class ProfileStatusResponse {
     private boolean hasPersonalDetails;
+    private String displayName;  // User's full name for display
     private String message;
     private String nextAction;
     private String nextActionUrl;

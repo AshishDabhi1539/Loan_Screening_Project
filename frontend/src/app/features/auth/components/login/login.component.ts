@@ -44,9 +44,11 @@ export class LoginComponent implements OnInit, AfterViewInit {
   });
 
   constructor() {
-    // Clear any existing auth state
-    if (this.authService.isAuthenticated()) {
-      this.redirectToDashboard();
+    // Check if user is already authenticated
+    const user = this.authService.currentUser();
+    if (user) {
+      // Valid token exists, redirect to dashboard
+      this.redirectToDashboardByRole(user.role);
     }
   }
 
@@ -80,7 +82,7 @@ export class LoginComponent implements OnInit, AfterViewInit {
   }
 
   /**
-   * Draw CAPTCHA on canvas with styling
+   * Draw CAPTCHA with modern artistic style (lighter theme)
    */
   drawCaptcha(): void {
     if (!this.captchaCanvas) return;
@@ -92,54 +94,78 @@ export class LoginComponent implements OnInit, AfterViewInit {
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Background with gradient
+    // Light gradient background with soft colors
     const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-    gradient.addColorStop(0, '#f3f4f6');
-    gradient.addColorStop(1, '#e5e7eb');
+    gradient.addColorStop(0, '#fef3f3');  // Light pink
+    gradient.addColorStop(0.3, '#fef9f3'); // Light peach
+    gradient.addColorStop(0.6, '#f3f9fe'); // Light blue
+    gradient.addColorStop(1, '#f9f3fe');   // Light purple
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Add noise lines
-    for (let i = 0; i < 5; i++) {
-      ctx.strokeStyle = `rgba(${Math.random() * 100}, ${Math.random() * 100}, ${Math.random() * 100}, 0.3)`;
+    // Add artistic noise lines (lighter)
+    for (let i = 0; i < 8; i++) {
+      ctx.strokeStyle = `rgba(${150 + Math.random() * 50}, ${100 + Math.random() * 100}, ${150 + Math.random() * 50}, 0.15)`;
+      ctx.lineWidth = 1 + Math.random() * 1.5;
       ctx.beginPath();
       ctx.moveTo(Math.random() * canvas.width, Math.random() * canvas.height);
-      ctx.lineTo(Math.random() * canvas.width, Math.random() * canvas.height);
+      ctx.bezierCurveTo(
+        Math.random() * canvas.width, Math.random() * canvas.height,
+        Math.random() * canvas.width, Math.random() * canvas.height,
+        Math.random() * canvas.width, Math.random() * canvas.height
+      );
       ctx.stroke();
     }
 
-    // Draw CAPTCHA text
+    // Draw CAPTCHA text with artistic style
     const captcha = this.captchaText();
-    ctx.font = 'bold 32px Arial';
-    ctx.textBaseline = 'middle';
-    
     const spacing = canvas.width / (captcha.length + 1);
     
     for (let i = 0; i < captcha.length; i++) {
-      // Random color for each character
-      const hue = Math.random() * 360;
-      ctx.fillStyle = `hsl(${hue}, 70%, 40%)`;
+      // Vibrant but not too dark colors
+      const colors = [
+        '#e74c3c', // Red
+        '#3498db', // Blue
+        '#2ecc71', // Green
+        '#f39c12', // Orange
+        '#9b59b6', // Purple
+        '#e67e22'  // Dark orange
+      ];
+      ctx.fillStyle = colors[i % colors.length];
       
-      // Random rotation
-      const x = spacing * (i + 1);
-      const y = canvas.height / 2;
-      const angle = (Math.random() - 0.5) * 0.4;
+      // Bold font with slight variation
+      const fontSize = 32 + Math.random() * 4;
+      ctx.font = `bold ${fontSize}px 'Arial Black', Arial, sans-serif`;
+      ctx.textBaseline = 'middle';
+      
+      // Position with slight randomness
+      const x = spacing * (i + 0.8) + (Math.random() - 0.5) * 5;
+      const y = canvas.height / 2 + (Math.random() - 0.5) * 8;
+      const angle = (Math.random() - 0.5) * 0.3;
       
       ctx.save();
       ctx.translate(x, y);
       ctx.rotate(angle);
+      
+      // Add text shadow for depth
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
+      ctx.shadowBlur = 2;
+      ctx.shadowOffsetX = 1;
+      ctx.shadowOffsetY = 1;
+      
       ctx.fillText(captcha[i], 0, 0);
       ctx.restore();
     }
 
-    // Add noise dots
-    for (let i = 0; i < 50; i++) {
-      ctx.fillStyle = `rgba(0, 0, 0, ${Math.random() * 0.3})`;
+    // Add light noise dots for texture
+    for (let i = 0; i < 40; i++) {
+      ctx.fillStyle = `rgba(${Math.random() * 100}, ${Math.random() * 100}, ${Math.random() * 100}, ${0.1 + Math.random() * 0.15})`;
+      const size = 1 + Math.random() * 2;
       ctx.fillRect(
         Math.random() * canvas.width,
         Math.random() * canvas.height,
-        2,
-        2
+        size,
+        size
       );
     }
   }
@@ -181,7 +207,7 @@ export class LoginComponent implements OnInit, AfterViewInit {
       }
       
       this.loginError.set(null);
-      
+
       const loginData: LoginRequest = {
         emailOrPhone: this.loginForm.value.emailOrPhone.trim(),
         password: this.loginForm.value.password,
@@ -191,7 +217,8 @@ export class LoginComponent implements OnInit, AfterViewInit {
       this.authService.login(loginData).subscribe({
         next: (response) => {
           this.notificationService.loginSuccess(response.email);
-          this.redirectToDashboard();
+          // Use response role directly for immediate redirect
+          this.redirectToDashboardByRole(response.role);
         },
         error: (error) => {
           console.error('Login error:', error);
@@ -210,7 +237,7 @@ export class LoginComponent implements OnInit, AfterViewInit {
    */
   getFieldError(fieldName: string): string | null {
     const field = this.loginForm.get(fieldName);
-    
+
     if (field?.errors && field.touched) {
       if (field.errors['required']) {
         return `${this.getFieldLabel(fieldName)} is required`;
@@ -220,7 +247,7 @@ export class LoginComponent implements OnInit, AfterViewInit {
         return `${this.getFieldLabel(fieldName)} must be at least ${requiredLength} characters`;
       }
     }
-    
+
     return null;
   }
 
@@ -270,32 +297,26 @@ export class LoginComponent implements OnInit, AfterViewInit {
   }
 
   /**
-   * Redirect user to appropriate dashboard based on role
+   * Redirect user to appropriate dashboard based on role from response
    */
-  private redirectToDashboard(): void {
-    const user = this.authService.currentUser();
-    
-    if (user) {
-      switch (user.role) {
-        case 'APPLICANT':
-          this.router.navigate(['/applicant/dashboard']);
-          break;
-        case 'LOAN_OFFICER':
-        case 'SENIOR_LOAN_OFFICER':
-          this.router.navigate(['/loan-officer/dashboard']);
-          break;
-        case 'COMPLIANCE_OFFICER':
-        case 'SENIOR_COMPLIANCE_OFFICER':
-          this.router.navigate(['/compliance-officer/dashboard']);
-          break;
-        case 'ADMIN':
-          this.router.navigate(['/admin/dashboard']);
-          break;
-        default:
-          this.router.navigate(['/applicant/dashboard']);
-      }
-    } else {
-      this.router.navigate(['/applicant/dashboard']);
+  private redirectToDashboardByRole(role: string): void {
+    switch (role) {
+      case 'APPLICANT':
+        this.router.navigate(['/applicant/dashboard']);
+        break;
+      case 'LOAN_OFFICER':
+      case 'SENIOR_LOAN_OFFICER':
+        this.router.navigate(['/loan-officer/dashboard']);
+        break;
+      case 'COMPLIANCE_OFFICER':
+      case 'SENIOR_COMPLIANCE_OFFICER':
+        this.router.navigate(['/compliance-officer/dashboard']);
+        break;
+      case 'ADMIN':
+        this.router.navigate(['/admin/dashboard']);
+        break;
+      default:
+        this.router.navigate(['/applicant/dashboard']);
     }
   }
 }

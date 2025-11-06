@@ -36,6 +36,7 @@ export interface LoginResponse {
   expiresAt: string;
   userId: string;
   email: string;
+  displayName?: string;  // User's full name for display
   role: string;
   message: string;
 }

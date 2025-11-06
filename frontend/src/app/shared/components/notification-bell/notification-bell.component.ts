@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { InAppNotificationService } from '../../../core/services/in-app-notification.service';
 import { InAppNotification, NOTIFICATION_CONFIGS } from '../../../core/models/in-app-notification.model';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-notification-bell',
@@ -27,15 +28,22 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
 
   private refreshInterval: any;
 
-  constructor(public notificationService: InAppNotificationService) {}
+  constructor(
+    public notificationService: InAppNotificationService,
+    private authService: AuthService
+  ) {}
 
   ngOnInit(): void {
-    // Initial load
-    this.loadNotifications();
+    // Delay initial load to ensure token is set after login
+    setTimeout(() => {
+      if (this.authService.isAuthenticated()) {
+        this.loadNotifications();
+      }
+    }, 200);
 
     // Refresh every 30 seconds
     this.refreshInterval = setInterval(() => {
-      if (!this.showDropdown()) {
+      if (!this.showDropdown() && this.authService.isAuthenticated()) {
         this.loadNotifications();
       }
     }, 30000);
@@ -48,13 +56,33 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Load notifications
+   * Load notifications - show same notifications as main page (newest first)
    */
   loadNotifications(): void {
     this.notificationService.getUnreadCount().subscribe();
-    this.notificationService.getUnreadNotifications().subscribe(notifications => {
-      // Show only recent 5 notifications
-      this.recentNotifications.set(notifications.slice(0, 5));
+    
+    // Use the same endpoint as main notifications page to ensure consistency
+    this.notificationService.getNotifications(0, 50, undefined, undefined).subscribe(page => {
+      const notifications = page.content;
+      
+      // Filter notifications from last 7 days only
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      
+      const recentOnly = notifications.filter(notification => {
+        const notificationDate = new Date(notification.createdAt);
+        return notificationDate >= sevenDaysAgo;
+      });
+      
+      // Sort by creation date - NEWEST FIRST
+      const sortedNotifications = recentOnly.sort((a, b) => {
+        const dateA = new Date(a.createdAt).getTime();
+        const dateB = new Date(b.createdAt).getTime();
+        return dateB - dateA; // Descending order (newest first)
+      });
+      
+      // Show only top 5 most recent notifications
+      this.recentNotifications.set(sortedNotifications.slice(0, 5));
     });
   }
 

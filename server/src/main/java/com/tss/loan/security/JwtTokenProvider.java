@@ -166,6 +166,27 @@ public class JwtTokenProvider {
         }
     }
     
+    public boolean isLongLivedToken(String token) {
+        try {
+            Claims claims = Jwts.parser()
+                    .verifyWith(getSignInKey())
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+            
+            Date expiration = claims.getExpiration();
+            Date issuedAt = claims.getIssuedAt();
+            
+            // Calculate token lifetime in milliseconds
+            long lifetime = expiration.getTime() - issuedAt.getTime();
+            
+            // Consider it long-lived if lifetime is more than 7 days
+            return lifetime > (7 * 24 * 60 * 60 * 1000L);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+    
     private SecretKey getSignInKey() {
         byte[] keyBytes = Decoders.BASE64.decode(jwtSecret);
         return Keys.hmacShaKeyFor(keyBytes);

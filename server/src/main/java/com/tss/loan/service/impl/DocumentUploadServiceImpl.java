@@ -91,17 +91,26 @@ public class DocumentUploadServiceImpl implements DocumentUploadService {
                 ? originalFileName.substring(originalFileName.lastIndexOf(".")) : "";
             String uniqueFileName = generatePublicId(documentType, uploadedBy.getId()) + fileExtension;
             
-            // Upload to Supabase Storage
+            // Upload to Supabase Storage with retry logic
             String uploadUrl = supabaseUrl + "/storage/v1/object/" + bucketName + "/" + uniqueFileName;
             
-            webClient.post()
-                .uri(uploadUrl)
-                .header(HttpHeaders.AUTHORIZATION, "Bearer " + serviceKey)
-                .header(HttpHeaders.CONTENT_TYPE, file.getContentType())
-                .body(BodyInserters.fromResource(new ByteArrayResource(file.getBytes())))
-                .retrieve()
-                .bodyToMono(String.class)
-                .block();
+            try {
+                webClient.post()
+                    .uri(uploadUrl)
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + serviceKey)
+                    .header(HttpHeaders.CONTENT_TYPE, file.getContentType())
+                    .body(BodyInserters.fromResource(new ByteArrayResource(file.getBytes())))
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .timeout(java.time.Duration.ofSeconds(30)) // 30 second timeout
+                    .retry(2) // Retry 2 times on failure
+                    .block();
+                    
+                log.info("File uploaded to Supabase successfully: {}", uniqueFileName);
+            } catch (Exception e) {
+                log.error("Supabase upload failed after retries: {}", e.getMessage());
+                throw new IOException("Failed to upload file to cloud storage. Please check your internet connection and try again.");
+            }
             
             // Generate public URL
             String fileUrl = supabaseUrl + "/storage/v1/object/public/" + bucketName + "/" + uniqueFileName;

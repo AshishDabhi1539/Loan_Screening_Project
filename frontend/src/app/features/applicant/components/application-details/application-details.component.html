@@ -33,20 +33,338 @@
     </div>
 
     @if (isLoading()) {
-      <div class="bg-white rounded-lg shadow-md p-8 text-center">
+      <!-- Loading State -->
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
         <p class="text-gray-600">Loading application details...</p>
       </div>
     } @else if (!app()) {
-      <div class="bg-white rounded-lg shadow-md p-8 text-center">
-        <div class="text-6xl mb-4">❌</div>
+      <!-- Not Found State -->
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+        <svg class="mx-auto h-16 w-16 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
         <h2 class="text-xl font-semibold text-gray-900 mb-2">Application Not Found</h2>
-        <p class="text-gray-600 mb-4">The requested application could not be found.</p>
-        <a routerLink="/applicant/applications" 
-          class="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors">
-          ← Back to Applications
-        </a>
+        <p class="text-gray-600 mb-6">The requested application could not be found.</p>
+        <button
+          (click)="goToApplications()"
+          class="inline-flex items-center px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors">
+          <svg class="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          Back to Applications
+        </button>
       </div>
+    } @else if (isApproved()) {
+      <!-- APPROVED APPLICATION SUMMARY - Clean & Beautiful -->
+      
+      <!-- Success Header -->
+      <div class="text-center mb-6">
+        <div class="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
+          <svg class="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">Congratulations!</h1>
+        <p class="text-lg text-gray-600">Your loan application has been approved</p>
+        <p class="text-sm text-gray-500 mt-1">Application ID: {{ app()!.id.substring(0, 12) }}...</p>
+      </div>
+
+      <!-- Download Button -->
+      <div class="flex justify-center mb-6">
+        <button
+          (click)="downloadApprovalLetter()"
+          class="inline-flex items-center px-6 py-3 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors shadow-sm">
+          <svg class="mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          Download Approval Letter
+        </button>
+      </div>
+
+      <!-- Main Content Cards -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        
+        <!-- Applicant Information -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <svg class="w-5 h-5 text-gray-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            Applicant Information
+          </h2>
+          <div class="space-y-3">
+            <div class="flex justify-between items-start pb-3 border-b border-gray-100">
+              <span class="text-sm text-gray-600">Full Name</span>
+              <span class="font-medium text-gray-900 text-right">{{ app()!.applicantName }}</span>
+            </div>
+            <div class="flex justify-between items-start pb-3 border-b border-gray-100">
+              <span class="text-sm text-gray-600">Email</span>
+              <span class="font-medium text-gray-900 text-right text-sm break-all">{{ app()!.applicantEmail }}</span>
+            </div>
+            <div class="flex justify-between items-start">
+              <span class="text-sm text-gray-600">Phone</span>
+              <span class="font-medium text-gray-900">{{ app()!.applicantPhone }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Loan Details -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <svg class="w-5 h-5 text-gray-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Loan Details
+          </h2>
+          <div class="space-y-3">
+            <div class="flex justify-between items-start pb-3 border-b border-gray-100">
+              <span class="text-sm text-gray-600">Loan Type</span>
+              <span class="font-medium text-gray-900">{{ getLoanTypeDisplay(app()!.loanType) }}</span>
+            </div>
+            <div class="flex justify-between items-start pb-3 border-b border-gray-100">
+              <span class="text-sm text-gray-600">Approved Amount</span>
+              <span class="font-bold text-green-600 text-lg">{{ formatCurrency(app()!.requestedAmount) }}</span>
+            </div>
+            <div class="flex justify-between items-start pb-3 border-b border-gray-100">
+              <span class="text-sm text-gray-600">Tenure</span>
+              <span class="font-medium text-gray-900">{{ app()!.tenureMonths }} months</span>
+            </div>
+            <div class="flex justify-between items-start pb-3 border-b border-gray-100">
+              <span class="text-sm text-gray-600">Interest Rate</span>
+              <span class="font-medium text-gray-900">{{ getInterestRate(app()!.loanType) }}% per annum</span>
+            </div>
+            <div class="flex justify-between items-start">
+              <span class="text-sm text-gray-600">Purpose</span>
+              <span class="font-medium text-gray-900 text-right">{{ app()!.purpose }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Application Timeline -->
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+          <svg class="w-5 h-5 text-gray-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          Application Timeline
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="text-center p-4 bg-gray-50 rounded-lg">
+            <div class="text-xs text-gray-600 mb-1">Submitted</div>
+            <div class="text-sm font-semibold text-gray-900">{{ formatDate(app()!.submittedAt) }}</div>
+          </div>
+          <div class="text-center p-4 bg-gray-50 rounded-lg">
+            <div class="text-xs text-gray-600 mb-1">Last Updated</div>
+            <div class="text-sm font-semibold text-gray-900">{{ formatDate(app()!.updatedAt) }}</div>
+          </div>
+          <div class="text-center p-4 bg-green-50 rounded-lg">
+            <div class="text-xs text-green-700 mb-1">Status</div>
+            <div class="text-sm font-semibold text-green-700">Approved</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Uploaded Documents -->
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+          <svg class="w-5 h-5 text-gray-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          Uploaded Documents
+        </h2>
+        
+        @if (isLoadingDocuments()) {
+          <div class="text-center py-8">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto mb-2"></div>
+            <p class="text-sm text-gray-600">Loading documents...</p>
+          </div>
+        } @else if (documents().length === 0) {
+          <div class="text-center py-8">
+            <svg class="mx-auto h-12 w-12 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <p class="text-sm text-gray-600">No documents uploaded</p>
+          </div>
+        } @else {
+          <!-- Documents Grid - Card Based Layout -->
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            @for (doc of documents(); track doc.id) {
+              <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow bg-white">
+                <!-- Document Header -->
+                <div class="flex items-start justify-between mb-3">
+                  <h3 class="font-semibold text-gray-900 text-sm uppercase">{{ getDocumentTypeDisplay(doc.documentType) }}</h3>
+                  <span class="px-2 py-1 rounded text-xs font-medium {{ getDocumentStatusBadgeClass(doc.status) }}">
+                    {{ getDocumentStatusDisplay(doc.status) }}
+                  </span>
+                </div>
+                
+                <!-- Document Info -->
+                <div class="space-y-2 mb-3">
+                  <div class="text-xs text-gray-600">
+                    <span class="font-medium">{{ doc.fileName || 'Document.pdf' }}</span>
+                  </div>
+                  <div class="text-xs text-gray-500">
+                    <div>Uploaded: {{ formatDate(doc.uploadedAt) }}</div>
+                  </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="flex gap-2">
+                  <button 
+                    (click)="viewDocument(doc)"
+                    class="flex-1 px-3 py-2 text-xs font-medium text-blue-600 bg-blue-50 rounded hover:bg-blue-100 transition-colors">
+                    View
+                  </button>
+                  <button 
+                    (click)="downloadDocument(doc)"
+                    class="flex-1 px-3 py-2 text-xs font-medium text-gray-700 bg-gray-100 rounded hover:bg-gray-200 transition-colors">
+                    Download
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- EMI Breakdown -->
+      @if (calculateApprovedEMI(); as emi) {
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <svg class="w-5 h-5 text-gray-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+            EMI Breakdown
+          </h2>
+          
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+              <div class="text-xs font-medium text-green-700 mb-1">Monthly EMI</div>
+              <div class="text-2xl font-bold text-green-700">{{ formatCurrency(emi.monthlyEmi) }}</div>
+              <div class="text-xs text-green-600 mt-1">Fixed for {{ app()!.tenureMonths }} months</div>
+            </div>
+            
+            <div class="bg-orange-50 border border-orange-200 rounded-lg p-4">
+              <div class="text-xs font-medium text-orange-700 mb-1">Total Interest</div>
+              <div class="text-2xl font-bold text-orange-700">{{ formatCurrency(emi.totalInterest) }}</div>
+              <div class="text-xs text-orange-600 mt-1">Over loan tenure</div>
+            </div>
+            
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div class="text-xs font-medium text-blue-700 mb-1">Total Repayment</div>
+              <div class="text-2xl font-bold text-blue-700">{{ formatCurrency(emi.totalRepayment) }}</div>
+              <div class="text-xs text-blue-600 mt-1">Principal + Interest</div>
+            </div>
+          </div>
+
+          <div class="mt-4 bg-gray-50 border border-gray-200 rounded-lg p-4">
+            <div class="flex items-center justify-between text-gray-700">
+              <span class="text-sm font-medium">First EMI Due Date:</span>
+              <span class="text-sm font-semibold">1st of next month after disbursement</span>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Important Information -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        
+        <!-- Terms & Conditions -->
+        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+          <h3 class="text-base font-semibold text-gray-900 mb-3 flex items-center">
+            <svg class="w-5 h-5 text-yellow-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+            </svg>
+            Important Terms
+          </h3>
+          <ul class="space-y-2 text-sm text-gray-700">
+            <li class="flex items-start">
+              <span class="text-yellow-600 mr-2 mt-0.5">•</span>
+              <span>Loan disbursement within 3-5 business days</span>
+            </li>
+            <li class="flex items-start">
+              <span class="text-yellow-600 mr-2 mt-0.5">•</span>
+              <span>Subject to final document verification</span>
+            </li>
+            <li class="flex items-start">
+              <span class="text-yellow-600 mr-2 mt-0.5">•</span>
+              <span>Pre-payment charges as per bank policy</span>
+            </li>
+            <li class="flex items-start">
+              <span class="text-yellow-600 mr-2 mt-0.5">•</span>
+              <span>Late payment penalty applicable</span>
+            </li>
+            <li class="flex items-start">
+              <span class="text-yellow-600 mr-2 mt-0.5">•</span>
+              <span>Interest rate fixed for entire tenure</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Next Steps -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+          <h3 class="text-base font-semibold text-gray-900 mb-3 flex items-center">
+            <svg class="w-5 h-5 text-blue-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+            </svg>
+            Next Steps
+          </h3>
+          <ol class="space-y-2 text-sm text-gray-700">
+            <li class="flex items-start">
+              <span class="font-semibold text-blue-600 mr-2">1.</span>
+              <span>Visit nearest branch with original documents</span>
+            </li>
+            <li class="flex items-start">
+              <span class="font-semibold text-blue-600 mr-2">2.</span>
+              <span>Complete KYC formalities</span>
+            </li>
+            <li class="flex items-start">
+              <span class="font-semibold text-blue-600 mr-2">3.</span>
+              <span>Sign loan agreement</span>
+            </li>
+            <li class="flex items-start">
+              <span class="font-semibold text-blue-600 mr-2">4.</span>
+              <span>Provide post-dated cheques for EMI</span>
+            </li>
+            <li class="flex items-start">
+              <span class="font-semibold text-blue-600 mr-2">5.</span>
+              <span>Loan disbursed to registered account</span>
+            </li>
+          </ol>
+        </div>
+      </div>
+
+      <!-- Footer Actions -->
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center">
+        <h3 class="text-base font-semibold text-gray-900 mb-4">What would you like to do next?</h3>
+        <div class="flex flex-wrap gap-3 justify-center">
+          <button
+            (click)="goToDashboard()"
+            class="inline-flex items-center px-5 py-2.5 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors">
+            <svg class="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+            Go to Dashboard
+          </button>
+          
+          <button
+            (click)="goToApplications()"
+            class="inline-flex items-center px-5 py-2.5 bg-gray-600 text-white text-sm font-medium rounded-lg hover:bg-gray-700 transition-colors">
+            <svg class="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+            </svg>
+            View All Applications
+          </button>
+        </div>
+      </div>
+
+      <!-- Support Contact -->
+      <div class="mt-6 text-center text-sm text-gray-600">
+        <p>Need help? Contact us at <a href="mailto:support&#64;loanscreen.com" class="text-primary-600 hover:underline">support&#64;loanscreen.com</a> or call <span class="font-semibold">+91-1800-XXX-XXXX</span></p>
+      </div>
+      
     } @else {
       <!-- Incomplete Application Alert -->
       @if (isIncomplete()) {
