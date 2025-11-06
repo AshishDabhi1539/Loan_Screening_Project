@@ -141,7 +141,7 @@ export class UserProfileService {
       email: 'current-user@example.com', // We don't get email from profile-status
       role: 'APPLICANT', // Assume applicant role
       status: 'ACTIVE', // Assume active if we can call the API
-      displayName: response.displayName || undefined, // Use displayName from backend
+      displayName: 'User', // Default display name
       hasPersonalDetails: response.hasPersonalDetails || false,
       requiresPersonalDetails: !response.hasPersonalDetails,
       createdAt: new Date(),
