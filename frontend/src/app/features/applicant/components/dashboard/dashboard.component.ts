@@ -77,6 +77,14 @@ export class DashboardComponent implements OnInit {
 
   hasApplications = computed(() => this.dashboardStats().totalApplications > 0);
   
+  // Show CTA to apply first loan only for new users with completed profile
+  showFirstLoanCTA = computed(() => {
+    if (!this.profileLoaded()) return false;
+    const canApply = this.canApplyForLoan();
+    const total = this.dashboardStats()?.totalApplications || 0;
+    return canApply && total === 0;
+  });
+  
   pendingApplications = computed(() => 
     this.recentApplications().filter(app => 
       ['SUBMITTED', 'UNDER_REVIEW', 'PENDING_DOCUMENTS', 'PENDING_COMPLIANCE_DOCS'].includes(app.status)
