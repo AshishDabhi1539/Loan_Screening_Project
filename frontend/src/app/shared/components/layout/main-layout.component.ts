@@ -44,6 +44,7 @@ export class MainLayoutComponent {
   mobileMenuOpen = signal(false);
   pageTitle = signal('Dashboard');
   breadcrumbs = signal<Breadcrumb[]>([]);
+  profilePhotoUrl = signal<string | null>(null);
 
   // Navigation items based on roles
   private navigationItems: NavigationItem[] = [
@@ -182,7 +183,7 @@ export class MainLayoutComponent {
     },
     {
       label: 'System Reports',
-      route: '/admin/reports/system',
+      route: '/admin/system/reports',
       icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z',
       roles: ['ADMIN']
     },
@@ -204,14 +205,25 @@ export class MainLayoutComponent {
     );
   });
 
-  // User display name
+  // User display name - shows only first name and last name
   userDisplayName = computed(() => {
     const user = this.currentUser();
     if (!user) return 'Guest';
     
-    // If displayName exists, use it
+    // If displayName exists, extract first and last name only
     if (user.displayName) {
-      return user.displayName;
+      const nameParts = user.displayName.trim().split(/\s+/);
+      
+      if (nameParts.length === 1) {
+        // Only one name part (first name)
+        return nameParts[0];
+      } else if (nameParts.length === 2) {
+        // First name and last name
+        return `${nameParts[0]} ${nameParts[1]}`;
+      } else if (nameParts.length >= 3) {
+        // First name, middle name(s), last name - show only first and last
+        return `${nameParts[0]} ${nameParts[nameParts.length - 1]}`;
+      }
     }
     
     // If email exists, extract username part (before @)
@@ -236,6 +248,14 @@ export class MainLayoutComponent {
     // Set initial page title and breadcrumbs
     this.updatePageTitle();
     this.updateBreadcrumbs();
+    
+    // Load profile photo from localStorage
+    this.loadProfilePhoto();
+    
+    // Listen for profile photo updates
+    window.addEventListener('profilePhotoUpdated', () => {
+      this.loadProfilePhoto();
+    });
   }
 
   /**
@@ -568,5 +588,35 @@ export class MainLayoutComponent {
       default:
         return 'bg-gray-100 text-gray-800';
     }
+  }
+
+  /**
+   * Load profile photo from localStorage
+   */
+  private loadProfilePhoto(): void {
+    const user = this.currentUser();
+    if (user?.email) {
+      const photoKey = `profile_photo_${user.email}`;
+      const photoUrl = localStorage.getItem(photoKey);
+      this.profilePhotoUrl.set(photoUrl);
+    }
+  }
+
+  /**
+   * Get user initials (first + last name)
+   */
+  getUserInitials(): string {
+    const displayName = this.userDisplayName();
+    const nameParts = displayName.trim().split(/\s+/);
+    
+    if (nameParts.length >= 2) {
+      // First letter of first name + first letter of last name
+      return (nameParts[0].charAt(0) + nameParts[nameParts.length - 1].charAt(0)).toUpperCase();
+    } else if (nameParts.length === 1) {
+      // Just first letter of single name
+      return nameParts[0].charAt(0).toUpperCase();
+    }
+    
+    return 'U'; // Default fallback
   }
 }

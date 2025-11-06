@@ -80,9 +80,7 @@ export class ProfileComponent implements OnInit {
     return this.currentUser()?.email?.split('@')[0] || 'Applicant';
   });
 
-  profilePhotoUrl = computed(() => {
-    return this.personalDetails()?.profilePhotoUrl || null;
-  });
+  profilePhotoUrl = signal<string | null>(null);
 
   applicantInitials = computed(() => {
     const name = this.applicantName();
@@ -98,6 +96,24 @@ export class ProfileComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadPersonalDetails();
+    this.loadProfilePhoto();
+    
+    // Listen for profile photo updates
+    window.addEventListener('profilePhotoUpdated', () => {
+      this.loadProfilePhoto();
+    });
+  }
+  
+  /**
+   * Load profile photo from localStorage
+   */
+  private loadProfilePhoto(): void {
+    const user = this.currentUser();
+    if (user?.email) {
+      const photoKey = `profile_photo_${user.email}`;
+      const photoUrl = localStorage.getItem(photoKey);
+      this.profilePhotoUrl.set(photoUrl);
+    }
   }
 
   /**
@@ -196,20 +212,40 @@ export class ProfileComponent implements OnInit {
    */
   uploadPhoto(file: File): void {
     this.isUploading.set(true);
-    this.userProfileService.uploadProfilePhoto(file).subscribe({
-      next: (photoUrl) => {
-        // Update profile with new photo URL
-        const currentDetails = this.personalDetails();
-        if (currentDetails) {
-          currentDetails.profilePhotoUrl = photoUrl;
-          this.personalDetails.set({ ...currentDetails });
-        }
+    
+    // Convert file to base64 and store in localStorage
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64Image = e.target?.result as string;
+      const user = this.authService.currentUser();
+      
+      if (user?.email) {
+        // Store in localStorage
+        const photoKey = `profile_photo_${user.email}`;
+        localStorage.setItem(photoKey, base64Image);
+        
+        // Trigger event to update UI
+        window.dispatchEvent(new Event('profilePhotoUpdated'));
+        
         this.isUploading.set(false);
         this.notificationService.success('Success', 'Profile photo uploaded successfully');
+      }
+    };
+    
+    reader.onerror = () => {
+      this.isUploading.set(false);
+      this.notificationService.error('Upload Failed', 'Failed to read image file');
+    };
+    
+    reader.readAsDataURL(file);
+    
+    // Also call backend API (for future server-side storage)
+    this.userProfileService.uploadProfilePhoto(file).subscribe({
+      next: () => {
+        console.log('Photo uploaded to server');
       },
       error: (error) => {
-        this.isUploading.set(false);
-        this.notificationService.error('Upload Failed', error.message || 'Failed to upload profile photo');
+        console.error('Server upload failed:', error);
       }
     });
   }
