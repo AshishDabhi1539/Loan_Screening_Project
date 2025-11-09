@@ -48,13 +48,15 @@ export class ErrorInterceptor implements HttpInterceptor {
           }
         }
 
-        // Log error for debugging
-        console.error('HTTP Error:', {
-          status: error.status,
-          message: errorMessage,
-          url: error.url,
-          error: error.error
-        });
+        // Log error for debugging (suppress logout errors as they're expected)
+        if (!req.url.includes('/auth/logout')) {
+          console.error('HTTP Error:', {
+            status: error.status,
+            message: errorMessage,
+            url: error.url,
+            error: error.error
+          });
+        }
 
         // Handle specific error scenarios
         if (error.status === 401) {

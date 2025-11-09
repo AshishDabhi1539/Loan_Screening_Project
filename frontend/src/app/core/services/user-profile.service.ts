@@ -141,7 +141,7 @@ export class UserProfileService {
       email: 'current-user@example.com', // We don't get email from profile-status
       role: 'APPLICANT', // Assume applicant role
       status: 'ACTIVE', // Assume active if we can call the API
-      displayName: response.displayName || undefined, // Use displayName from backend
+      displayName: response.displayName || 'User', // Use displayName from backend
       hasPersonalDetails: response.hasPersonalDetails || false,
       requiresPersonalDetails: !response.hasPersonalDetails,
       createdAt: new Date(),
@@ -278,5 +278,12 @@ export class UserProfileService {
         throw error;
       })
     );
+  }
+
+  /**
+   * Upload profile photo for applicant
+   */
+  uploadProfilePhoto(file: File): Observable<string> {
+    return this.apiService.uploadFile<string>('/applicant/profile/profile-photo', file);
   }
 }

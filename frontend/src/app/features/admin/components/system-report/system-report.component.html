@@ -1,0 +1,304 @@
+<div class="space-y-6">
+  <!-- Header Section -->
+  <div class="bg-gradient-to-r from-primary-600 to-primary-800 text-white p-6 rounded-lg">
+    <div class="flex justify-between items-center flex-wrap gap-4">
+      <div>
+        <h1 class="text-3xl font-bold mb-2">System Report</h1>
+        <p class="text-primary-100">Comprehensive system analytics and performance metrics</p>
+        <p class="text-sm text-primary-200 mt-1">Generated: {{ generatedAt() | date:'medium' }}</p>
+      </div>
+      <div class="flex space-x-3">
+        <button 
+          (click)="refreshReport()" 
+          [disabled]="isLoading()"
+          class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-all duration-200 flex items-center shadow-md disabled:opacity-50 disabled:cursor-not-allowed">
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+          </svg>
+          Refresh
+        </button>
+        <button 
+          (click)="exportAsPdf()" 
+          [disabled]="isGenerating() || isLoading()"
+          class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-all duration-200 flex items-center shadow-md disabled:opacity-50 disabled:cursor-not-allowed">
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+          Export PDF
+        </button>
+        <button 
+          (click)="exportAsCsv()" 
+          [disabled]="isGenerating() || isLoading()"
+          class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-all duration-200 flex items-center shadow-md disabled:opacity-50 disabled:cursor-not-allowed">
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+          Export CSV
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Date Range Filter -->
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+    <div class="flex items-center justify-between flex-wrap gap-4">
+      <div class="flex items-center gap-4">
+        <label class="text-sm font-medium text-gray-700">Date Range:</label>
+        <div class="flex gap-2">
+          <button 
+            (click)="onDateRangeChange('today')"
+            [class.bg-primary-600]="dateRange() === 'today'"
+            [class.text-white]="dateRange() === 'today'"
+            [class.text-gray-700]="dateRange() !== 'today'"
+            class="px-3 py-1.5 rounded-md text-sm font-medium hover:bg-primary-100 transition-colors">
+            Today
+          </button>
+          <button 
+            (click)="onDateRangeChange('week')"
+            [class.bg-primary-600]="dateRange() === 'week'"
+            [class.text-white]="dateRange() === 'week'"
+            [class.text-gray-700]="dateRange() !== 'week'"
+            class="px-3 py-1.5 rounded-md text-sm font-medium hover:bg-primary-100 transition-colors">
+            Last 7 Days
+          </button>
+          <button 
+            (click)="onDateRangeChange('month')"
+            [class.bg-primary-600]="dateRange() === 'month'"
+            [class.text-white]="dateRange() === 'month'"
+            [class.text-gray-700]="dateRange() !== 'month'"
+            class="px-3 py-1.5 rounded-md text-sm font-medium hover:bg-primary-100 transition-colors">
+            This Month
+          </button>
+          <button 
+            (click)="onDateRangeChange('year')"
+            [class.bg-primary-600]="dateRange() === 'year'"
+            [class.text-white]="dateRange() === 'year'"
+            [class.text-gray-700]="dateRange() !== 'year'"
+            class="px-3 py-1.5 rounded-md text-sm font-medium hover:bg-primary-100 transition-colors">
+            This Year
+          </button>
+          <button 
+            (click)="onDateRangeChange('all')"
+            [class.bg-primary-600]="dateRange() === 'all'"
+            [class.text-white]="dateRange() === 'all'"
+            [class.text-gray-700]="dateRange() !== 'all'"
+            class="px-3 py-1.5 rounded-md text-sm font-medium hover:bg-primary-100 transition-colors">
+            All Time
+          </button>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 text-sm text-gray-600">
+        <span>{{ startDate() }}</span>
+        <span>to</span>
+        <span>{{ endDate() }}</span>
+      </div>
+    </div>
+  </div>
+
+  @if (isLoading()) {
+    <div class="flex items-center justify-center py-12">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      <span class="ml-3 text-gray-600">Loading report data...</span>
+    </div>
+  } @else if (reportData()) {
+    <!-- System Overview Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <!-- Total Users -->
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Total Users</p>
+            <p class="text-3xl font-bold text-gray-900 mt-2">{{ formatNumber(reportData()!.systemOverview.totalUsers) }}</p>
+            <p class="text-xs text-gray-500 mt-1">{{ reportData()!.systemOverview.activeUsers }} active</p>
+          </div>
+          <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+            <svg class="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- Total Officers -->
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Total Officers</p>
+            <p class="text-3xl font-bold text-gray-900 mt-2">{{ formatNumber(reportData()!.systemOverview.totalOfficers) }}</p>
+            <p class="text-xs text-gray-500 mt-1">{{ reportData()!.officerStats.activeOfficers }} active</p>
+          </div>
+          <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+            <svg class="w-6 h-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- Total Applications -->
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Total Applications</p>
+            <p class="text-3xl font-bold text-gray-900 mt-2">{{ formatNumber(reportData()!.systemOverview.totalApplications) }}</p>
+            <p class="text-xs text-gray-500 mt-1">{{ reportData()!.applicationStats.pending }} pending</p>
+          </div>
+          <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+            <svg class="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- System Health -->
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">System Health</p>
+            <p class="text-3xl font-bold mt-2 {{ systemHealthColor() }} capitalize">{{ reportData()!.systemOverview.systemHealth }}</p>
+            <p class="text-xs text-gray-500 mt-1">Uptime: {{ formatPercentage(reportData()!.performanceMetrics.systemUptime) }}</p>
+          </div>
+          <div class="w-12 h-12 {{ systemHealthColor() }} rounded-lg flex items-center justify-center">
+            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detailed Statistics Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Application Statistics -->
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h2 class="text-xl font-semibold text-gray-900 mb-4">Application Statistics</h2>
+        <div class="space-y-4">
+          <div class="flex justify-between items-center pb-3 border-b border-gray-200">
+            <span class="text-sm font-medium text-gray-600">Total Applications</span>
+            <span class="text-lg font-bold text-gray-900">{{ formatNumber(reportData()!.applicationStats.total) }}</span>
+          </div>
+          <div class="flex justify-between items-center pb-3 border-b border-gray-200">
+            <span class="text-sm font-medium text-gray-600">Pending Review</span>
+            <span class="text-lg font-bold text-yellow-600">{{ formatNumber(reportData()!.applicationStats.pending) }}</span>
+          </div>
+          <div class="flex justify-between items-center pb-3 border-b border-gray-200">
+            <span class="text-sm font-medium text-gray-600">Approved</span>
+            <span class="text-lg font-bold text-green-600">{{ formatNumber(reportData()!.applicationStats.approved) }}</span>
+          </div>
+          <div class="flex justify-between items-center pb-3 border-b border-gray-200">
+            <span class="text-sm font-medium text-gray-600">Rejected</span>
+            <span class="text-lg font-bold text-red-600">{{ formatNumber(reportData()!.applicationStats.rejected) }}</span>
+          </div>
+          <div class="flex justify-between items-center pt-2">
+            <span class="text-sm font-medium text-gray-600">Approval Rate</span>
+            <span class="text-lg font-bold {{ approvalRateColor() }}">{{ formatPercentage(reportData()!.applicationStats.approvalRate) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- User Statistics -->
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h2 class="text-xl font-semibold text-gray-900 mb-4">User Statistics</h2>
+        <div class="space-y-4">
+          <div class="flex justify-between items-center pb-3 border-b border-gray-200">
+            <span class="text-sm font-medium text-gray-600">Total Users</span>
+            <span class="text-lg font-bold text-gray-900">{{ formatNumber(reportData()!.userStats.totalUsers) }}</span>
+          </div>
+          <div class="flex justify-between items-center pb-3 border-b border-gray-200">
+            <span class="text-sm font-medium text-gray-600">Active Users</span>
+            <span class="text-lg font-bold text-green-600">{{ formatNumber(reportData()!.userStats.activeUsers) }}</span>
+          </div>
+          <div class="flex justify-between items-center pb-3 border-b border-gray-200">
+            <span class="text-sm font-medium text-gray-600">Inactive Users</span>
+            <span class="text-lg font-bold text-gray-600">{{ formatNumber(reportData()!.userStats.inactiveUsers) }}</span>
+          </div>
+          <div class="flex justify-between items-center pb-3 border-b border-gray-200">
+            <span class="text-sm font-medium text-gray-600">New This Month</span>
+            <span class="text-lg font-bold text-blue-600">{{ formatNumber(reportData()!.userStats.newUsersThisMonth) }}</span>
+          </div>
+          <div class="flex justify-between items-center pt-2">
+            <span class="text-sm font-medium text-gray-600">New This Week</span>
+            <span class="text-lg font-bold text-blue-600">{{ formatNumber(reportData()!.userStats.newUsersThisWeek) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Officer Statistics -->
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h2 class="text-xl font-semibold text-gray-900 mb-4">Officer Statistics</h2>
+        <div class="space-y-4">
+          <div class="flex justify-between items-center pb-3 border-b border-gray-200">
+            <span class="text-sm font-medium text-gray-600">Total Officers</span>
+            <span class="text-lg font-bold text-gray-900">{{ formatNumber(reportData()!.officerStats.totalOfficers) }}</span>
+          </div>
+          <div class="flex justify-between items-center pb-3 border-b border-gray-200">
+            <span class="text-sm font-medium text-gray-600">Active Officers</span>
+            <span class="text-lg font-bold text-green-600">{{ formatNumber(reportData()!.officerStats.activeOfficers) }}</span>
+          </div>
+          <div class="flex justify-between items-center pb-3 border-b border-gray-200">
+            <span class="text-sm font-medium text-gray-600">Loan Officers</span>
+            <span class="text-lg font-bold text-blue-600">{{ formatNumber(reportData()!.officerStats.loanOfficers) }}</span>
+          </div>
+          <div class="flex justify-between items-center pb-3 border-b border-gray-200">
+            <span class="text-sm font-medium text-gray-600">Compliance Officers</span>
+            <span class="text-lg font-bold text-purple-600">{{ formatNumber(reportData()!.officerStats.complianceOfficers) }}</span>
+          </div>
+          <div class="flex justify-between items-center pt-2">
+            <span class="text-sm font-medium text-gray-600">Avg Applications/Officer</span>
+            <span class="text-lg font-bold text-gray-900">{{ formatNumber(reportData()!.officerStats.averageApplicationsPerOfficer) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Performance Metrics -->
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h2 class="text-xl font-semibold text-gray-900 mb-4">Performance Metrics</h2>
+        <div class="space-y-4">
+          <div class="flex justify-between items-center pb-3 border-b border-gray-200">
+            <span class="text-sm font-medium text-gray-600">Avg Processing Time</span>
+            <span class="text-lg font-bold text-gray-900">{{ formatDuration(reportData()!.performanceMetrics.averageProcessingTime) }}</span>
+          </div>
+          <div class="flex justify-between items-center pb-3 border-b border-gray-200">
+            <span class="text-sm font-medium text-gray-600">Avg Approval Time</span>
+            <span class="text-lg font-bold text-green-600">{{ formatDuration(reportData()!.performanceMetrics.averageApprovalTime) }}</span>
+          </div>
+          <div class="flex justify-between items-center pb-3 border-b border-gray-200">
+            <span class="text-sm font-medium text-gray-600">Avg Rejection Time</span>
+            <span class="text-lg font-bold text-red-600">{{ formatDuration(reportData()!.performanceMetrics.averageRejectionTime) }}</span>
+          </div>
+          <div class="flex justify-between items-center pt-2">
+            <span class="text-sm font-medium text-gray-600">System Uptime</span>
+            <span class="text-lg font-bold text-green-600">{{ formatPercentage(reportData()!.performanceMetrics.systemUptime) }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Financial Statistics -->
+    @if (reportData()!.financialStats.totalLoanAmount > 0) {
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h2 class="text-xl font-semibold text-gray-900 mb-4">Financial Statistics</h2>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div>
+            <p class="text-sm font-medium text-gray-600 mb-2">Total Loan Amount</p>
+            <p class="text-2xl font-bold text-gray-900">{{ formatCurrency(reportData()!.financialStats.totalLoanAmount) }}</p>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-gray-600 mb-2">Total Approved</p>
+            <p class="text-2xl font-bold text-green-600">{{ formatCurrency(reportData()!.financialStats.totalApprovedAmount) }}</p>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-gray-600 mb-2">Total Disbursed</p>
+            <p class="text-2xl font-bold text-blue-600">{{ formatCurrency(reportData()!.financialStats.totalDisbursedAmount) }}</p>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-gray-600 mb-2">Average Loan Amount</p>
+            <p class="text-2xl font-bold text-gray-900">{{ formatCurrency(reportData()!.financialStats.averageLoanAmount) }}</p>
+          </div>
+        </div>
+      </div>
+    }
+  }
+</div>
+

@@ -279,99 +279,101 @@
           </div>
 
           <!-- Document Statistics Card -->
-          @if (applicationDetails()?.documents; as docs) {
-            <div class="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl p-6 border border-purple-100">
-              <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center space-x-3">
-                  <div class="w-12 h-12 bg-purple-500 rounded-lg flex items-center justify-center">
-                    <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                    </svg>
+          @if (applicationDetails()?.documents; as allDocs) {
+            @if (getFilteredDocuments(allDocs); as docs) {
+              <div class="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl p-6 border border-purple-100">
+                <div class="flex items-center justify-between mb-4">
+                  <div class="flex items-center space-x-3">
+                    <div class="bg-purple-600 rounded-lg p-2">
+                      <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 class="text-lg font-bold text-gray-900">Document Status</h3>
+                      <p class="text-sm text-gray-600">{{ getVerifiedDocumentsCount(docs) }} of {{ docs.length }} verified</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 class="text-lg font-bold text-gray-900">Document Status</h3>
-                    <p class="text-sm text-gray-600">{{ getVerifiedDocumentsCount(docs) }} of {{ docs.length }} verified</p>
+                  <div class="text-right">
+                    <div class="text-3xl font-bold text-purple-600">
+                      {{ docs.length > 0 ? ((getVerifiedDocumentsCount(docs) / docs.length) * 100).toFixed(0) : 0 }}%
+                    </div>
+                    <div class="text-xs text-gray-500">Complete</div>
                   </div>
                 </div>
-                <div class="text-right">
-                  <div class="text-3xl font-bold text-purple-600">
-                    {{ docs.length > 0 ? ((getVerifiedDocumentsCount(docs) / docs.length) * 100).toFixed(0) : 0 }}%
+
+                <!-- Progress Bar -->
+                <div class="relative w-full h-3 bg-purple-200 rounded-full overflow-hidden">
+                  <div 
+                    class="absolute inset-y-0 left-0 bg-gradient-to-r from-purple-500 to-purple-600 rounded-full transition-all duration-500 ease-out"
+                    [style.width.%]="docs.length > 0 ? (getVerifiedDocumentsCount(docs) / docs.length) * 100 : 0"
+                  ></div>
+                </div>
+
+                <!-- Stats Grid -->
+                <div class="grid grid-cols-3 gap-3 mt-4">
+                  <div class="bg-white rounded-lg p-3 text-center border border-purple-100">
+                    <div class="text-2xl font-bold text-purple-600">{{ docs.length }}</div>
+                    <div class="text-xs text-gray-500 mt-1">Total</div>
                   </div>
-                  <div class="text-xs text-gray-500">Complete</div>
+                  <div class="bg-white rounded-lg p-3 text-center border border-green-100">
+                    <div class="text-2xl font-bold text-green-600">{{ getVerifiedDocumentsCount(docs) }}</div>
+                    <div class="text-xs text-gray-500 mt-1">Verified</div>
+                  </div>
+                  <div class="bg-white rounded-lg p-3 text-center border border-orange-100">
+                    <div class="text-2xl font-bold text-orange-600">{{ docs.length - getVerifiedDocumentsCount(docs) }}</div>
+                    <div class="text-xs text-gray-500 mt-1">Pending</div>
+                  </div>
                 </div>
               </div>
 
-              <!-- Progress Bar -->
-              <div class="relative w-full h-3 bg-purple-200 rounded-full overflow-hidden">
-                <div 
-                  class="absolute inset-y-0 left-0 bg-gradient-to-r from-purple-500 to-purple-600 rounded-full transition-all duration-500 ease-out"
-                  [style.width.%]="docs.length > 0 ? (getVerifiedDocumentsCount(docs) / docs.length) * 100 : 0"
-                ></div>
-              </div>
-
-              <!-- Document Count Badges -->
-              <div class="grid grid-cols-3 gap-3 mt-4">
-                <div class="bg-white rounded-lg p-3 text-center border border-purple-100">
-                  <div class="text-2xl font-bold text-gray-900">{{ docs.length }}</div>
-                  <div class="text-xs text-gray-500 mt-1">Total</div>
-                </div>
-                <div class="bg-white rounded-lg p-3 text-center border border-green-100">
-                  <div class="text-2xl font-bold text-green-600">{{ getVerifiedDocumentsCount(docs) }}</div>
-                  <div class="text-xs text-gray-500 mt-1">Verified</div>
-                </div>
-                <div class="bg-white rounded-lg p-3 text-center border border-orange-100">
-                  <div class="text-2xl font-bold text-orange-600">{{ docs.length - getVerifiedDocumentsCount(docs) }}</div>
-                  <div class="text-xs text-gray-500 mt-1">Pending</div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Document List Preview -->
-            @if (docs.length > 0) {
-              <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
-                  <h4 class="font-semibold text-gray-900">Submitted Documents</h4>
-                </div>
-                <div class="divide-y divide-gray-200">
-                  @for (doc of docs.slice(0, 3); track doc.documentType) {
-                    <div class="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
-                      <div class="flex items-center space-x-3">
-                        <div [ngClass]="{
-                          'bg-green-100 text-green-600': doc.verificationStatus === 'VERIFIED',
-                          'bg-orange-100 text-orange-600': doc.verificationStatus === 'PENDING',
-                          'bg-red-100 text-red-600': doc.verificationStatus === 'REJECTED'
-                        }" class="w-10 h-10 rounded-lg flex items-center justify-center">
-                          @if (doc.verificationStatus === 'VERIFIED') {
-                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                            </svg>
-                          } @else {
-                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                          }
+              <!-- Document List Preview -->
+              @if (docs.length > 0) {
+                <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                  <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                    <h4 class="font-semibold text-gray-900">Submitted Documents</h4>
+                  </div>
+                  <div class="divide-y divide-gray-200">
+                    @for (doc of docs.slice(0, 3); track doc.documentType) {
+                      <div class="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                        <div class="flex items-center space-x-3">
+                          <div [ngClass]="{
+                            'bg-green-100 text-green-600': doc.verificationStatus === 'VERIFIED',
+                            'bg-orange-100 text-orange-600': doc.verificationStatus === 'PENDING',
+                            'bg-red-100 text-red-600': doc.verificationStatus === 'REJECTED'
+                          }" class="w-10 h-10 rounded-lg flex items-center justify-center">
+                            @if (doc.verificationStatus === 'VERIFIED') {
+                              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                              </svg>
+                            } @else {
+                              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                              </svg>
+                            }
+                          </div>
+                          <div>
+                            <div class="font-medium text-gray-900">{{ doc.documentType }}</div>
+                            <div class="text-sm text-gray-500">{{ doc.fileName || 'Document file' }}</div>
+                          </div>
                         </div>
-                        <div>
-                          <div class="font-medium text-gray-900">{{ doc.documentType }}</div>
-                          <div class="text-sm text-gray-500">{{ doc.fileName || 'Document file' }}</div>
-                        </div>
+                        <span [ngClass]="{
+                          'bg-green-100 text-green-800': doc.verificationStatus === 'VERIFIED',
+                          'bg-orange-100 text-orange-800': doc.verificationStatus === 'PENDING',
+                          'bg-red-100 text-red-800': doc.verificationStatus === 'REJECTED'
+                        }" class="px-3 py-1 rounded-full text-xs font-semibold">
+                          {{ doc.verificationStatus }}
+                        </span>
                       </div>
-                      <span [ngClass]="{
-                        'bg-green-100 text-green-800': doc.verificationStatus === 'VERIFIED',
-                        'bg-orange-100 text-orange-800': doc.verificationStatus === 'PENDING',
-                        'bg-red-100 text-red-800': doc.verificationStatus === 'REJECTED'
-                      }" class="px-3 py-1 rounded-full text-xs font-semibold">
-                        {{ doc.verificationStatus }}
-                      </span>
-                    </div>
-                  }
-                  @if (docs.length > 3) {
-                    <div class="px-6 py-3 bg-gray-50 text-center">
-                      <span class="text-sm text-gray-600">+ {{ docs.length - 3 }} more documents</span>
-                    </div>
-                  }
+                    }
+                    @if (docs.length > 3) {
+                      <div class="px-6 py-3 bg-gray-50 text-center">
+                        <span class="text-sm text-gray-600">+ {{ docs.length - 3 }} more documents</span>
+                      </div>
+                    }
+                  </div>
                 </div>
-              </div>
+              }
             }
           }
         </div>

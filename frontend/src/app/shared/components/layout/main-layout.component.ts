@@ -44,6 +44,7 @@ export class MainLayoutComponent {
   mobileMenuOpen = signal(false);
   pageTitle = signal('Dashboard');
   breadcrumbs = signal<Breadcrumb[]>([]);
+  profilePhotoUrl = signal<string | null>(null);
 
   // Navigation items based on roles
   private navigationItems: NavigationItem[] = [
@@ -67,15 +68,15 @@ export class MainLayoutComponent {
       roles: ['APPLICANT']
     },
     {
-      label: 'Profile',
-      route: '/applicant/profile',
-      icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z',
-      roles: ['APPLICANT']
-    },
-    {
       label: 'Notifications',
       route: '/notifications',
       icon: 'M10 21h4a2 2 0 0 1-4 0zm9-5V11a7 7 0 0 0-14 0v5l-2 2v1h18v-1l-2-2z',
+      roles: ['APPLICANT']
+    },
+    {
+      label: 'Profile',
+      route: '/applicant/profile',
+      icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z',
       roles: ['APPLICANT']
     },
 
@@ -143,15 +144,15 @@ export class MainLayoutComponent {
       roles: ['COMPLIANCE_OFFICER', 'SENIOR_COMPLIANCE_OFFICER']
     },
     {
-      label: 'Notifications',
-      route: '/notifications',
-      icon: 'M10 21h4a2 2 0 0 1-4 0zm9-5V11a7 7 0 0 0-14 0v5l-2 2v1h18v-1l-2-2z',
-      roles: ['COMPLIANCE_OFFICER', 'SENIOR_COMPLIANCE_OFFICER']
-    },
-    {
       label: 'My Profile',
       route: '/compliance-officer/profile',
       icon: 'M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5zm0 2c-3.33 0-10 1.67-10 5v3h20v-3c0-3.33-6.67-5-10-5z',
+      roles: ['COMPLIANCE_OFFICER', 'SENIOR_COMPLIANCE_OFFICER']
+    },
+    {
+      label: 'Notifications',
+      route: '/notifications',
+      icon: 'M10 21h4a2 2 0 0 1-4 0zm9-5V11a7 7 0 0 0-14 0v5l-2 2v1h18v-1l-2-2z',
       roles: ['COMPLIANCE_OFFICER', 'SENIOR_COMPLIANCE_OFFICER']
     },
 
@@ -236,6 +237,14 @@ export class MainLayoutComponent {
     // Set initial page title and breadcrumbs
     this.updatePageTitle();
     this.updateBreadcrumbs();
+    
+    // Load profile photo from localStorage
+    this.loadProfilePhoto();
+    
+    // Listen for profile photo updates
+    window.addEventListener('profilePhotoUpdated', () => {
+      this.loadProfilePhoto();
+    });
   }
 
   /**
@@ -568,5 +577,35 @@ export class MainLayoutComponent {
       default:
         return 'bg-gray-100 text-gray-800';
     }
+  }
+
+  /**
+   * Load profile photo from localStorage
+   */
+  private loadProfilePhoto(): void {
+    const user = this.currentUser();
+    if (user?.email) {
+      const photoKey = `profile_photo_${user.email}`;
+      const photoUrl = localStorage.getItem(photoKey);
+      this.profilePhotoUrl.set(photoUrl);
+    }
+  }
+
+  /**
+   * Get user initials (first + last name)
+   */
+  getUserInitials(): string {
+    const displayName = this.userDisplayName();
+    const nameParts = displayName.trim().split(/\s+/);
+    
+    if (nameParts.length >= 2) {
+      // First letter of first name + first letter of last name
+      return (nameParts[0].charAt(0) + nameParts[nameParts.length - 1].charAt(0)).toUpperCase();
+    } else if (nameParts.length === 1) {
+      // Just first letter of single name
+      return nameParts[0].charAt(0).toUpperCase();
+    }
+    
+    return 'U'; // Default fallback
   }
 }

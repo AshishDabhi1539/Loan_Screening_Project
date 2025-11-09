@@ -139,9 +139,18 @@ export class ApplicationHistoryComponent implements OnInit {
   }
 
   /**
-   * Extract compliance decision (APPROVE/REJECT) from complianceNotes
+   * Extract compliance decision (APPROVE/REJECT) from complianceNotes or status
    */
   getComplianceDecision(application: LoanApplicationResponse): string | null {
+    // First check if status is APPROVED or REJECTED (final status)
+    if (application.status === 'APPROVED') {
+      return 'APPROVE';
+    }
+    if (application.status === 'REJECTED') {
+      return 'REJECT';
+    }
+    
+    // Otherwise, try to extract from complianceNotes
     if (!application.complianceNotes) {
       return null;
     }

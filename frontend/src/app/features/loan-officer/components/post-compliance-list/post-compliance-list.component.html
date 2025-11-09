@@ -1,25 +1,91 @@
 <div class="space-y-6">
-  <!-- Header -->
-  <!-- <div class="flex items-center justify-between flex-wrap gap-4">
-    <div>
-      <h1 class="text-2xl font-bold text-gray-900">Post-Compliance Review</h1>
-      <p class="mt-1 text-sm text-gray-500">
-        Showing {{ totalCount() }} application{{ totalCount() !== 1 ? 's' : '' }}
-      </p>
+  <!-- Bulk Actions Bar -->
+  @if (showBulkActions()) {
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 shadow-sm">
+      <div class="flex items-center justify-between flex-wrap gap-4">
+        <div class="flex items-center gap-3">
+          <svg class="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+          </svg>
+          <span class="text-sm font-semibold text-blue-900">
+            {{ selectedApplications().size }} application{{ selectedApplications().size !== 1 ? 's' : '' }} selected
+          </span>
+        </div>
+        <button
+          (click)="clearSelections()"
+          class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+        >
+          Clear Selection
+        </button>
+      </div>
     </div>
-    <button
-      (click)="loadApplications()"
-      class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-      [disabled]="loading()"
-    >
-      <span class="flex items-center space-x-2">
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-        </svg>
-        <span>Refresh</span>
-      </span>
-    </button>
-  </div> -->
+  }
+
+  <!-- Filters and Search -->
+  <div class="bg-white rounded-lg shadow p-4">
+    <div class="flex flex-col md:flex-row gap-4 items-end">
+      <!-- Search -->
+      <div class="flex-1 w-full md:w-auto">
+        <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Search</label>
+        <input
+          type="text"
+          id="search"
+          [(ngModel)]="searchQuery"
+          (ngModelChange)="onSearchChange()"
+          placeholder="Search by name, email, loan type..."
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        />
+      </div>
+
+      <!-- Status Filter -->
+      <div class="w-full md:w-48">
+        <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+        <select
+          id="status"
+          [(ngModel)]="statusFilter"
+          (ngModelChange)="onFilterChange()"
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        >
+          <option value="all">All Statuses</option>
+          @for (status of uniqueStatuses(); track status) {
+            <option [value]="status">{{ status }}</option>
+          }
+        </select>
+      </div>
+
+      <!-- Priority Filter -->
+      <div class="w-full md:w-40">
+        <label for="priority" class="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+        <select
+          id="priority"
+          [(ngModel)]="priorityFilter"
+          (ngModelChange)="onFilterChange()"
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        >
+          <option value="all">All Priorities</option>
+          @for (priority of uniquePriorities(); track priority) {
+            <option [value]="priority">{{ priority }}</option>
+          }
+        </select>
+      </div>
+
+      <!-- Risk Level Filter -->
+      <div class="w-full md:w-40">
+        <label for="riskLevel" class="block text-sm font-medium text-gray-700 mb-1">Risk Level</label>
+        <select
+          id="riskLevel"
+          [(ngModel)]="riskLevelFilter"
+          (ngModelChange)="onFilterChange()"
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        >
+          <option value="all">All Levels</option>
+          @for (level of uniqueRiskLevels(); track level) {
+            <option [value]="level">{{ level }}</option>
+          }
+        </select>
+      </div>
+    </div>
+  </div>
 
   <!-- Loading State -->
   @if (loading()) {
@@ -39,87 +105,190 @@
         Retry
       </button>
     </div>
-  } @else if (totalCount() === 0) {
+  } @else if (filteredApplications().length === 0) {
     <!-- Empty State -->
     <div class="bg-white rounded-lg shadow p-12 text-center">
       <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
       </svg>
-      <h3 class="mt-2 text-sm font-medium text-gray-900">No Post-Compliance Applications</h3>
+      <h3 class="mt-2 text-sm font-medium text-gray-900">No Applications Found</h3>
       <p class="mt-1 text-sm text-gray-500">
-        All applications are in normal workflow
+        @if (searchQuery() || statusFilter() !== 'all' || priorityFilter() !== 'all' || riskLevelFilter() !== 'all') {
+          Try adjusting your filters
+        } @else {
+          No post-compliance applications at this time
+        }
       </p>
     </div>
   } @else {
     <!-- Applications Table -->
     <div class="bg-white shadow rounded-lg overflow-hidden">
-      <div class="overflow-hidden">
+      <div class="overflow-x-auto">
         <table class="w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
             <tr>
-              <th class="px-3 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Applicant
+              <th class="px-3 py-3 text-left">
+                <input
+                  type="checkbox"
+                  [checked]="isSelectAllChecked()"
+                  (change)="toggleSelectAll()"
+                  class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
               </th>
-              <th class="px-3 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Loan Details
+              <th 
+                class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                (click)="onSortChange('applicantName')"
+              >
+                <div class="flex items-center gap-1">
+                  Applicant
+                  @if (sortBy() === 'applicantName') {
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      @if (sortOrder() === 'asc') {
+                        <path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd"/>
+                      } @else {
+                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                      }
+                    </svg>
+                  }
+                </div>
               </th>
-              <th class="px-3 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Status
+              <th 
+                class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                (click)="onSortChange('requestedAmount')"
+              >
+                <div class="flex items-center gap-1">
+                  Loan Details
+                  @if (sortBy() === 'requestedAmount') {
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      @if (sortOrder() === 'asc') {
+                        <path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd"/>
+                      } @else {
+                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                      }
+                    </svg>
+                  }
+                </div>
               </th>
-              <th class="px-3 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Priority
+              <th 
+                class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                (click)="onSortChange('status')"
+              >
+                <div class="flex items-center gap-1">
+                  Status
+                  @if (sortBy() === 'status') {
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      @if (sortOrder() === 'asc') {
+                        <path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd"/>
+                      } @else {
+                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                      }
+                    </svg>
+                  }
+                </div>
               </th>
-              <th class="px-3 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Risk Level
+              <th 
+                class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                (click)="onSortChange('priority')"
+              >
+                <div class="flex items-center gap-1">
+                  Priority
+                  @if (sortBy() === 'priority') {
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      @if (sortOrder() === 'asc') {
+                        <path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd"/>
+                      } @else {
+                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                      }
+                    </svg>
+                  }
+                </div>
               </th>
-              <th class="px-3 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Submitted
+              <th 
+                class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                (click)="onSortChange('riskLevel')"
+              >
+                <div class="flex items-center gap-1">
+                  Risk Level
+                  @if (sortBy() === 'riskLevel') {
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      @if (sortOrder() === 'asc') {
+                        <path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd"/>
+                      } @else {
+                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                      }
+                    </svg>
+                  }
+                </div>
               </th>
-              <th class="px-3 py-2.5 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th 
+                class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                (click)="onSortChange('submittedAt')"
+              >
+                <div class="flex items-center gap-1">
+                  Submitted
+                  @if (sortBy() === 'submittedAt') {
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      @if (sortOrder() === 'asc') {
+                        <path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd"/>
+                      } @else {
+                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                      }
+                    </svg>
+                  }
+                </div>
+              </th>
+              <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Action
               </th>
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
-            @for (app of applications(); track app.id; let i = $index) {
+            @for (app of paginatedApplications(); track app.id) {
               <tr class="hover:bg-gray-50 transition-colors">
-                <td class="px-3 py-2.5">
-                  <div class="text-xs font-semibold text-gray-900">{{ app.applicantName || 'N/A' }}</div>
+                <td class="px-3 py-3">
+                  <input
+                    type="checkbox"
+                    [checked]="isApplicationSelected(app.id)"
+                    (change)="toggleApplicationSelection(app.id)"
+                    class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                </td>
+                <td class="px-3 py-3">
+                  <div class="text-sm font-medium text-gray-900">{{ app.applicantName }}</div>
                   <div class="text-xs text-gray-500">{{ app.applicantEmail }}</div>
                 </td>
-                <td class="px-3 py-2.5 whitespace-nowrap">
-                  <div class="text-xs font-medium text-gray-900">{{ app.loanType || 'N/A' }}</div>
-                  <div class="text-xs text-gray-500">{{ formatCurrency(app.requestedAmount) }} / {{ app.tenureMonths }} months</div>
+                <td class="px-3 py-3">
+                  <div class="text-sm font-medium text-gray-900">{{ app.loanType }}</div>
+                  <div class="text-xs text-gray-500">{{ formatCurrency(app.requestedAmount) }} / {{ app.tenureMonths }}mo</div>
                 </td>
-                <td class="px-3 py-2.5 whitespace-nowrap">
+                <td class="px-3 py-3 whitespace-nowrap">
                   <span 
-                    [class]="'px-2 py-0.5 inline-flex items-center rounded-full text-xs font-medium whitespace-nowrap ' + getStatusBadge(app).class">
+                    [class]="'px-2 py-1 inline-flex items-center rounded-full text-xs font-medium ' + getStatusBadge(app).class">
                     @if (getStatusBadge(app).icon) {
                       <span class="mr-1">{{ getStatusBadge(app).icon }}</span>
                     }
                     {{ getStatusBadge(app).text }}
                   </span>
                 </td>
-                <td class="px-3 py-2.5 whitespace-nowrap">
-                  <span [class]="'px-2 py-0.5 inline-flex items-center rounded-full text-xs font-medium ' + getPriorityClass(app.priority)">
-                    {{ app.priority || 'NORMAL' }}
+                <td class="px-3 py-3 whitespace-nowrap">
+                  <span [class]="'px-2 py-1 inline-flex items-center rounded-full text-xs font-medium ' + getPriorityClass(app.priority)">
+                    {{ app.priority }}
                   </span>
                 </td>
-                <td class="px-3 py-2.5 whitespace-nowrap">
-                  <span [class]="'px-2 py-0.5 inline-flex items-center rounded-full text-xs font-medium ' + getRiskLevelClass(app.riskLevel)">
-                    {{ app.riskLevel || 'N/A' }}
+                <td class="px-3 py-3 whitespace-nowrap">
+                  <span [class]="'px-2 py-1 inline-flex items-center rounded-full text-xs font-medium ' + getRiskLevelClass(app.riskLevel)">
+                    {{ app.riskLevel }}
                   </span>
                 </td>
-                <td class="px-3 py-2.5 whitespace-nowrap">
-                  <div class="text-xs text-gray-600">{{ formatDate(app.submittedAt) }}</div>
+                <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-600">
+                  {{ formatDate(app.submittedAt) }}
                 </td>
-                <td class="px-3 py-2.5 whitespace-nowrap text-center">
+                <td class="px-3 py-3 whitespace-nowrap text-center">
                   <button
                     (click)="viewApplication(app.id)"
-                    class="inline-flex items-center px-2.5 py-1.5 bg-primary-600 text-white text-xs font-medium rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-primary-500 transition-colors duration-200"
-                    title="View Application Details"
+                    class="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-md hover:bg-blue-700 transition-colors"
                   >
-                    <svg class="w-3.5 h-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                     </svg>
@@ -130,6 +299,70 @@
             }
           </tbody>
         </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="bg-gray-50 px-4 py-3 border-t border-gray-200 sm:px-6">
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+          <!-- Results Info -->
+          <div class="flex items-center gap-4">
+            <div class="text-sm text-gray-700">
+              Showing <span class="font-medium">{{ showingFrom() }}</span> to <span class="font-medium">{{ showingTo() }}</span> of <span class="font-medium">{{ totalItems() }}</span> results
+            </div>
+            <select
+              [(ngModel)]="itemsPerPage"
+              (ngModelChange)="setItemsPerPage($event)"
+              class="px-2 py-1 border border-gray-300 rounded-md text-sm"
+            >
+              @for (option of itemsPerPageOptions; track option) {
+                <option [value]="option">{{ option }} per page</option>
+              }
+            </select>
+          </div>
+
+          <!-- Pagination Buttons -->
+          <div class="flex items-center space-x-2">
+            <button
+              (click)="previousPage()"
+              [disabled]="!canGoPrevious()"
+              [class]="canGoPrevious() ? 'bg-white hover:bg-gray-50 text-gray-700 border-gray-300' : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'"
+              class="px-4 py-2 border rounded-lg font-medium transition-colors"
+            >
+              Previous
+            </button>
+
+            <!-- Page Numbers -->
+            <div class="hidden sm:flex items-center space-x-1">
+              @for (page of getPageNumbers(); track $index) {
+                @if (page === -1) {
+                  <span class="px-3 py-2 text-gray-500">...</span>
+                } @else {
+                  <button
+                    (click)="goToPage(page)"
+                    [class]="page === currentPage() ? 'bg-blue-600 text-white border-blue-600' : 'bg-white hover:bg-gray-50 text-gray-700 border-gray-300'"
+                    class="px-3 py-2 border rounded-lg font-medium transition-colors min-w-[40px]"
+                  >
+                    {{ page }}
+                  </button>
+                }
+              }
+            </div>
+
+            <!-- Current Page (Mobile) -->
+            <div class="sm:hidden px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700">
+              Page {{ currentPage() }} of {{ totalPages() }}
+            </div>
+
+            <button
+              (click)="nextPage()"
+              [disabled]="!canGoNext()"
+              [class]="canGoNext() ? 'bg-white hover:bg-gray-50 text-gray-700 border-gray-300' : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'"
+              class="px-4 py-2 border rounded-lg font-medium transition-colors"
+            >
+              Next
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   }
