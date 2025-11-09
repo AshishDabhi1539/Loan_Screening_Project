@@ -102,7 +102,7 @@ public class ApplicationAssignmentServiceImpl implements ApplicationAssignmentSe
             ApplicationStatus.READY_FOR_DECISION
         );
         
-        return loanApplicationRepository.countByAssignedOfficerAndStatusIn(officer, activeStatuses);
+        return (int) loanApplicationRepository.countByAssignedOfficerAndStatusIn(officer, activeStatuses);
     }
     
     /**
@@ -175,7 +175,7 @@ public class ApplicationAssignmentServiceImpl implements ApplicationAssignmentSe
             ApplicationStatus.PENDING_COMPLIANCE_DOCS
         );
         
-        return loanApplicationRepository.countByAssignedComplianceOfficerAndStatusIn(complianceOfficer, complianceStatuses);
+        return (int) loanApplicationRepository.countByAssignedComplianceOfficerAndStatusIn(complianceOfficer, complianceStatuses);
     }
     
     /**

@@ -66,7 +66,7 @@ export class MyApplicationsComponent implements OnInit {
       if (this.applications().length > 0) {
         this.currentPage.set(1);
       }
-    });
+    }, { allowSignalWrites: true });
   }
 
   ngOnInit(): void {

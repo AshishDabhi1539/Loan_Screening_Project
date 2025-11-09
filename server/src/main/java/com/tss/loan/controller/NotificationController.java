@@ -13,12 +13,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.tss.loan.dto.response.NotificationResponse;
 import com.tss.loan.entity.user.User;
 import com.tss.loan.service.NotificationService;
-import com.tss.loan.service.NotificationStreamService;
 import com.tss.loan.service.UserService;
 import com.tss.loan.entity.enums.NotificationType;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -30,9 +28,6 @@ public class NotificationController {
 
     @Autowired
     private NotificationService notificationService;
-
-    @Autowired
-    private NotificationStreamService notificationStreamService;
 
     @Autowired
     private UserService userService;
@@ -86,12 +81,6 @@ public class NotificationController {
         User user = getCurrentUser();
         int updated = notificationService.markSelectedAsRead(user, ids);
         return ResponseEntity.ok(updated);
-    }
-
-    @GetMapping("/stream")
-    public SseEmitter stream() {
-        User user = getCurrentUser();
-        return notificationStreamService.register(user.getId());
     }
 
     private User getCurrentUser() {

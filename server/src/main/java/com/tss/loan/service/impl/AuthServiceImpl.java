@@ -124,11 +124,14 @@ public class AuthServiceImpl implements AuthService {
             // Reset failed login attempts on successful login
             resetFailedLoginAttempts(user);
             
-            // Generate JWT tokens with Remember Me support
-            boolean rememberMe = request.isRememberMe();
-            String accessToken = jwtTokenProvider.generateToken(user, rememberMe);
-            String refreshToken = jwtTokenProvider.generateRefreshToken(user, rememberMe);
-            LocalDateTime expiresAt = jwtTokenProvider.getExpirationDateFromToken(accessToken);
+            // Generate JWT tokens (standard expiration: 24 hours access, 7 days refresh)
+            String accessToken = jwtTokenProvider.generateToken(user);
+            String refreshToken = jwtTokenProvider.generateRefreshToken(user);
+            
+            // Calculate expiration time directly instead of parsing the token
+            // This avoids potential issues with token validation during login
+            int expirationMs = 86400000; // 24 hours
+            LocalDateTime expiresAt = LocalDateTime.now().plusSeconds(expirationMs / 1000);
             
             // Update last login
             user.setLastLoginAt(LocalDateTime.now());
@@ -274,16 +277,62 @@ public class AuthServiceImpl implements AuthService {
     }
     
     @Override
+    public LoginResponse refreshToken(String refreshToken) {
+        try {
+            // Validate refresh token
+            if (!jwtTokenProvider.validateToken(refreshToken)) {
+                throw new LoanApiException("Invalid or expired refresh token");
+            }
+            
+            // Get user from refresh token
+            String userEmail = jwtTokenProvider.getUserEmailFromToken(refreshToken);
+            User user = userService.findByEmail(userEmail);
+            
+            // Validate user status
+            validateUserForLogin(user);
+            
+            // Generate new tokens (standard expiration: 24 hours access, 7 days refresh)
+            String newAccessToken = jwtTokenProvider.generateToken(user);
+            String newRefreshToken = jwtTokenProvider.generateRefreshToken(user);
+            
+            // Calculate expiration
+            int expirationMs = 86400000; // 24 hours
+            LocalDateTime expiresAt = LocalDateTime.now().plusSeconds(expirationMs / 1000);
+            
+            // Get display name
+            String displayName = userDisplayService.getDisplayName(user);
+            
+            // Log token refresh
+            auditLogService.logAction(user, "TOKEN_REFRESH", "User", null,
+                "Access token refreshed successfully");
+            
+            return LoginResponse.builder()
+                .userId(user.getId())
+                .email(user.getEmail())
+                .displayName(displayName)
+                .role(user.getRole().name())
+                .token(newAccessToken)
+                .refreshToken(newRefreshToken)
+                .expiresAt(expiresAt)
+                .message("Token refreshed successfully")
+                .build();
+                
+        } catch (Exception e) {
+            throw new LoanApiException("Token refresh failed: " + e.getMessage());
+        }
+    }
+    
+    @Override
     public void logout(String token) {
         try {
             // In a production system, you would add the token to a blacklist
-            // For now, we'll just log the logout action
+            // For now, we'll just log the logout action without loading User entity
             if (jwtTokenProvider.validateToken(token)) {
                 String userEmail = jwtTokenProvider.getUserEmailFromToken(token);
-                User user = userService.findByEmail(userEmail);
                 
-                auditLogService.logAction(user, "LOGOUT", "User", null, 
-                    "User logged out successfully");
+                // Log logout without loading User entity to avoid lazy loading queries
+                auditLogService.logAction(null, "LOGOUT", "User", null, 
+                    "User logged out successfully: " + userEmail);
             }
         } catch (Exception e) {
             // Silent fail for logout - log at debug level

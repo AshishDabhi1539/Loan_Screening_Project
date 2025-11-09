@@ -14,7 +14,4 @@ public class UserLoginRequest {
     @NotBlank(message = "Password is required")
     @Size(min = 1, max = 100, message = "Password length is invalid")
     private String password;
-    
-    // Optional: Remember me functionality
-    private boolean rememberMe = false;
 }

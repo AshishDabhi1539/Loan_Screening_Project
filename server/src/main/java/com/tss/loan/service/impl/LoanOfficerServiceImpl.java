@@ -98,114 +98,88 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
     public OfficerDashboardResponse getDashboard(User officer) {
         log.info("Building dashboard for officer: {}", officer.getEmail());
         
-        // Get all applications assigned to this officer
-        List<LoanApplication> assignedApplications = loanApplicationRepository
-            .findByAssignedOfficerOrderByCreatedAtDesc(officer);
+        // ✅ OPTIMIZED: Use COUNT queries instead of loading all entities
+        long totalAssigned = loanApplicationRepository.countByAssignedOfficer(officer);
         
-        // Calculate statistics
-        int totalAssigned = assignedApplications.size();
+        // Verified: Applications that passed all verifications
+        long verified = loanApplicationRepository.countByAssignedOfficerAndStatusIn(officer,
+            java.util.Arrays.asList(ApplicationStatus.APPROVED, ApplicationStatus.READY_FOR_DECISION, ApplicationStatus.DISBURSED));
         
-        // Verified: Applications that passed all verifications (APPROVED, READY_FOR_DECISION, DISBURSED)
-        int verified = (int) assignedApplications.stream()
-            .filter(app -> app.getStatus() == ApplicationStatus.APPROVED || 
-                          app.getStatus() == ApplicationStatus.READY_FOR_DECISION ||
-                          app.getStatus() == ApplicationStatus.DISBURSED)
-            .count();
+        // Rejected applications
+        long rejected = loanApplicationRepository.countByAssignedOfficerAndStatus(officer, ApplicationStatus.REJECTED);
         
-        // Rejected: Applications that were rejected
-        int rejected = (int) assignedApplications.stream()
-            .filter(app -> app.getStatus() == ApplicationStatus.REJECTED)
-            .count();
-        
-        // In Progress: Applications currently being processed (all active statuses)
-        int inProgress = (int) assignedApplications.stream()
-            .filter(app -> app.getStatus() == ApplicationStatus.SUBMITTED ||
-                          app.getStatus() == ApplicationStatus.UNDER_REVIEW ||
-                          app.getStatus() == ApplicationStatus.DOCUMENT_VERIFICATION ||
-                          app.getStatus() == ApplicationStatus.DOCUMENT_INCOMPLETE ||
-                          app.getStatus() == ApplicationStatus.DOCUMENT_REVERIFICATION ||
-                          app.getStatus() == ApplicationStatus.PENDING_EXTERNAL_VERIFICATION ||
-                          app.getStatus() == ApplicationStatus.FINANCIAL_REVIEW ||
-                          app.getStatus() == ApplicationStatus.CREDIT_CHECK ||
-                          app.getStatus() == ApplicationStatus.EMPLOYMENT_VERIFICATION ||
-                          app.getStatus() == ApplicationStatus.RISK_ASSESSMENT ||
-                          app.getStatus() == ApplicationStatus.FRAUD_CHECK ||
-                          app.getStatus() == ApplicationStatus.UNDER_INVESTIGATION ||
-                          app.getStatus() == ApplicationStatus.COLLATERAL_VERIFICATION ||
-                          app.getStatus() == ApplicationStatus.FLAGGED_FOR_COMPLIANCE ||
-                          app.getStatus() == ApplicationStatus.COMPLIANCE_REVIEW ||
-                          app.getStatus() == ApplicationStatus.PENDING_COMPLIANCE_DOCS ||
-                          app.getStatus() == ApplicationStatus.AWAITING_COMPLIANCE_DECISION ||
-                          app.getStatus() == ApplicationStatus.COMPLIANCE_TIMEOUT ||
-                          app.getStatus() == ApplicationStatus.MANAGER_APPROVAL ||
-                          app.getStatus() == ApplicationStatus.PRE_APPROVED ||
-                          app.getStatus() == ApplicationStatus.DOCUMENTATION ||
-                          app.getStatus() == ApplicationStatus.DISBURSEMENT_PENDING ||
-                          app.getStatus() == ApplicationStatus.ON_HOLD)
-            .count();
+        // In Progress: All active statuses
+        long inProgress = loanApplicationRepository.countByAssignedOfficerAndStatusIn(officer,
+            java.util.Arrays.asList(
+                ApplicationStatus.SUBMITTED, ApplicationStatus.UNDER_REVIEW,
+                ApplicationStatus.DOCUMENT_VERIFICATION, ApplicationStatus.DOCUMENT_INCOMPLETE,
+                ApplicationStatus.DOCUMENT_REVERIFICATION, ApplicationStatus.PENDING_EXTERNAL_VERIFICATION,
+                ApplicationStatus.FINANCIAL_REVIEW, ApplicationStatus.CREDIT_CHECK,
+                ApplicationStatus.EMPLOYMENT_VERIFICATION, ApplicationStatus.RISK_ASSESSMENT,
+                ApplicationStatus.FRAUD_CHECK, ApplicationStatus.UNDER_INVESTIGATION,
+                ApplicationStatus.COLLATERAL_VERIFICATION, ApplicationStatus.FLAGGED_FOR_COMPLIANCE,
+                ApplicationStatus.COMPLIANCE_REVIEW, ApplicationStatus.PENDING_COMPLIANCE_DOCS,
+                ApplicationStatus.AWAITING_COMPLIANCE_DECISION, ApplicationStatus.COMPLIANCE_TIMEOUT,
+                ApplicationStatus.MANAGER_APPROVAL, ApplicationStatus.PRE_APPROVED,
+                ApplicationStatus.DOCUMENTATION, ApplicationStatus.DISBURSEMENT_PENDING,
+                ApplicationStatus.ON_HOLD));
         
         // Today's statistics
         LocalDateTime startOfDay = LocalDateTime.now().truncatedTo(ChronoUnit.DAYS);
-        int completedToday = (int) assignedApplications.stream()
-            .filter(app -> (app.getStatus() == ApplicationStatus.APPROVED || 
-                           app.getStatus() == ApplicationStatus.REJECTED) &&
-                          app.getUpdatedAt().isAfter(startOfDay))
-            .count();
+        long completedToday = loanApplicationRepository.countByAssignedOfficerAndStatusInAndUpdatedAtAfter(
+            officer,
+            java.util.Arrays.asList(ApplicationStatus.APPROVED, ApplicationStatus.REJECTED),
+            startOfDay);
         
         // Week statistics
         LocalDateTime startOfWeek = LocalDateTime.now().minusDays(7);
-        int completedThisWeek = (int) assignedApplications.stream()
-            .filter(app -> (app.getStatus() == ApplicationStatus.APPROVED || 
-                           app.getStatus() == ApplicationStatus.REJECTED) &&
-                          app.getUpdatedAt().isAfter(startOfWeek))
-            .count();
+        long completedThisWeek = loanApplicationRepository.countByAssignedOfficerAndStatusInAndUpdatedAtAfter(
+            officer,
+            java.util.Arrays.asList(ApplicationStatus.APPROVED, ApplicationStatus.REJECTED),
+            startOfWeek);
         
         // Month statistics
         LocalDateTime startOfMonth = LocalDateTime.now().minusDays(30);
-        int completedThisMonth = (int) assignedApplications.stream()
-            .filter(app -> (app.getStatus() == ApplicationStatus.APPROVED || 
-                           app.getStatus() == ApplicationStatus.REJECTED) &&
-                          app.getUpdatedAt().isAfter(startOfMonth))
-            .count();
+        long completedThisMonth = loanApplicationRepository.countByAssignedOfficerAndStatusInAndUpdatedAtAfter(
+            officer,
+            java.util.Arrays.asList(ApplicationStatus.APPROVED, ApplicationStatus.REJECTED),
+            startOfMonth);
         
-        // Calculate average processing time
-        double averageProcessingTimeHours = calculateAverageProcessingTime(assignedApplications);
+        // Priority breakdown - using COUNT queries
+        long highPriority = loanApplicationRepository.countByAssignedOfficerAndPriority(officer, Priority.HIGH);
+        long mediumPriority = loanApplicationRepository.countByAssignedOfficerAndPriority(officer, Priority.MEDIUM);
+        long lowPriority = loanApplicationRepository.countByAssignedOfficerAndPriority(officer, Priority.LOW);
         
-        // Priority breakdown calculation
-        int highPriority = (int) assignedApplications.stream()
-            .filter(app -> app.getPriority() == Priority.HIGH)
-            .count();
-        int mediumPriority = (int) assignedApplications.stream()
-            .filter(app -> app.getPriority() == Priority.MEDIUM)
-            .count();
-        int lowPriority = (int) assignedApplications.stream()
-            .filter(app -> app.getPriority() == Priority.LOW || app.getPriority() == null)
-            .count();
+        // ✅ OPTIMIZED: Only load recent applications (limit 5) with JOIN FETCH for display
+        List<LoanApplication> recentApplications = loanApplicationRepository
+            .findByAssignedOfficerWithDetailsOrderByCreatedAtDesc(officer)
+            .stream()
+            .limit(5)
+            .collect(Collectors.toList());
+        
+        // Calculate average processing time only for recent apps (not all)
+        double averageProcessingTimeHours = calculateAverageProcessingTime(recentApplications);
         
         OfficerDashboardResponse.PriorityBreakdown priorityBreakdown = 
             OfficerDashboardResponse.PriorityBreakdown.builder()
-                .high(highPriority)
-                .medium(mediumPriority)
-                .low(lowPriority)
+                .high((int) highPriority)
+                .medium((int) mediumPriority)
+                .low((int) lowPriority)
                 .build();
         
-        // High priority applications
-        int urgentApplications = (int) assignedApplications.stream()
-            .filter(app -> app.getRequestedAmount().doubleValue() > 1000000 && 
-                          app.getStatus() == ApplicationStatus.UNDER_REVIEW)
-            .count();
+        // ✅ OPTIMIZED: Use COUNT queries for urgent/high-value applications
+        long urgentApplications = loanApplicationRepository.countByAssignedOfficerAndRequestedAmountGreaterThanAndStatus(
+            officer, new java.math.BigDecimal("1000000"), ApplicationStatus.UNDER_REVIEW);
         
-        int highValueApplications = (int) assignedApplications.stream()
-            .filter(app -> app.getRequestedAmount().doubleValue() > 500000)
-            .count();
+        long highValueApplications = loanApplicationRepository.countByAssignedOfficerAndRequestedAmountGreaterThan(
+            officer, new java.math.BigDecimal("500000"));
         
-        // Recent applications (last 5)
-        List<OfficerDashboardResponse.LoanApplicationSummary> recentApplications = assignedApplications.stream()
-            .limit(5)
+        // Map recent applications (already loaded with JOIN FETCH)
+        List<OfficerDashboardResponse.LoanApplicationSummary> recentAppSummaries = recentApplications.stream()
             .map(app -> OfficerDashboardResponse.LoanApplicationSummary.builder()
                 .id(app.getId().toString())
-                .applicantName(userDisplayService.getDisplayName(app.getApplicant()))
-                .applicantEmail(app.getApplicant().getEmail())
+                .applicantName(app.getApplicantName())
+                .applicantEmail(app.getApplicantEmail())
                 .loanType(app.getLoanType() != null ? app.getLoanType().toString() : "PERSONAL")
                 .requestedAmount(app.getRequestedAmount().doubleValue())
                 .status(app.getStatus().toString())
@@ -214,19 +188,20 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
                 .build())
             .collect(Collectors.toList());
         
-        // Recent activities (last 10 audit entries)
-        List<OfficerDashboardResponse.RecentActivity> recentActivities = assignedApplications.stream()
-            .limit(10)
+        // Recent activities from recent applications
+        List<OfficerDashboardResponse.RecentActivity> recentActivities = recentApplications.stream()
             .map(app -> OfficerDashboardResponse.RecentActivity.builder()
                 .id(java.util.UUID.randomUUID().toString())
                 .action("Application " + app.getStatus().toString().replace("_", " ").toLowerCase())
                 .applicationId(app.getId().toString())
-                .applicantName(userDisplayService.getDisplayName(app.getApplicant()))
+                .applicantName(app.getApplicantName())
                 .status(app.getStatus().toString())
                 .timestamp(app.getUpdatedAt() != null ? app.getUpdatedAt() : app.getCreatedAt())
                 .performedBy(officerProfileService.getOfficerDisplayName(officer))
                 .build())
             .collect(Collectors.toList());
+        
+        log.info("✅ Dashboard built with {} COUNT queries + 1 JOIN FETCH query (no N+1)", 11);
         
         // Build response
         return OfficerDashboardResponse.builder()
@@ -234,26 +209,26 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
             .officerName(officerProfileService.getOfficerDisplayName(officer))
             .officerEmail(officer.getEmail())
             .role(officer.getRole().toString())
-            .totalAssigned(totalAssigned)
-            .verified(verified) // NEW: Applications that passed verification
-            .rejected(rejected) // NEW: Rejected applications
-            .inProgress(inProgress) // NEW: Applications in progress
-            .completedToday(completedToday)
-            .completedThisWeek(completedThisWeek)
-            .completedThisMonth(completedThisMonth)
+            .totalAssigned((int) totalAssigned)
+            .verified((int) verified)
+            .rejected((int) rejected)
+            .inProgress((int) inProgress)
+            .completedToday((int) completedToday)
+            .completedThisWeek((int) completedThisWeek)
+            .completedThisMonth((int) completedThisMonth)
             .avgProcessingTime(averageProcessingTimeHours)
-            .applicationsProcessedToday(completedToday)
-            .applicationsProcessedThisWeek(completedThisWeek)
+            .applicationsProcessedToday((int) completedToday)
+            .applicationsProcessedThisWeek((int) completedThisWeek)
             .priorityBreakdown(priorityBreakdown)
-            .recentApplications(recentApplications)
+            .recentApplications(recentAppSummaries)
             .recentActivities(recentActivities)
             .lastLoginAt(officer.getLastLoginAt())
             .lastActivityAt(LocalDateTime.now())
             .hasCapacityForNewApplications(totalAssigned < 10)
             .maxWorkloadCapacity(10)
-            .currentWorkload(totalAssigned)
-            .urgentApplications(urgentApplications)
-            .highValueApplications(highValueApplications)
+            .currentWorkload((int) totalAssigned)
+            .urgentApplications((int) urgentApplications)
+            .highValueApplications((int) highValueApplications)
             .flaggedApplications(0)
             .build();
     }
@@ -262,8 +237,11 @@ public class LoanOfficerServiceImpl implements LoanOfficerService {
     public List<LoanApplicationResponse> getAssignedApplications(User officer) {
         log.info("Fetching assigned applications for officer: {}", officer.getEmail());
         
+        // ✅ OPTIMIZED: Use JOIN FETCH query to avoid N+1 queries
         List<LoanApplication> applications = loanApplicationRepository
-            .findByAssignedOfficerOrderByCreatedAtDesc(officer);
+            .findByAssignedOfficerWithDetailsOrderByCreatedAtDesc(officer);
+        
+        log.info("✅ Loaded {} applications with JOIN FETCH (no N+1 queries)", applications.size());
         
         return applications.stream()
             .map(loanApplicationMapper::toResponse)

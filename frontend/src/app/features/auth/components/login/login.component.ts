@@ -39,8 +39,7 @@ export class LoginComponent implements OnInit, AfterViewInit {
       Validators.required,
       Validators.minLength(8)
     ]],
-    captcha: ['', [Validators.required]],
-    rememberMe: [false]
+    captcha: ['', [Validators.required]]
   });
 
   constructor() {
@@ -184,8 +183,7 @@ export class LoginComponent implements OnInit, AfterViewInit {
       
       const loginData: LoginRequest = {
         emailOrPhone: this.loginForm.value.emailOrPhone.trim(),
-        password: this.loginForm.value.password,
-        rememberMe: this.loginForm.value.rememberMe || false
+        password: this.loginForm.value.password
       };
 
       this.authService.login(loginData).subscribe({
