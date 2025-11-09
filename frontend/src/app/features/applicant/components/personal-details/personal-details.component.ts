@@ -1,6 +1,6 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, ValidatorFn, AbstractControl } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 
 import { AuthService } from '../../../../core/services/auth.service';
@@ -26,8 +26,6 @@ export class PersonalDetailsComponent implements OnInit {
   // Form and state management
   personalDetailsForm!: FormGroup;
   isLoading = signal(false);
-  currentStep = signal(1);
-  totalSteps = 3;
   isEditMode = signal(false); // Track if user is editing existing data
   returnUrl = signal<string>(''); // URL to return to after completion
   applicationId = signal<string>(''); // Application ID if provided
@@ -89,7 +87,7 @@ export class PersonalDetailsComponent implements OnInit {
       firstName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(50)]],
       lastName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(50)]],
       middleName: ['', [Validators.maxLength(50)]],
-      dateOfBirth: ['', [Validators.required]],
+      dateOfBirth: ['', [Validators.required, this.minAgeValidator(18)]],
       gender: ['', [Validators.required]],
       maritalStatus: ['', [Validators.required]],
       
@@ -250,94 +248,6 @@ export class PersonalDetailsComponent implements OnInit {
   }
 
   /**
-   * Get progress percentage
-   */
-  getProgressPercentage(): number {
-    return Math.round((this.currentStep() / this.totalSteps) * 100);
-  }
-
-  /**
-   * Navigate to next step
-   */
-  nextStep(): void {
-    if (this.currentStep() < this.totalSteps) {
-      this.currentStep.set(this.currentStep() + 1);
-    }
-  }
-
-  /**
-   * Navigate to previous step
-   */
-  previousStep(): void {
-    if (this.currentStep() > 1) {
-      this.currentStep.set(this.currentStep() - 1);
-    }
-  }
-
-  /**
-   * Check if current step is valid
-   * Note: Disabled fields are considered valid if they have a value
-   */
-  isStepValid(step: number): boolean {
-    switch (step) {
-      case 1: // Personal Information
-        // For disabled fields (edit mode), check if they have a value instead of valid status
-        const dobControl = this.personalDetailsForm.get('dateOfBirth');
-        const isDobValid = dobControl?.disabled ? !!dobControl?.value : dobControl?.valid;
-        
-        const isBasicInfoValid = !!(this.personalDetailsForm.get('firstName')?.valid &&
-               this.personalDetailsForm.get('lastName')?.valid &&
-               isDobValid &&
-               this.personalDetailsForm.get('gender')?.valid &&
-               this.personalDetailsForm.get('maritalStatus')?.valid &&
-               this.personalDetailsForm.get('fatherName')?.valid &&
-               this.personalDetailsForm.get('motherName')?.valid &&
-               this.personalDetailsForm.get('dependentsCount')?.valid &&
-               this.personalDetailsForm.get('alternatePhoneNumber')?.valid);
-        
-        // Check spouse name if married
-        const maritalStatus = this.personalDetailsForm.get('maritalStatus')?.value;
-        if (maritalStatus === 'MARRIED') {
-          return isBasicInfoValid && !!(this.personalDetailsForm.get('spouseName')?.valid);
-        }
-        
-        return isBasicInfoValid;
-      
-      case 2: // Identity Information
-        // For disabled fields (edit mode), check if they have a value instead of valid status
-        const panControl = this.personalDetailsForm.get('panNumber');
-        const aadhaarControl = this.personalDetailsForm.get('aadhaarNumber');
-        
-        const isPanValid = panControl?.disabled ? !!panControl?.value : panControl?.valid;
-        const isAadhaarValid = aadhaarControl?.disabled ? !!aadhaarControl?.value : aadhaarControl?.valid;
-        
-        return !!(isPanValid && isAadhaarValid);
-      
-      case 3: // Address Information (both current and permanent)
-        const currentAddressValid = !!(this.personalDetailsForm.get('currentAddressLine1')?.valid &&
-               this.personalDetailsForm.get('currentCity')?.valid &&
-               this.personalDetailsForm.get('currentState')?.valid &&
-               this.personalDetailsForm.get('currentPincode')?.valid);
-        
-        const sameAsCurrent = this.personalDetailsForm.get('sameAsCurrent')?.value;
-        if (sameAsCurrent) {
-          return currentAddressValid; // If same as current, only current address needs to be valid
-        }
-        
-        // If permanent address is different, validate permanent address fields too
-        const permanentAddressValid = !!(this.personalDetailsForm.get('permanentAddressLine1')?.valid &&
-               this.personalDetailsForm.get('permanentCity')?.valid &&
-               this.personalDetailsForm.get('permanentState')?.valid &&
-               this.personalDetailsForm.get('permanentPincode')?.valid);
-        
-        return currentAddressValid && permanentAddressValid;
-      
-      default:
-        return false;
-    }
-  }
-
-  /**
    * Submit the form
    */
   onSubmit(): void {
@@ -429,6 +339,34 @@ export class PersonalDetailsComponent implements OnInit {
       }
     });
   }
+
+  /**
+   * Validator to ensure user is at least the specified minimum age
+   */
+  private minAgeValidator(minAge: number): ValidatorFn {
+    return (control: AbstractControl) => {
+      const value = control.value;
+      if (!value) {
+        return null;
+      }
+
+      const dob = new Date(value);
+      if (isNaN(dob.getTime())) {
+        return { invalidDate: true };
+      }
+
+      const today = new Date();
+      let age = today.getFullYear() - dob.getFullYear();
+      const monthDiff = today.getMonth() - dob.getMonth();
+      const dayDiff = today.getDate() - dob.getDate();
+
+      if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
+        age--;
+      }
+
+      return age >= minAge ? null : { minAge: { requiredAge: minAge, actualAge: age } };
+    };
+  }
   
   /**
    * Check if a field is editable
@@ -454,6 +392,8 @@ export class PersonalDetailsComponent implements OnInit {
         if (fieldName.includes('Pincode')) return 'Invalid PIN code (6 digits)';
         return 'Invalid format';
       }
+      if (control.errors['minAge']) return 'Applicant must be at least 18 years old';
+      if (control.errors['invalidDate']) return 'Invalid date selected';
       if (control.errors['min']) return `Minimum value is ${control.errors['min'].min}`;
       if (control.errors['max']) return `Maximum value is ${control.errors['max'].max}`;
     }

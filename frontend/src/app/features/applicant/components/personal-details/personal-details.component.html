@@ -1,6 +1,6 @@
 <!-- Personal Details Form -->
 <div class="min-h-screen bg-gray-50 py-8">
-  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+  <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
     
     <!-- Header -->
     <div class="text-center mb-8">
@@ -10,20 +10,6 @@
       <p class="mt-2 text-gray-600">
         {{ isEditMode() ? 'Update your personal information' : 'Please provide your personal details to continue with loan application' }}
       </p>
-    </div>
-
-    <!-- Progress Bar -->
-    <div class="mb-8">
-      <div class="flex items-center justify-between mb-2">
-        <span class="text-sm font-medium text-gray-700">Step {{ currentStep() }} of {{ totalSteps }}</span>
-        <span class="text-sm text-gray-500">{{ getProgressPercentage() }}% Complete</span>
-      </div>
-      <div class="w-full bg-gray-200 rounded-full h-2">
-        <div 
-          class="bg-primary-600 h-2 rounded-full transition-all duration-300"
-          [style.width.%]="(currentStep() / totalSteps) * 100"
-        ></div>
-      </div>
     </div>
 
     <!-- Loading State -->
@@ -39,335 +25,459 @@
       <div class="bg-white rounded-lg shadow-sm border border-gray-200">
         <form [formGroup]="personalDetailsForm" (ngSubmit)="onSubmit()">
           
-          <!-- Step 1: Personal Information -->
-          @if (currentStep() === 1) {
-            <div class="p-6 border-b border-gray-200">
-              <h2 class="text-xl font-semibold text-gray-900 mb-4">Personal Information</h2>
-              
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- First Name -->
-                <div>
-                  <label for="firstName" class="block text-sm font-medium text-gray-700 mb-1">
-                    First Name <span class="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    id="firstName"
-                    formControlName="firstName"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    [class.border-red-500]="personalDetailsForm.get('firstName')?.invalid && personalDetailsForm.get('firstName')?.touched"
-                    placeholder="Enter your first name"
-                  >
-                  @if (getFieldError('firstName')) {
-                    <p class="mt-1 text-sm text-red-600">{{ getFieldError('firstName') }}</p>
-                  }
-                </div>
+          <!-- Personal Information -->
+          <div class="p-6 border-b border-gray-200">
+            <div class="flex items-center justify-between mb-6">
+              <div>
+                <h2 class="text-xl font-semibold text-gray-900">Personal Information</h2>
+                <p class="mt-1 text-sm text-gray-500">Basic identity and family details</p>
+              </div>
+              <span class="inline-flex items-center px-3 py-1 text-xs font-medium bg-primary-50 text-primary-700 rounded-full">
+                Section 1 of 3
+              </span>
+            </div>
 
-                <!-- Last Name -->
-                <div>
-                  <label for="lastName" class="block text-sm font-medium text-gray-700 mb-1">
-                    Last Name <span class="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    id="lastName"
-                    formControlName="lastName"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    [class.border-red-500]="personalDetailsForm.get('lastName')?.invalid && personalDetailsForm.get('lastName')?.touched"
-                    placeholder="Enter your last name"
-                  >
-                  @if (getFieldError('lastName')) {
-                    <p class="mt-1 text-sm text-red-600">{{ getFieldError('lastName') }}</p>
-                  }
-                </div>
-
-                <!-- Middle Name -->
-                <div>
-                  <label for="middleName" class="block text-sm font-medium text-gray-700 mb-1">
-                    Middle Name
-                  </label>
-                  <input
-                    type="text"
-                    id="middleName"
-                    formControlName="middleName"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    placeholder="Enter your middle name (optional)"
-                  >
-                </div>
-
-                <!-- Father Name -->
-                <div>
-                  <label for="fatherName" class="block text-sm font-medium text-gray-700 mb-1">
-                    Father's Name <span class="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    id="fatherName"
-                    formControlName="fatherName"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    [class.border-red-500]="personalDetailsForm.get('fatherName')?.invalid && personalDetailsForm.get('fatherName')?.touched"
-                    placeholder="Enter your father's name"
-                  >
-                  @if (getFieldError('fatherName')) {
-                    <p class="mt-1 text-sm text-red-600">{{ getFieldError('fatherName') }}</p>
-                  }
-                </div>
-
-                <!-- Mother Name -->
-                <div>
-                  <label for="motherName" class="block text-sm font-medium text-gray-700 mb-1">
-                    Mother's Name <span class="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    id="motherName"
-                    formControlName="motherName"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    [class.border-red-500]="personalDetailsForm.get('motherName')?.invalid && personalDetailsForm.get('motherName')?.touched"
-                    placeholder="Enter your mother's name"
-                  >
-                  @if (getFieldError('motherName')) {
-                    <p class="mt-1 text-sm text-red-600">{{ getFieldError('motherName') }}</p>
-                  }
-                </div>
-
-                <!-- Date of Birth -->
-                <div>
-                  <label for="dateOfBirth" class="block text-sm font-medium text-gray-700 mb-1">
-                    Date of Birth <span class="text-red-500">*</span>
-                    @if (!isFieldEditable('dateOfBirth')) {
-                      <span class="ml-1 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
-                        <svg class="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                        </svg>
-                        Cannot be changed
-                      </span>
-                    }
-                  </label>
-                  <input
-                    type="date"
-                    id="dateOfBirth"
-                    formControlName="dateOfBirth"
-                    [disabled]="!isFieldEditable('dateOfBirth')"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
-                    [class.border-red-500]="personalDetailsForm.get('dateOfBirth')?.invalid && personalDetailsForm.get('dateOfBirth')?.touched"
-                  >
-                  @if (getFieldError('dateOfBirth')) {
-                    <p class="mt-1 text-sm text-red-600">{{ getFieldError('dateOfBirth') }}</p>
-                  }
-                </div>
-
-                <!-- Gender -->
-                <div>
-                  <label for="gender" class="block text-sm font-medium text-gray-700 mb-1">
-                    Gender <span class="text-red-500">*</span>
-                  </label>
-                  <select
-                    id="gender"
-                    formControlName="gender"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    [class.border-red-500]="personalDetailsForm.get('gender')?.invalid && personalDetailsForm.get('gender')?.touched"
-                  >
-                    <option value="">Select Gender</option>
-                    @for (option of genderOptions; track option.value) {
-                      <option [value]="option.value">{{ option.label }}</option>
-                    }
-                  </select>
-                  @if (getFieldError('gender')) {
-                    <p class="mt-1 text-sm text-red-600">{{ getFieldError('gender') }}</p>
-                  }
-                </div>
-
-                <!-- Marital Status -->
-                <div>
-                  <label for="maritalStatus" class="block text-sm font-medium text-gray-700 mb-1">
-                    Marital Status <span class="text-red-500">*</span>
-                  </label>
-                  <select
-                    id="maritalStatus"
-                    formControlName="maritalStatus"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    [class.border-red-500]="personalDetailsForm.get('maritalStatus')?.invalid && personalDetailsForm.get('maritalStatus')?.touched"
-                  >
-                    <option value="">Select Marital Status</option>
-                    @for (option of maritalStatusOptions; track option.value) {
-                      <option [value]="option.value">{{ option.label }}</option>
-                    }
-                  </select>
-                  @if (getFieldError('maritalStatus')) {
-                    <p class="mt-1 text-sm text-red-600">{{ getFieldError('maritalStatus') }}</p>
-                  }
-                </div>
-
-                <!-- Spouse Name (conditional) -->
-                @if (personalDetailsForm.get('maritalStatus')?.value === 'MARRIED') {
-                  <div class="md:col-span-2">
-                    <label for="spouseName" class="block text-sm font-medium text-gray-700 mb-1">
-                      Spouse's Name *
-                    </label>
-                    <input
-                      type="text"
-                      id="spouseName"
-                      formControlName="spouseName"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                      [class.border-red-500]="personalDetailsForm.get('spouseName')?.invalid && personalDetailsForm.get('spouseName')?.touched"
-                      placeholder="Enter spouse's full name"
-                    >
-                    @if (getFieldError('spouseName')) {
-                      <p class="mt-1 text-sm text-red-600">{{ getFieldError('spouseName') }}</p>
-                    }
-                  </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <!-- First Name -->
+              <div>
+                <label for="firstName" class="block text-sm font-medium text-gray-700 mb-1">
+                  First Name <span class="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="firstName"
+                  formControlName="firstName"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  [class.border-red-500]="personalDetailsForm.get('firstName')?.invalid && personalDetailsForm.get('firstName')?.touched"
+                  placeholder="Enter your first name"
+                >
+                @if (getFieldError('firstName')) {
+                  <p class="mt-1 text-sm text-red-600">{{ getFieldError('firstName') }}</p>
                 }
+              </div>
 
-                <!-- Number of Dependents -->
-                <div>
-                  <label for="dependentsCount" class="block text-sm font-medium text-gray-700 mb-1">
-                    Number of Dependents
+              <!-- Last Name -->
+              <div>
+                <label for="lastName" class="block text-sm font-medium text-gray-700 mb-1">
+                  Last Name <span class="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="lastName"
+                  formControlName="lastName"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  [class.border-red-500]="personalDetailsForm.get('lastName')?.invalid && personalDetailsForm.get('lastName')?.touched"
+                  placeholder="Enter your last name"
+                >
+                @if (getFieldError('lastName')) {
+                  <p class="mt-1 text-sm text-red-600">{{ getFieldError('lastName') }}</p>
+                }
+              </div>
+
+              <!-- Middle Name -->
+              <div>
+                <label for="middleName" class="block text-sm font-medium text-gray-700 mb-1">
+                  Middle Name
+                </label>
+                <input
+                  type="text"
+                  id="middleName"
+                  formControlName="middleName"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  placeholder="Enter your middle name (optional)"
+                >
+              </div>
+
+              <!-- Father Name -->
+              <div>
+                <label for="fatherName" class="block text-sm font-medium text-gray-700 mb-1">
+                  Father's Name <span class="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="fatherName"
+                  formControlName="fatherName"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  [class.border-red-500]="personalDetailsForm.get('fatherName')?.invalid && personalDetailsForm.get('fatherName')?.touched"
+                  placeholder="Enter your father's name"
+                >
+                @if (getFieldError('fatherName')) {
+                  <p class="mt-1 text-sm text-red-600">{{ getFieldError('fatherName') }}</p>
+                }
+              </div>
+
+              <!-- Mother Name -->
+              <div>
+                <label for="motherName" class="block text-sm font-medium text-gray-700 mb-1">
+                  Mother's Name <span class="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="motherName"
+                  formControlName="motherName"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  [class.border-red-500]="personalDetailsForm.get('motherName')?.invalid && personalDetailsForm.get('motherName')?.touched"
+                  placeholder="Enter your mother's name"
+                >
+                @if (getFieldError('motherName')) {
+                  <p class="mt-1 text-sm text-red-600">{{ getFieldError('motherName') }}</p>
+                }
+              </div>
+
+              <!-- Date of Birth -->
+              <div>
+                <label for="dateOfBirth" class="block text-sm font-medium text-gray-700 mb-1">
+                  Date of Birth <span class="text-red-500">*</span>
+                  @if (!isFieldEditable('dateOfBirth')) {
+                    <span class="ml-1 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
+                      <svg class="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                      Cannot be changed
+                    </span>
+                  }
+                </label>
+                <input
+                  type="date"
+                  id="dateOfBirth"
+                  formControlName="dateOfBirth"
+                  [disabled]="!isFieldEditable('dateOfBirth')"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  [class.border-red-500]="personalDetailsForm.get('dateOfBirth')?.invalid && personalDetailsForm.get('dateOfBirth')?.touched"
+                >
+                @if (getFieldError('dateOfBirth')) {
+                  <p class="mt-1 text-sm text-red-600">{{ getFieldError('dateOfBirth') }}</p>
+                }
+              </div>
+
+              <!-- Gender -->
+              <div>
+                <label for="gender" class="block text-sm font-medium text-gray-700 mb-1">
+                  Gender <span class="text-red-500">*</span>
+                </label>
+                <select
+                  id="gender"
+                  formControlName="gender"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  [class.border-red-500]="personalDetailsForm.get('gender')?.invalid && personalDetailsForm.get('gender')?.touched"
+                >
+                  <option value="">Select Gender</option>
+                  @for (option of genderOptions; track option.value) {
+                    <option [value]="option.value">{{ option.label }}</option>
+                  }
+                </select>
+                @if (getFieldError('gender')) {
+                  <p class="mt-1 text-sm text-red-600">{{ getFieldError('gender') }}</p>
+                }
+              </div>
+
+              <!-- Marital Status -->
+              <div>
+                <label for="maritalStatus" class="block text-sm font-medium text-gray-700 mb-1">
+                  Marital Status <span class="text-red-500">*</span>
+                </label>
+                <select
+                  id="maritalStatus"
+                  formControlName="maritalStatus"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  [class.border-red-500]="personalDetailsForm.get('maritalStatus')?.invalid && personalDetailsForm.get('maritalStatus')?.touched"
+                >
+                  <option value="">Select Marital Status</option>
+                  @for (option of maritalStatusOptions; track option.value) {
+                    <option [value]="option.value">{{ option.label }}</option>
+                  }
+                </select>
+                @if (getFieldError('maritalStatus')) {
+                  <p class="mt-1 text-sm text-red-600">{{ getFieldError('maritalStatus') }}</p>
+                }
+              </div>
+
+              <!-- Spouse Name (conditional) -->
+              @if (personalDetailsForm.get('maritalStatus')?.value === 'MARRIED') {
+                <div class="md:col-span-2">
+                  <label for="spouseName" class="block text-sm font-medium text-gray-700 mb-1">
+                    Spouse's Name *
                   </label>
                   <input
-                    type="number"
-                    id="dependentsCount"
-                    formControlName="dependentsCount"
-                    min="0"
-                    max="20"
+                    type="text"
+                    id="spouseName"
+                    formControlName="spouseName"
                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    [class.border-red-500]="personalDetailsForm.get('dependentsCount')?.invalid && personalDetailsForm.get('dependentsCount')?.touched"
-                    placeholder="0"
+                    [class.border-red-500]="personalDetailsForm.get('spouseName')?.invalid && personalDetailsForm.get('spouseName')?.touched"
+                    placeholder="Enter spouse's full name"
                   >
-                  @if (getFieldError('dependentsCount')) {
-                    <p class="mt-1 text-sm text-red-600">{{ getFieldError('dependentsCount') }}</p>
+                  @if (getFieldError('spouseName')) {
+                    <p class="mt-1 text-sm text-red-600">{{ getFieldError('spouseName') }}</p>
                   }
                 </div>
+              }
 
-                <!-- Alternate Phone Number -->
-                <div>
-                  <label for="alternatePhoneNumber" class="block text-sm font-medium text-gray-700 mb-1">
-                    Alternate Phone Number
-                  </label>
-                  <input
-                    type="tel"
-                    id="alternatePhoneNumber"
-                    formControlName="alternatePhoneNumber"
-                    maxlength="10"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    [class.border-red-500]="personalDetailsForm.get('alternatePhoneNumber')?.invalid && personalDetailsForm.get('alternatePhoneNumber')?.touched"
-                    placeholder="9876543210"
-                    (input)="onPhoneInput($event, 'alternatePhoneNumber')"
-                  >
-                  @if (getFieldError('alternatePhoneNumber')) {
-                    <p class="mt-1 text-sm text-red-600">{{ getFieldError('alternatePhoneNumber') }}</p>
-                  }
-                </div>
+              <!-- Number of Dependents -->
+              <div>
+                <label for="dependentsCount" class="block text-sm font-medium text-gray-700 mb-1">
+                  Number of Dependents
+                </label>
+                <input
+                  type="number"
+                  id="dependentsCount"
+                  formControlName="dependentsCount"
+                  min="0"
+                  max="20"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  [class.border-red-500]="personalDetailsForm.get('dependentsCount')?.invalid && personalDetailsForm.get('dependentsCount')?.touched"
+                  placeholder="0"
+                >
+                @if (getFieldError('dependentsCount')) {
+                  <p class="mt-1 text-sm text-red-600">{{ getFieldError('dependentsCount') }}</p>
+                }
+              </div>
+
+              <!-- Alternate Phone Number -->
+              <div>
+                <label for="alternatePhoneNumber" class="block text-sm font-medium text-gray-700 mb-1">
+                  Alternate Phone Number
+                </label>
+                <input
+                  type="tel"
+                  id="alternatePhoneNumber"
+                  formControlName="alternatePhoneNumber"
+                  maxlength="10"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  [class.border-red-500]="personalDetailsForm.get('alternatePhoneNumber')?.invalid && personalDetailsForm.get('alternatePhoneNumber')?.touched"
+                  placeholder="9876543210"
+                  (input)="onPhoneInput($event, 'alternatePhoneNumber')"
+                >
+                @if (getFieldError('alternatePhoneNumber')) {
+                  <p class="mt-1 text-sm text-red-600">{{ getFieldError('alternatePhoneNumber') }}</p>
+                }
               </div>
             </div>
-          }
+          </div>
 
-          <!-- Step 2: Identity Information -->
-          @if (currentStep() === 2) {
-            <div class="p-6 border-b border-gray-200">
-              <h2 class="text-xl font-semibold text-gray-900 mb-4">Identity Information</h2>
-              
+          <!-- Identity Information -->
+          <div class="p-6 border-b border-gray-200">
+            <div class="flex items-center justify-between mb-6">
+              <div>
+                <h2 class="text-xl font-semibold text-gray-900">Identity Information</h2>
+                <p class="mt-1 text-sm text-gray-500">Government-issued identification numbers</p>
+              </div>
+              <span class="inline-flex items-center px-3 py-1 text-xs font-medium bg-primary-50 text-primary-700 rounded-full">
+                Section 2 of 3
+              </span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <!-- PAN Number -->
+              <div>
+                <label for="panNumber" class="block text-sm font-medium text-gray-700 mb-1">
+                  PAN Number <span class="text-red-500">*</span>
+                  @if (!isFieldEditable('panNumber')) {
+                    <span class="ml-1 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
+                      <svg class="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                      Cannot be changed
+                    </span>
+                  }
+                </label>
+                <input
+                  type="text"
+                  id="panNumber"
+                  formControlName="panNumber"
+                  (input)="onPanInput($event)"
+                  [disabled]="!isFieldEditable('panNumber')"
+                  maxlength="10"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  [class.border-red-500]="personalDetailsForm.get('panNumber')?.invalid && personalDetailsForm.get('panNumber')?.touched"
+                  placeholder="ABCDE1234F"
+                  style="text-transform: uppercase;"
+                >
+                @if (getFieldError('panNumber')) {
+                  <p class="mt-1 text-sm text-red-600">{{ getFieldError('panNumber') }}</p>
+                }
+                <p class="mt-1 text-xs text-gray-500">Format: 5 letters + 4 digits + 1 letter</p>
+              </div>
+
+              <!-- Aadhaar Number -->
+              <div>
+                <label for="aadhaarNumber" class="block text-sm font-medium text-gray-700 mb-1">
+                  Aadhaar Number <span class="text-red-500">*</span>
+                  @if (!isFieldEditable('aadhaarNumber')) {
+                    <span class="ml-1 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
+                      <svg class="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                      Cannot be changed
+                    </span>
+                  }
+                </label>
+                <input
+                  type="text"
+                  id="aadhaarNumber"
+                  formControlName="aadhaarNumber"
+                  (input)="onAadhaarInput($event)"
+                  [disabled]="!isFieldEditable('aadhaarNumber')"
+                  maxlength="12"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  [class.border-red-500]="personalDetailsForm.get('aadhaarNumber')?.invalid && personalDetailsForm.get('aadhaarNumber')?.touched"
+                  placeholder="123456789012"
+                >
+                @if (getFieldError('aadhaarNumber')) {
+                  <p class="mt-1 text-sm text-red-600">{{ getFieldError('aadhaarNumber') }}</p>
+                }
+                <p class="mt-1 text-xs text-gray-500">12-digit Aadhaar number</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Address Information -->
+          <div class="p-6">
+            <div class="flex items-center justify-between mb-6">
+              <div>
+                <h2 class="text-xl font-semibold text-gray-900">Address Information</h2>
+                <p class="mt-1 text-sm text-gray-500">Current residence and permanent address</p>
+              </div>
+              <span class="inline-flex items-center px-3 py-1 text-xs font-medium bg-primary-50 text-primary-700 rounded-full">
+                Section 3 of 3
+              </span>
+            </div>
+
+            <!-- Current Address -->
+            <div class="mb-8">
+              <h3 class="text-lg font-medium text-gray-900 mb-4">Current Address</h3>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- PAN Number -->
-                <div>
-                  <label for="panNumber" class="block text-sm font-medium text-gray-700 mb-1">
-                    PAN Number <span class="text-red-500">*</span>
-                    @if (!isFieldEditable('panNumber')) {
-                      <span class="ml-1 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
-                        <svg class="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                        </svg>
-                        Cannot be changed
-                      </span>
-                    }
+                <!-- Address Line 1 -->
+                <div class="md:col-span-2">
+                  <label for="currentAddressLine1" class="block text-sm font-medium text-gray-700 mb-1">
+                    Address Line 1 <span class="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
-                    id="panNumber"
-                    formControlName="panNumber"
-                    (input)="onPanInput($event)"
-                    [disabled]="!isFieldEditable('panNumber')"
-                    maxlength="10"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
-                    [class.border-red-500]="personalDetailsForm.get('panNumber')?.invalid && personalDetailsForm.get('panNumber')?.touched"
-                    placeholder="ABCDE1234F"
-                    style="text-transform: uppercase;"
+                    id="currentAddressLine1"
+                    formControlName="currentAddressLine1"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    [class.border-red-500]="personalDetailsForm.get('currentAddressLine1')?.invalid && personalDetailsForm.get('currentAddressLine1')?.touched"
+                    placeholder="House/Flat No., Building Name, Street"
                   >
-                  @if (getFieldError('panNumber')) {
-                    <p class="mt-1 text-sm text-red-600">{{ getFieldError('panNumber') }}</p>
+                  @if (getFieldError('currentAddressLine1')) {
+                    <p class="mt-1 text-sm text-red-600">{{ getFieldError('currentAddressLine1') }}</p>
                   }
-                  <p class="mt-1 text-xs text-gray-500">Format: 5 letters + 4 digits + 1 letter</p>
                 </div>
 
-                <!-- Aadhaar Number -->
-                <div>
-                  <label for="aadhaarNumber" class="block text-sm font-medium text-gray-700 mb-1">
-                    Aadhaar Number <span class="text-red-500">*</span>
-                    @if (!isFieldEditable('aadhaarNumber')) {
-                      <span class="ml-1 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
-                        <svg class="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                        </svg>
-                        Cannot be changed
-                      </span>
-                    }
+                <!-- Address Line 2 -->
+                <div class="md:col-span-2">
+                  <label for="currentAddressLine2" class="block text-sm font-medium text-gray-700 mb-1">
+                    Address Line 2
                   </label>
                   <input
                     type="text"
-                    id="aadhaarNumber"
-                    formControlName="aadhaarNumber"
-                    (input)="onAadhaarInput($event)"
-                    [disabled]="!isFieldEditable('aadhaarNumber')"
-                    maxlength="12"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
-                    [class.border-red-500]="personalDetailsForm.get('aadhaarNumber')?.invalid && personalDetailsForm.get('aadhaarNumber')?.touched"
-                    placeholder="123456789012"
+                    id="currentAddressLine2"
+                    formControlName="currentAddressLine2"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="Area, Landmark (optional)"
                   >
-                  @if (getFieldError('aadhaarNumber')) {
-                    <p class="mt-1 text-sm text-red-600">{{ getFieldError('aadhaarNumber') }}</p>
+                </div>
+
+                <!-- City -->
+                <div>
+                  <label for="currentCity" class="block text-sm font-medium text-gray-700 mb-1">
+                    City <span class="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="currentCity"
+                    formControlName="currentCity"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    [class.border-red-500]="personalDetailsForm.get('currentCity')?.invalid && personalDetailsForm.get('currentCity')?.touched"
+                    placeholder="Enter city name"
+                  >
+                  @if (getFieldError('currentCity')) {
+                    <p class="mt-1 text-sm text-red-600">{{ getFieldError('currentCity') }}</p>
                   }
-                  <p class="mt-1 text-xs text-gray-500">12-digit Aadhaar number</p>
+                </div>
+
+                <!-- State -->
+                <div>
+                  <label for="currentState" class="block text-sm font-medium text-gray-700 mb-1">
+                    State <span class="text-red-500">*</span>
+                  </label>
+                  <select
+                    id="currentState"
+                    formControlName="currentState"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    [class.border-red-500]="personalDetailsForm.get('currentState')?.invalid && personalDetailsForm.get('currentState')?.touched"
+                  >
+                    <option value="">Select State</option>
+                    @for (state of stateOptions; track state) {
+                      <option [value]="state">{{ state }}</option>
+                    }
+                  </select>
+                  @if (getFieldError('currentState')) {
+                    <p class="mt-1 text-sm text-red-600">{{ getFieldError('currentState') }}</p>
+                  }
+                </div>
+
+                <!-- PIN Code -->
+                <div>
+                  <label for="currentPincode" class="block text-sm font-medium text-gray-700 mb-1">
+                    PIN Code <span class="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="currentPincode"
+                    formControlName="currentPincode"
+                    maxlength="6"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    [class.border-red-500]="personalDetailsForm.get('currentPincode')?.invalid && personalDetailsForm.get('currentPincode')?.touched"
+                    placeholder="123456"
+                  >
+                  @if (getFieldError('currentPincode')) {
+                    <p class="mt-1 text-sm text-red-600">{{ getFieldError('currentPincode') }}</p>
+                  }
                 </div>
               </div>
             </div>
-          }
 
-          <!-- Step 3: Address Information -->
-          @if (currentStep() === 3) {
-            <div class="p-6 border-b border-gray-200">
-              <h2 class="text-xl font-semibold text-gray-900 mb-6">Address Information</h2>
-              
-              <!-- Current Address -->
-              <div class="mb-8">
-                <h3 class="text-lg font-medium text-gray-900 mb-4">Current Address</h3>
+            <!-- Same as Current Address Checkbox -->
+            <div class="mb-6">
+              <label class="flex items-center">
+                <input
+                  type="checkbox"
+                  formControlName="sameAsCurrent"
+                  class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                >
+                <span class="ml-2 text-sm text-gray-700">Permanent address is same as current address</span>
+              </label>
+            </div>
+
+            <!-- Permanent Address (conditional) -->
+            @if (!personalDetailsForm.get('sameAsCurrent')?.value) {
+              <div class="border-t border-gray-200 pt-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Permanent Address</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <!-- Address Line 1 -->
                   <div class="md:col-span-2">
-                    <label for="currentAddressLine1" class="block text-sm font-medium text-gray-700 mb-1">
+                    <label for="permanentAddressLine1" class="block text-sm font-medium text-gray-700 mb-1">
                       Address Line 1 <span class="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
-                      id="currentAddressLine1"
-                      formControlName="currentAddressLine1"
+                      id="permanentAddressLine1"
+                      formControlName="permanentAddressLine1"
                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                      [class.border-red-500]="personalDetailsForm.get('currentAddressLine1')?.invalid && personalDetailsForm.get('currentAddressLine1')?.touched"
                       placeholder="House/Flat No., Building Name, Street"
                     >
-                    @if (getFieldError('currentAddressLine1')) {
-                      <p class="mt-1 text-sm text-red-600">{{ getFieldError('currentAddressLine1') }}</p>
-                    }
                   </div>
 
                   <!-- Address Line 2 -->
                   <div class="md:col-span-2">
-                    <label for="currentAddressLine2" class="block text-sm font-medium text-gray-700 mb-1">
+                    <label for="permanentAddressLine2" class="block text-sm font-medium text-gray-700 mb-1">
                       Address Line 2
                     </label>
                     <input
                       type="text"
-                      id="currentAddressLine2"
-                      formControlName="currentAddressLine2"
+                      id="permanentAddressLine2"
+                      formControlName="permanentAddressLine2"
                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                       placeholder="Area, Landmark (optional)"
                     >
@@ -375,216 +485,74 @@
 
                   <!-- City -->
                   <div>
-                    <label for="currentCity" class="block text-sm font-medium text-gray-700 mb-1">
+                    <label for="permanentCity" class="block text-sm font-medium text-gray-700 mb-1">
                       City <span class="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
-                      id="currentCity"
-                      formControlName="currentCity"
+                      id="permanentCity"
+                      formControlName="permanentCity"
                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                      [class.border-red-500]="personalDetailsForm.get('currentCity')?.invalid && personalDetailsForm.get('currentCity')?.touched"
                       placeholder="Enter city name"
                     >
-                    @if (getFieldError('currentCity')) {
-                      <p class="mt-1 text-sm text-red-600">{{ getFieldError('currentCity') }}</p>
-                    }
                   </div>
 
                   <!-- State -->
                   <div>
-                    <label for="currentState" class="block text-sm font-medium text-gray-700 mb-1">
+                    <label for="permanentState" class="block text-sm font-medium text-gray-700 mb-1">
                       State <span class="text-red-500">*</span>
                     </label>
                     <select
-                      id="currentState"
-                      formControlName="currentState"
+                      id="permanentState"
+                      formControlName="permanentState"
                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                      [class.border-red-500]="personalDetailsForm.get('currentState')?.invalid && personalDetailsForm.get('currentState')?.touched"
                     >
                       <option value="">Select State</option>
                       @for (state of stateOptions; track state) {
                         <option [value]="state">{{ state }}</option>
                       }
                     </select>
-                    @if (getFieldError('currentState')) {
-                      <p class="mt-1 text-sm text-red-600">{{ getFieldError('currentState') }}</p>
-                    }
                   </div>
 
                   <!-- PIN Code -->
                   <div>
-                    <label for="currentPincode" class="block text-sm font-medium text-gray-700 mb-1">
+                    <label for="permanentPincode" class="block text-sm font-medium text-gray-700 mb-1">
                       PIN Code <span class="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
-                      id="currentPincode"
-                      formControlName="currentPincode"
+                      id="permanentPincode"
+                      formControlName="permanentPincode"
                       maxlength="6"
                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                      [class.border-red-500]="personalDetailsForm.get('currentPincode')?.invalid && personalDetailsForm.get('currentPincode')?.touched"
                       placeholder="123456"
                     >
-                    @if (getFieldError('currentPincode')) {
-                      <p class="mt-1 text-sm text-red-600">{{ getFieldError('currentPincode') }}</p>
-                    }
                   </div>
                 </div>
               </div>
-
-              <!-- Same as Current Address Checkbox -->
-              <div class="mb-6">
-                <label class="flex items-center">
-                  <input
-                    type="checkbox"
-                    formControlName="sameAsCurrent"
-                    class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-                  >
-                  <span class="ml-2 text-sm text-gray-700">Permanent address is same as current address</span>
-                </label>
-              </div>
-
-              <!-- Permanent Address (conditional) -->
-              @if (!personalDetailsForm.get('sameAsCurrent')?.value) {
-                <div class="border-t border-gray-200 pt-6">
-                  <h3 class="text-lg font-medium text-gray-900 mb-4">Permanent Address</h3>
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Address Line 1 -->
-                    <div class="md:col-span-2">
-                      <label for="permanentAddressLine1" class="block text-sm font-medium text-gray-700 mb-1">
-                        Address Line 1 <span class="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        id="permanentAddressLine1"
-                        formControlName="permanentAddressLine1"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                        placeholder="House/Flat No., Building Name, Street"
-                      >
-                    </div>
-
-                    <!-- Address Line 2 -->
-                    <div class="md:col-span-2">
-                      <label for="permanentAddressLine2" class="block text-sm font-medium text-gray-700 mb-1">
-                        Address Line 2
-                      </label>
-                      <input
-                        type="text"
-                        id="permanentAddressLine2"
-                        formControlName="permanentAddressLine2"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                        placeholder="Area, Landmark (optional)"
-                      >
-                    </div>
-
-                    <!-- City -->
-                    <div>
-                      <label for="permanentCity" class="block text-sm font-medium text-gray-700 mb-1">
-                        City <span class="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        id="permanentCity"
-                        formControlName="permanentCity"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                        placeholder="Enter city name"
-                      >
-                    </div>
-
-                    <!-- State -->
-                    <div>
-                      <label for="permanentState" class="block text-sm font-medium text-gray-700 mb-1">
-                        State <span class="text-red-500">*</span>
-                      </label>
-                      <select
-                        id="permanentState"
-                        formControlName="permanentState"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                      >
-                        <option value="">Select State</option>
-                        @for (state of stateOptions; track state) {
-                          <option [value]="state">{{ state }}</option>
-                        }
-                      </select>
-                    </div>
-
-                    <!-- PIN Code -->
-                    <div>
-                      <label for="permanentPincode" class="block text-sm font-medium text-gray-700 mb-1">
-                        PIN Code <span class="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        id="permanentPincode"
-                        formControlName="permanentPincode"
-                        maxlength="6"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                        placeholder="123456"
-                      >
-                    </div>
-                  </div>
-                </div>
-              } @else {
-                <div class="border-t border-gray-200 pt-6">
-                  <div class="text-center py-4">
-                    <div class="inline-flex items-center px-4 py-2 bg-green-100 text-green-800 rounded-lg">
-                      <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      Permanent address same as current address
-                    </div>
-                  </div>
-                </div>
-              }
-            </div>
-          }
+            }
+          </div>
 
           <!-- Form Actions -->
           <div class="px-6 py-4 bg-gray-50 flex items-center justify-between">
-            <div class="flex space-x-3">
-              <button
-                type="button"
-                (click)="cancel()"
-                class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-              >
-                Cancel
-              </button>
-              
-              @if (currentStep() > 1) {
-                <button
-                  type="button"
-                  (click)="previousStep()"
-                  class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-                >
-                  Previous
-                </button>
-              }
-            </div>
+            <button
+              type="button"
+              (click)="cancel()"
+              class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+            >
+              Cancel
+            </button>
 
-            <div>
-              @if (currentStep() < totalSteps) {
-                <button
-                  type="button"
-                  (click)="nextStep()"
-                  [disabled]="!isStepValid(currentStep())"
-                  class="px-6 py-2 text-sm font-medium text-white bg-primary-600 border border-transparent rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Next
-                </button>
-              } @else {
-                <button
-                  type="submit"
-                  [disabled]="!personalDetailsForm.valid || isLoading()"
-                  class="px-6 py-2 text-sm font-medium text-white bg-primary-600 border border-transparent rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                >
-                  @if (isLoading()) {
-                    <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  }
-                  {{ isLoading() ? 'Saving...' : 'Save & Continue' }}
-                </button>
+            <button
+              type="submit"
+              [disabled]="!personalDetailsForm.valid || isLoading()"
+              class="px-6 py-2 text-sm font-medium text-white bg-primary-600 border border-transparent rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+            >
+              @if (isLoading()) {
+                <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
               }
-            </div>
+              {{ isLoading() ? 'Saving...' : 'Save & Continue' }}
+            </button>
           </div>
         </form>
       </div>

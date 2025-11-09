@@ -32,7 +32,7 @@ export interface EmploymentFinancialRequest {
   // Income Details
   incomeType: string;
   monthlyIncome: number;
-  additionalIncome: number;
+  additionalIncome: number | null;
   
   // Financial Profile
   existingLoanEmi: number;
@@ -359,7 +359,7 @@ export class EmploymentDetailsComponent implements OnInit {
       // Step 3: Income Details
       incomeType: ['', Validators.required],
       monthlyIncome: ['', [Validators.required, Validators.min(10000)]],
-      additionalIncome: [0],
+      additionalIncome: [null],
       
       // Step 4: Banking Details
       bankName: ['', Validators.required],
@@ -745,7 +745,8 @@ export class EmploymentDetailsComponent implements OnInit {
    */
   getTotalIncome(): number {
     const monthly = this.employmentForm.get('monthlyIncome')?.value || 0;
-    const additional = this.employmentForm.get('additionalIncome')?.value || 0;
+    const additionalValue = this.employmentForm.get('additionalIncome')?.value;
+    const additional = typeof additionalValue === 'number' ? additionalValue : 0;
     return monthly + additional;
   }
 
@@ -934,7 +935,7 @@ export class EmploymentDetailsComponent implements OnInit {
       employmentType: formData.employmentType,
       incomeType: formData.incomeType,
       monthlyIncome: formData.monthlyIncome,
-      additionalIncome: formData.additionalIncome,
+      additionalIncome: null,
       existingLoanEmi: formData.existingLoanEmi,
       creditCardOutstanding: formData.creditCardOutstanding,
       monthlyExpenses: formData.monthlyExpenses,
