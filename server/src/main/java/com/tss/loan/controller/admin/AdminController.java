@@ -58,6 +58,9 @@ public class AdminController {
     @Autowired
     private LoanApplicationMapper loanApplicationMapper;
     
+    @Autowired
+    private com.tss.loan.repository.UserRepository userRepository;
+    
     /**
      * Get Admin Dashboard Statistics
      */
@@ -65,36 +68,39 @@ public class AdminController {
     public ResponseEntity<java.util.Map<String, Object>> getAdminDashboard() {
         log.info("Fetching admin dashboard statistics");
         
-        // Get all users
-        List<User> allUsers = userService.findAllUsers();
-        List<User> officers = userService.findAllOfficers();
+        // Use COUNT queries instead of loading all entities to avoid N+1 problem
+        long totalUsers = userRepository.count();
+        long totalOfficers = userRepository.countByRoleIn(
+            java.util.Arrays.asList(
+                com.tss.loan.entity.enums.RoleType.LOAN_OFFICER,
+                com.tss.loan.entity.enums.RoleType.SENIOR_LOAN_OFFICER,
+                com.tss.loan.entity.enums.RoleType.COMPLIANCE_OFFICER,
+                com.tss.loan.entity.enums.RoleType.SENIOR_COMPLIANCE_OFFICER
+            )
+        );
+        long totalApplications = loanApplicationRepository.count();
         
-        // Get all applications
-        List<LoanApplication> allApplications = loanApplicationRepository.findAll();
+        // Count by status using repository methods (single query each)
+        long pendingApplications = loanApplicationRepository.countByStatusIn(
+            java.util.Arrays.asList(
+                com.tss.loan.entity.enums.ApplicationStatus.SUBMITTED,
+                com.tss.loan.entity.enums.ApplicationStatus.DOCUMENT_VERIFICATION,
+                com.tss.loan.entity.enums.ApplicationStatus.UNDER_REVIEW,
+                com.tss.loan.entity.enums.ApplicationStatus.READY_FOR_DECISION
+            )
+        );
         
-        // Calculate statistics
-        int totalUsers = allUsers.size();
-        int totalOfficers = officers.size();
-        int totalApplications = allApplications.size();
+        long approvedApplications = loanApplicationRepository.countByStatus(
+            com.tss.loan.entity.enums.ApplicationStatus.APPROVED
+        );
         
-        int pendingApplications = (int) allApplications.stream()
-            .filter(app -> app.getStatus() == com.tss.loan.entity.enums.ApplicationStatus.SUBMITTED ||
-                          app.getStatus() == com.tss.loan.entity.enums.ApplicationStatus.DOCUMENT_VERIFICATION ||
-                          app.getStatus() == com.tss.loan.entity.enums.ApplicationStatus.UNDER_REVIEW ||
-                          app.getStatus() == com.tss.loan.entity.enums.ApplicationStatus.READY_FOR_DECISION)
-            .count();
+        long rejectedApplications = loanApplicationRepository.countByStatus(
+            com.tss.loan.entity.enums.ApplicationStatus.REJECTED
+        );
         
-        int approvedApplications = (int) allApplications.stream()
-            .filter(app -> app.getStatus() == com.tss.loan.entity.enums.ApplicationStatus.APPROVED)
-            .count();
-        
-        int rejectedApplications = (int) allApplications.stream()
-            .filter(app -> app.getStatus() == com.tss.loan.entity.enums.ApplicationStatus.REJECTED)
-            .count();
-        
-        int activeUsers = (int) allUsers.stream()
-            .filter(user -> user.getStatus() == com.tss.loan.entity.enums.UserStatus.ACTIVE)
-            .count();
+        long activeUsers = userRepository.countByStatus(
+            com.tss.loan.entity.enums.UserStatus.ACTIVE
+        );
         
         // Build response
         java.util.Map<String, Object> stats = new java.util.HashMap<>();

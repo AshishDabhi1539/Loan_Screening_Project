@@ -1,6 +1,8 @@
 package com.tss.loan.repository;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -77,4 +79,17 @@ public interface OfficerPersonalDetailsRepository extends JpaRepository<OfficerP
            "LOWER(o.firstName) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
            "LOWER(o.lastName) LIKE LOWER(CONCAT('%', :searchTerm, '%'))")
     java.util.List<OfficerPersonalDetails> searchByName(@Param("searchTerm") String searchTerm);
+    
+    // ========== BATCH QUERY TO ELIMINATE N+1 ==========
+    
+    /**
+     * Batch fetch officer details for multiple users
+     * Use this to avoid N+1 queries when fetching officer names for multiple applications
+     * @param userIds set of user IDs
+     * @return list of officer personal details with user eagerly loaded
+     */
+    @Query("SELECT opd FROM OfficerPersonalDetails opd " +
+           "LEFT JOIN FETCH opd.user " +
+           "WHERE opd.user.id IN :userIds")
+    List<OfficerPersonalDetails> findByUserIdIn(@Param("userIds") Set<UUID> userIds);
 }

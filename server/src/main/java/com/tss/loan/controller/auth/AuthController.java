@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.RestController;
 import com.tss.loan.dto.request.ForgotPasswordRequest;
 import com.tss.loan.dto.request.OtpResendRequest;
 import com.tss.loan.dto.request.OtpVerificationRequest;
-import com.tss.loan.dto.request.RefreshTokenRequest;
 import com.tss.loan.dto.request.ResetPasswordRequest;
 import com.tss.loan.dto.request.UserLoginRequest;
 import com.tss.loan.dto.request.UserRegistrationRequest;
@@ -99,23 +98,10 @@ public class AuthController {
     }
     
     /**
-     * Refresh Token
-     */
-    @PostMapping("/refresh-token")
-    public ResponseEntity<LoginResponse> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
-        log.info("Refresh token request received");
-        
-        LoginResponse response = authService.refreshToken(request.getRefreshToken());
-        
-        log.info("Token refreshed successfully");
-        return ResponseEntity.ok(response);
-    }
-    
-    /**
      * User Logout
      */
     @PostMapping("/logout")
-    public ResponseEntity<String> logout(@RequestHeader(value = "Authorization", required = false) String authHeader) {
+    public ResponseEntity<String> logout(@RequestHeader("Authorization") String authHeader) {
         log.info("Logout request received");
         
         if (authHeader != null && authHeader.startsWith("Bearer ")) {

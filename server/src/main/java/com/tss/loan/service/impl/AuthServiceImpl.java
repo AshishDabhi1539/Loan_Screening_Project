@@ -124,14 +124,13 @@ public class AuthServiceImpl implements AuthService {
             // Reset failed login attempts on successful login
             resetFailedLoginAttempts(user);
             
-            // Generate JWT tokens with Remember Me support
-            boolean rememberMe = request.isRememberMe();
-            String accessToken = jwtTokenProvider.generateToken(user, rememberMe);
-            String refreshToken = jwtTokenProvider.generateRefreshToken(user, rememberMe);
+            // Generate JWT tokens (standard expiration: 24 hours access, 7 days refresh)
+            String accessToken = jwtTokenProvider.generateToken(user);
+            String refreshToken = jwtTokenProvider.generateRefreshToken(user);
             
             // Calculate expiration time directly instead of parsing the token
             // This avoids potential issues with token validation during login
-            int expirationMs = rememberMe ? (30 * 24 * 60 * 60 * 1000) : 86400000; // 30 days or 24 hours
+            int expirationMs = 86400000; // 24 hours
             LocalDateTime expiresAt = LocalDateTime.now().plusSeconds(expirationMs / 1000);
             
             // Update last login
@@ -292,13 +291,12 @@ public class AuthServiceImpl implements AuthService {
             // Validate user status
             validateUserForLogin(user);
             
-            // Generate new tokens (preserve remember me if it was a long-lived refresh token)
-            boolean rememberMe = jwtTokenProvider.isLongLivedToken(refreshToken);
-            String newAccessToken = jwtTokenProvider.generateToken(user, rememberMe);
-            String newRefreshToken = jwtTokenProvider.generateRefreshToken(user, rememberMe);
+            // Generate new tokens (standard expiration: 24 hours access, 7 days refresh)
+            String newAccessToken = jwtTokenProvider.generateToken(user);
+            String newRefreshToken = jwtTokenProvider.generateRefreshToken(user);
             
             // Calculate expiration
-            int expirationMs = rememberMe ? (30 * 24 * 60 * 60 * 1000) : 86400000;
+            int expirationMs = 86400000; // 24 hours
             LocalDateTime expiresAt = LocalDateTime.now().plusSeconds(expirationMs / 1000);
             
             // Get display name
@@ -328,13 +326,13 @@ public class AuthServiceImpl implements AuthService {
     public void logout(String token) {
         try {
             // In a production system, you would add the token to a blacklist
-            // For now, we'll just log the logout action
+            // For now, we'll just log the logout action without loading User entity
             if (jwtTokenProvider.validateToken(token)) {
                 String userEmail = jwtTokenProvider.getUserEmailFromToken(token);
-                User user = userService.findByEmail(userEmail);
                 
-                auditLogService.logAction(user, "LOGOUT", "User", null, 
-                    "User logged out successfully");
+                // Log logout without loading User entity to avoid lazy loading queries
+                auditLogService.logAction(null, "LOGOUT", "User", null, 
+                    "User logged out successfully: " + userEmail);
             }
         } catch (Exception e) {
             // Silent fail for logout - log at debug level

@@ -210,6 +210,25 @@
 			<artifactId>caffeine</artifactId>
 		</dependency>
 
+		<!-- JCache API (JSR-107) for Hibernate second-level cache -->
+		<dependency>
+			<groupId>javax.cache</groupId>
+			<artifactId>cache-api</artifactId>
+			<version>1.1.1</version>
+		</dependency>
+
+		<!-- Caffeine JCache adapter for Hibernate -->
+		<dependency>
+			<groupId>com.github.ben-manes.caffeine</groupId>
+			<artifactId>jcache</artifactId>
+		</dependency>
+
+		<!-- Hibernate JCache integration -->
+		<dependency>
+			<groupId>org.hibernate.orm</groupId>
+			<artifactId>hibernate-jcache</artifactId>
+		</dependency>
+
 		<!-- Spring Boot Starter Actuator for health checks -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

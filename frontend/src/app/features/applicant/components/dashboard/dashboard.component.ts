@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 
@@ -41,24 +41,12 @@ export class DashboardComponent implements OnInit {
   activeLoans = signal<LoanApplicationSummary[]>([]);
   profileLoaded = signal(false);
   
-  // Computed values - shows only first name and last name
+  // Computed values
   userDisplayName = computed(() => {
     // Always prioritize currentUser data from AuthService (has actual name from login)
     const user = this.currentUser();
-    
     if (user?.displayName && user.displayName !== user.email) {
-      const nameParts = user.displayName.trim().split(/\s+/);
-      
-      if (nameParts.length === 1) {
-        // Only one name part (first name)
-        return nameParts[0];
-      } else if (nameParts.length === 2) {
-        // First name and last name
-        return `${nameParts[0]} ${nameParts[1]}`;
-      } else if (nameParts.length >= 3) {
-        // First name, middle name(s), last name - show only first and last
-        return `${nameParts[0]} ${nameParts[nameParts.length - 1]}`;
-      }
+      return user.displayName;
     }
     
     // Fallback to email username
@@ -99,17 +87,8 @@ export class DashboardComponent implements OnInit {
 
   ngOnInit(): void {
     this.checkSubmissionSuccess();
-    // Defer data loading until authenticated to avoid 401/refresh loops during app init
-    const tryLoad = () => {
-      if (this.authService.isAuthenticated()) {
-        this.loadUserProfile();
-        this.loadDashboardData();
-      } else {
-        // Re-check shortly until auth state is ready (guard prevents unauth routes)
-        setTimeout(tryLoad, 100);
-      }
-    };
-    tryLoad();
+    this.loadUserProfile();
+    this.loadDashboardData();
   }
 
   /**

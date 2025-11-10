@@ -246,11 +246,9 @@ export class AuthService {
     // Clear storage (tokens already cleared from state above)
     localStorage.removeItem(environment.auth.tokenKey);
     localStorage.removeItem(environment.auth.refreshTokenKey);
-    localStorage.removeItem(environment.auth.rememberMeKey);
     
     sessionStorage.removeItem(environment.auth.tokenKey);
     sessionStorage.removeItem(environment.auth.refreshTokenKey);
-    sessionStorage.removeItem(environment.auth.rememberMeKey);
     
     // Navigate immediately (no setTimeout needed since auth state already cleared)
     this.router.navigate(['/'], { replaceUrl: true }).then(() => {
@@ -308,8 +306,8 @@ export class AuthService {
     this._currentUser.set(user);
     this._isAuthenticated.set(true);
     
-    // Connect to SSE for real-time notifications
-    this.sseService.connect(token);
+    // SSE disabled - causing 401 errors
+    // this.sseService.connect(token);
     
     // Load initial notification count
     this.notificationService.getUnreadCount().subscribe();
@@ -327,8 +325,8 @@ export class AuthService {
     localStorage.removeItem(environment.auth.tokenKey);
     localStorage.removeItem(environment.auth.refreshTokenKey);
     
-    // Disconnect from SSE
-    this.sseService.disconnect();
+    // SSE disabled
+    // this.sseService.disconnect();
     
     // Clear notification state
     this.notificationService.clear();
