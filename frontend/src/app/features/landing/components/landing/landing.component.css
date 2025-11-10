@@ -1,0 +1,30 @@
+/* Landing page specific styles */
+/* Most styling is done with Tailwind classes */
+
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Animation for step connectors */
+.step-connector {
+  position: relative;
+}
+
+.step-connector::after {
+  content: '';
+  position: absolute;
+  top: 2rem;
+  left: 100%;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(to right, #1D56C2, #93c5fd);
+  transform: translateX(-50%);
+}
+
+@media (max-width: 768px) {
+  .step-connector::after {
+    display: none;
+  }
+}
+

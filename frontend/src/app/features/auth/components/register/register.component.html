@@ -1,0 +1,355 @@
+<div class="min-h-screen bg-gradient-to-br from-primary-50 via-white to-background-400 flex items-center justify-center p-4 relative overflow-hidden">
+  <!-- Background Decorative Elements -->
+  <div class="absolute top-0 right-0 w-96 h-96 bg-primary-200 rounded-full blur-3xl opacity-20 -translate-y-1/2 translate-x-1/2"></div>
+  <div class="absolute bottom-0 left-0 w-96 h-96 bg-primary-300 rounded-full blur-3xl opacity-20 translate-y-1/2 -translate-x-1/2"></div>
+  
+  <div class="w-full max-w-6xl relative z-10">
+    
+
+    <!-- Main Card -->
+    <div class="bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-100">
+      <div class="grid lg:grid-cols-2 gap-0">
+        <!-- Left Side - Illustration/Info -->
+        <div class="hidden lg:flex bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 p-12 flex-col justify-between relative overflow-hidden">
+          <div class="relative z-10">
+            <!-- Header -->
+          <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center mb-4">
+              <div class="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-lg transform -rotate-3">
+                <svg class="w-9 h-9 text-primary-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4zM18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z"></path>
+                </svg>
+              </div>
+            </div>
+            <h1 class="text-4xl font-bold text-white mb-2">Loanify</h1>
+            <p class="text-primary-100">Your Loan Solution</p>
+          </div>
+            <div class="mb-8">
+              <h2 class="text-3xl font-bold text-white mb-3">Start Your Journey</h2>
+              <p class="text-primary-100 text-lg">Create an account and get approved in minutes</p>
+            </div>
+
+            <!-- Benefits List -->
+            <div class="space-y-4 mt-12">
+              <div class="flex items-start space-x-3">
+                <div class="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <div>
+                  <div class="text-white font-semibold">Quick Approval Process</div>
+                  <div class="text-primary-100 text-sm">Get your loan approved in record time</div>
+                </div>
+              </div>
+              <div class="flex items-start space-x-3">
+                <div class="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <div>
+                  <div class="text-white font-semibold">Secure Platform</div>
+                  <div class="text-primary-100 text-sm">Bank-level security for your data</div>
+                </div>
+              </div>
+              <div class="flex items-start space-x-3">
+                <div class="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <div>
+                  <div class="text-white font-semibold">24/7 Support</div>
+                  <div class="text-primary-100 text-sm">Round-the-clock customer assistance</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Floating Cards Animation -->
+          <div class="absolute inset-0 overflow-hidden">
+            <div class="absolute top-20 right-10 w-32 h-32 bg-white/10 rounded-full blur-xl animate-pulse"></div>
+            <div class="absolute bottom-20 left-10 w-40 h-40 bg-white/10 rounded-full blur-xl animate-pulse delay-300"></div>
+          </div>
+        </div>
+
+        <!-- Right Side - Form -->
+        <div class="p-8 lg:p-12">
+          <div class="max-w-md mx-auto">
+            <div class="mb-8">
+              <h2 class="text-2xl font-bold text-gray-900 mb-4">Create your account</h2>
+              
+            </div>
+
+            <!-- Success Alert -->
+            @if (registrationSuccess()) {
+              <div class="mb-6 p-4 rounded-xl bg-green-50 border-l-4 border-green-500 animate-slideDown">
+                <div class="flex items-center">
+                  <svg class="h-5 w-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                  </svg>
+                  <p class="text-sm font-medium text-green-800">Registration Successful! Please check your email for verification.</p>
+                </div>
+              </div>
+            }
+
+            <!-- Error Alert -->
+            @if (registrationError()) {
+              <div class="mb-6 p-4 rounded-xl bg-red-50 border-l-4 border-red-500 animate-slideDown">
+                <div class="flex items-center">
+                  <svg class="h-5 w-5 text-red-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                  </svg>
+                  <p class="text-sm font-medium text-red-800">{{ registrationError() }}</p>
+                </div>
+              </div>
+            }
+
+            <!-- Registration Form -->
+            <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="space-y-5">
+              <!-- Email -->
+              <div>
+                <label for="email" class="block text-sm font-semibold text-gray-700 mb-2">
+                  Email Address <span class="text-red-500">*</span>
+                </label>
+                <div class="relative">
+                  <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+                    </svg>
+                  </div>
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    formControlName="email"
+                    autocomplete="email"
+                    placeholder="Enter your email address"
+                    [class]="'w-full pl-12 pr-4 py-3.5 border-2 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all ' + 
+                             (hasFieldError('email') ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-gray-50 hover:bg-white')"
+                  />
+                </div>
+                @if (getFieldError('email')) {
+                  <p class="mt-2 text-sm text-red-600 animate-slideDown flex items-center">
+                    <svg class="h-4 w-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                    </svg>
+                    {{ getFieldError('email') }}
+                  </p>
+                }
+              </div>
+
+              <!-- Phone -->
+              <div>
+                <label for="phone" class="block text-sm font-semibold text-gray-700 mb-2">
+                  Phone Number <span class="text-red-500">*</span>
+                </label>
+                <div class="relative">
+                  <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    </svg>
+                  </div>
+                  <input
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    formControlName="phone"
+                    autocomplete="tel"
+                    placeholder="Enter your 10-digit mobile number"
+                    [class]="'w-full pl-12 pr-4 py-3.5 border-2 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all ' + 
+                             (hasFieldError('phone') ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-gray-50 hover:bg-white')"
+                  />
+                </div>
+                @if (getFieldError('phone')) {
+                  <p class="mt-2 text-sm text-red-600 animate-slideDown flex items-center">
+                    <svg class="h-4 w-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                    </svg>
+                    {{ getFieldError('phone') }}
+                  </p>
+                }
+                <p class="mt-1.5 text-xs text-gray-500">Format: 9876543210 or +919876543210</p>
+              </div>
+
+              <!-- Password -->
+              <div>
+                <label for="password" class="block text-sm font-semibold text-gray-700 mb-2">
+                  Password <span class="text-red-500">*</span>
+                </label>
+                <div class="relative">
+                  <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                  </div>
+                  <input
+                    id="password"
+                    name="password"
+                    [type]="showPassword() ? 'text' : 'password'"
+                    formControlName="password"
+                    autocomplete="new-password"
+                    placeholder="Create a strong password"
+                    [class]="'w-full pl-12 pr-12 py-3.5 border-2 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all ' + 
+                             (hasFieldError('password') ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-gray-50 hover:bg-white')"
+                  />
+                  <button
+                    type="button"
+                    class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+                    (click)="togglePasswordVisibility('password')"
+                  >
+                    @if (showPassword()) {
+                      <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+                      </svg>
+                    } @else {
+                      <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    }
+                  </button>
+                </div>
+                
+                <!-- Password Strength Indicator -->
+                @if (registerForm.get('password')?.value) {
+                  <div class="mt-2">
+                    <div class="flex items-center justify-between text-xs mb-1.5">
+                      <span class="text-gray-500">Password strength:</span>
+                      <span [class]="getPasswordStrength().color + ' font-semibold'">
+                        {{ getPasswordStrength().label }}
+                      </span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        class="h-2 rounded-full transition-all duration-300"
+                        [class]="getPasswordStrength().score <= 2 ? 'bg-red-500' : 
+                                 getPasswordStrength().score <= 3 ? 'bg-yellow-500' : 
+                                 getPasswordStrength().score <= 4 ? 'bg-blue-500' : 'bg-green-500'"
+                        [style.width.%]="(getPasswordStrength().score / 5) * 100">
+                      </div>
+                    </div>
+                  </div>
+                }
+                
+                @if (getFieldError('password')) {
+                  <p class="mt-2 text-sm text-red-600 animate-slideDown flex items-center">
+                    <svg class="h-4 w-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                    </svg>
+                    {{ getFieldError('password') }}
+                  </p>
+                }
+              </div>
+
+              <!-- Confirm Password -->
+              <div>
+                <label for="confirmPassword" class="block text-sm font-semibold text-gray-700 mb-2">
+                  Confirm Password <span class="text-red-500">*</span>
+                </label>
+                <div class="relative">
+                  <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                  </div>
+                  <input
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    [type]="showConfirmPassword() ? 'text' : 'password'"
+                    formControlName="confirmPassword"
+                    autocomplete="new-password"
+                    placeholder="Confirm your password"
+                    [class]="'w-full pl-12 pr-12 py-3.5 border-2 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all ' + 
+                             (hasFieldError('confirmPassword') ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-gray-50 hover:bg-white')"
+                  />
+                  <button
+                    type="button"
+                    class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+                    (click)="togglePasswordVisibility('confirmPassword')"
+                  >
+                    @if (showConfirmPassword()) {
+                      <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+                      </svg>
+                    } @else {
+                      <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    }
+                  </button>
+                </div>
+                @if (getFieldError('confirmPassword')) {
+                  <p class="mt-2 text-sm text-red-600 animate-slideDown flex items-center">
+                    <svg class="h-4 w-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                    </svg>
+                    {{ getFieldError('confirmPassword') }}
+                  </p>
+                }
+              </div>
+
+              <!-- Terms and Conditions -->
+              <div>
+                <div class="flex items-start">
+                  <input
+                    id="acceptTerms"
+                    name="acceptTerms"
+                    type="checkbox"
+                    formControlName="acceptTerms"
+                    class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded mt-1"
+                  />
+                  <label for="acceptTerms" class="ml-3 block text-sm text-gray-700">
+                    I accept the 
+                    <a href="#" class="font-semibold text-primary-600 hover:text-primary-700">Terms and Conditions</a> 
+                    and 
+                    <a href="#" class="font-semibold text-primary-600 hover:text-primary-700">Privacy Policy</a> 
+                    <span class="text-red-500">*</span>
+                  </label>
+                </div>
+                @if (getFieldError('acceptTerms')) {
+                  <p class="mt-2 text-sm text-red-600 animate-slideDown flex items-center">
+                    <svg class="h-4 w-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                    </svg>
+                    {{ getFieldError('acceptTerms') }}
+                  </p>
+                }
+              </div>
+
+              <!-- Submit Button -->
+              <button
+                type="submit"
+                [disabled]="isLoading()"
+                class="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white py-3.5 px-4 rounded-xl font-semibold hover:from-primary-700 hover:to-primary-800 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-70 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center"
+              >
+                @if (isLoading()) {
+                  <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Creating account...
+                } @else {
+                  Create account
+                }
+              </button>
+            </form>
+            <div class="mt-4 text-center">
+              <span class="text-gray-600">Already have an account?</span>
+              <a routerLink="/auth/login" class="ml-2 text-primary-600 font-medium hover:underline">
+                Sign in
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <!-- <div class="mt-8 text-center text-sm text-gray-600">
+      <p>© 2024 Loanify. All rights reserved.</p>
+    </div> -->
+  </div>
+</div>

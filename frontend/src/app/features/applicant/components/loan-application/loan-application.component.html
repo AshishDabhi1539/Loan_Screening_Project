@@ -1,0 +1,225 @@
+<!-- Apply for Loan Page -->
+<div class="min-h-screen bg-gray-50">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-1 pb-6">
+    
+    <!-- Loading State: Checking Profile -->
+    @if (isCheckingProfile()) {
+      <div class="flex flex-col items-center justify-center min-h-[400px] bg-white rounded-xl shadow">
+        <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mb-4"></div>
+        <p class="text-lg font-semibold text-gray-900">Verifying your profile...</p>
+        <p class="text-sm text-gray-600 mt-2">Please wait while we check your details</p>
+      </div>
+    } @else {
+
+
+      <!-- Form Card -->
+      <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+        <form [formGroup]="loanApplicationForm" (ngSubmit)="onSubmit()">
+          
+          <!-- Step 1: Loan Details -->
+          @if (currentStep() === 1) {
+            <div class="p-3 sm:p-5">
+              <h2 class="text-xl font-bold text-gray-900 mb-3">Select Loan Type</h2>
+              
+              <!-- Loan Type Selection -->
+              <div class="mb-6">
+                <!-- <label class="block text-sm font-semibold text-gray-900 mb-3">
+                  Select Loan Type <span class="text-red-500 ml-1">*</span>
+                </label> -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                  @for (loanType of loanTypes; track loanType.value) {
+                    <button
+                      type="button"
+                      (click)="loanApplicationForm.patchValue({loanType: loanType.value})"
+                      class="relative p-3 border-2 rounded-lg text-left transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
+                      [class.border-blue-600]="loanApplicationForm.get('loanType')?.value === loanType.value"
+                      [class.bg-blue-50]="loanApplicationForm.get('loanType')?.value === loanType.value"
+                      [class.border-gray-200]="loanApplicationForm.get('loanType')?.value !== loanType.value"
+                      [class.shadow-md]="loanApplicationForm.get('loanType')?.value === loanType.value"
+                    >
+                      <div class="flex items-start gap-2.5">
+                        <div class="text-2xl leading-none">{{ loanType.icon }}</div>
+                        <div class="flex-1">
+                          <div class="font-semibold text-gray-900 text-xs leading-tight">{{ loanType.label }}</div>
+                          <div class="text-[11px] text-gray-600 leading-relaxed line-clamp-2">{{ loanType.description }}</div>
+                          <div class="mt-1.5 text-[10px] font-semibold text-blue-600">{{ loanType.interestRate }}% p.a.</div>
+                        </div>
+                      </div>
+                      @if (loanApplicationForm.get('loanType')?.value === loanType.value) {
+                        <div class="absolute top-2 right-2">
+                          <div class="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center shadow-sm">
+                            <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                            </svg>
+                          </div>
+                        </div>
+                      }
+                    </button>
+                  }
+                </div>
+                @if (getFieldError('loanType')) {
+                  <p class="mt-2 text-sm text-red-600 font-medium">{{ getFieldError('loanType') }}</p>
+                }
+              </div>
+
+              <!-- Loan Amount & Tenure -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+                <!-- Loan Amount -->
+                <div>
+                  <label for="loanAmount" class="block text-sm font-semibold text-gray-900 mb-2">
+                    Loan Amount <span class="text-red-500 ml-1">*</span>
+                  </label>
+                  <div class="relative">
+                    <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 font-semibold">₹</span>
+                    <input
+                      type="number"
+                      id="loanAmount"
+                      formControlName="loanAmount"
+                      class="w-full pl-10 pr-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-medium transition-all"
+                      [class.border-red-500]="loanApplicationForm.get('loanAmount')?.invalid && loanApplicationForm.get('loanAmount')?.touched"
+                      [class.border-gray-200]="!(loanApplicationForm.get('loanAmount')?.invalid && loanApplicationForm.get('loanAmount')?.touched)"
+                      placeholder="Enter loan amount"
+                    >
+                  </div>
+                  @if (getFieldError('loanAmount')) {
+                    <p class="mt-1.5 text-sm text-red-600 font-medium">{{ getFieldError('loanAmount') }}</p>
+                  }
+                  <p class="mt-1.5 text-xs text-gray-600">Minimum: ₹10,000 | Maximum: ₹1,00,00,000</p>
+                </div>
+
+                <!-- Tenure -->
+                <div>
+                  <label for="tenureMonths" class="block text-sm font-semibold text-gray-900 mb-2">
+                    Loan Tenure <span class="text-red-500 ml-1">*</span>
+                  </label>
+                  <select
+                    id="tenureMonths"
+                    formControlName="tenureMonths"
+                    class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-medium transition-all bg-white"
+                    [class.border-red-500]="loanApplicationForm.get('tenureMonths')?.invalid && loanApplicationForm.get('tenureMonths')?.touched"
+                    [class.border-gray-200]="!(loanApplicationForm.get('tenureMonths')?.invalid && loanApplicationForm.get('tenureMonths')?.touched)"
+                  >
+                    <option value="">Select Tenure</option>
+                    @for (option of tenureOptions; track option.months) {
+                      <option [value]="option.months">{{ option.label }}</option>
+                    }
+                  </select>
+                  @if (getFieldError('tenureMonths')) {
+                    <p class="mt-1.5 text-sm text-red-600 font-medium">{{ getFieldError('tenureMonths') }}</p>
+                  }
+                </div>
+              </div>
+
+              <!-- EMI Calculator Result -->
+              @if (calculatedEMI() > 0) {
+                <div class="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 rounded-lg p-3 border-2 border-blue-200 mb-6 shadow-sm">
+                  <h3 class="text-sm font-bold text-gray-900 mb-2.5 flex items-center">
+                    <svg class="w-4 h-4 text-blue-600 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                    EMI Breakdown
+                  </h3>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+                    <div class="text-center p-2.5 bg-white rounded-lg shadow-sm border border-gray-100">
+                      <div class="text-[10px] font-semibold text-gray-600 mb-1 uppercase tracking-wide">Monthly EMI</div>
+                      <div class="text-lg font-bold text-blue-600">{{ formatCurrency(calculatedEMI()) }}</div>
+                    </div>
+                    <div class="text-center p-2.5 bg-white rounded-lg shadow-sm border border-gray-100">
+                      <div class="text-[10px] font-semibold text-gray-600 mb-1 uppercase tracking-wide">Total Interest</div>
+                      <div class="text-lg font-bold text-orange-600">{{ formatCurrency(totalInterest()) }}</div>
+                    </div>
+                    <div class="text-center p-2.5 bg-white rounded-lg shadow-sm border border-gray-100">
+                      <div class="text-[10px] font-semibold text-gray-600 mb-1 uppercase tracking-wide">Total Payable</div>
+                      <div class="text-lg font-bold text-green-600">{{ formatCurrency(totalPayable()) }}</div>
+                    </div>
+                  </div>
+                  @if (getSelectedLoanType()) {
+                    <div class="mt-2.5 pt-2.5 border-t border-blue-200 text-[10px] text-gray-700 text-center font-semibold">
+                      Interest Rate: <span class="text-blue-600 font-bold">{{ getSelectedLoanType()!.interestRate }}% per annum</span>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
+
+          
+
+          <!-- Form Actions -->
+          <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
+            <div class="flex space-x-3">
+              <button
+                type="button"
+                (click)="cancel()"
+                class="px-5 py-2 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition-all"
+              >
+                Cancel
+              </button>
+              
+              @if (currentStep() > 1) {
+                <button
+                  type="button"
+                  (click)="previousStep()"
+                  class="px-5 py-2 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition-all"
+                >
+                  Previous
+                </button>
+              }
+            </div>
+
+            <div>
+              @if (currentStep() < totalSteps) {
+                <button
+                  type="button"
+                  (click)="nextStep()"
+                  [disabled]="!isStepValid(currentStep())"
+                  class="px-6 py-2 text-sm font-bold text-white bg-blue-600 border-2 border-blue-600 rounded-lg hover:bg-blue-700 hover:border-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md"
+                >
+                  Next Step
+                  <svg class="w-4 h-4 inline-block ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              } @else {
+                <button
+                  type="submit"
+                  [disabled]="!loanApplicationForm.valid || isLoading()"
+                  class="px-6 py-2 text-sm font-bold text-white bg-blue-600 border-2 border-blue-600 rounded-lg hover:bg-blue-700 hover:border-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center transition-all shadow-sm hover:shadow-md"
+                >
+                  @if (isLoading()) {
+                    <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  }
+                  {{ isLoading() ? 'Submitting...' : 'Submit Application' }}
+                </button>
+              }
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <!-- Info Card - Matching Dashboard Style -->
+      <!-- <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4 shadow-sm">
+        <div class="flex">
+          <div class="flex-shrink-0">
+            <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center shadow-sm">
+              <svg class="h-5 w-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+              </svg>
+            </div>
+          </div>
+          <div class="ml-4">
+            <h3 class="text-sm font-bold text-blue-900 mb-2">Next Steps</h3>
+            <div class="text-xs text-blue-800">
+              <p class="mb-2 font-medium">After submitting this application, you'll need to:</p>
+              <ul class="list-disc list-inside space-y-1 font-medium">
+                <li>Complete your Employment & Financial Details</li>
+                <li>Upload Required Documents</li>
+                <li>Wait for verification and approval</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div> -->
+    }
+  </div>
+</div>

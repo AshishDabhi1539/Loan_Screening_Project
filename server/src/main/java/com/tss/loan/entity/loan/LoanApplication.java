@@ -1,0 +1,224 @@
+package com.tss.loan.entity.loan;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.UUID;
+
+import com.tss.loan.entity.enums.ApplicationStatus;
+import com.tss.loan.entity.enums.LoanType;
+import com.tss.loan.entity.enums.Priority;
+import com.tss.loan.entity.enums.RiskLevel;
+import com.tss.loan.entity.user.User;
+
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
+import jakarta.persistence.Version;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.RequiredArgsConstructor;
+
+@Entity
+@Table(name = "loan_applications", indexes = {
+        @Index(name = "idx_loan_app_applicant", columnList = "applicant_id"),
+        @Index(name = "idx_loan_app_status", columnList = "status"),
+        @Index(name = "idx_loan_app_type", columnList = "loanType"),
+        @Index(name = "idx_loan_app_risk", columnList = "riskLevel"),
+        @Index(name = "idx_loan_app_priority", columnList = "priority"),
+        @Index(name = "idx_loan_app_created", columnList = "createdAt")
+})
+@RequiredArgsConstructor
+@AllArgsConstructor
+@Data
+public class LoanApplication {
+    @Id
+    @GeneratedValue
+    private UUID id;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "applicant_id", nullable = false)
+    private User applicant;
+    
+    @Column(nullable = false, length = 100)
+    private String applicantName;
+    
+    @Column(nullable = false, length = 150)
+    private String applicantEmail;
+    
+    @Column(nullable = false, length = 15)
+    private String applicantPhone;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private LoanType loanType;
+    
+    @Column(nullable = false, precision = 15, scale = 2)
+    private BigDecimal requestedAmount;
+    
+    @Column(nullable = false)
+    private Integer tenureMonths;
+    
+    @Column(columnDefinition = "TEXT")
+    private String purpose;
+    
+    @Column(nullable = false)
+    private Boolean existingLoans = false;
+    
+    @Column(precision = 15, scale = 2)
+    private BigDecimal existingEmi = BigDecimal.ZERO;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 50)
+    private ApplicationStatus status = ApplicationStatus.SUBMITTED;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private RiskLevel riskLevel = RiskLevel.LOW;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private Priority priority = Priority.LOW;
+    
+    @Column(nullable = false)
+    private LocalDateTime submittedAt;
+    
+    private LocalDateTime reviewedAt;
+    
+    private LocalDateTime finalDecisionAt;
+    
+    @Column(columnDefinition = "TEXT")
+    private String remarks;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assigned_officer_id")
+    private User assignedOfficer;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assigned_compliance_officer_id")
+    private User assignedComplianceOfficer;
+    
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+    
+    @Column(nullable = false)
+    private LocalDateTime updatedAt;
+    
+    @Version
+    private Long version;
+    
+    // DECISION FIELDS (Merged from LoanDecision entity)
+    @Enumerated(EnumType.STRING)
+    @Column(length = 30)
+    private com.tss.loan.entity.enums.DecisionType decisionType;
+    
+    @Column(precision = 15, scale = 2)
+    private BigDecimal approvedAmount;
+    
+    @Column(precision = 5, scale = 2)
+    private BigDecimal approvedInterestRate;
+    
+    @Column
+    private Integer approvedTenureMonths;
+    
+    @Column(columnDefinition = "TEXT")
+    private String decisionReason;
+    
+    @Column(columnDefinition = "TEXT")
+    private String rejectionReason;
+    
+    @Column(columnDefinition = "TEXT")
+    private String complianceNotes;
+    
+    // COMPLIANCE REVIEW ACKNOWLEDGMENT FIELDS
+    @Column(name = "compliance_review_acknowledged_at")
+    private LocalDateTime complianceReviewAcknowledgedAt;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "compliance_review_acknowledged_by")
+    private User complianceReviewAcknowledgedBy;
+    
+    @Column(name = "compliance_review_loan_officer_notes", columnDefinition = "TEXT")
+    private String complianceReviewLoanOfficerNotes;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "decided_by")
+    private User decidedBy;
+    
+    private LocalDateTime decidedAt;
+    
+    // RISK SCORING FIELDS (Merged from RiskScore entity)
+    @Column
+    private Integer riskScore; // 0-1000
+    
+    // EXTERNAL VERIFICATION RESULTS (from stored procedure)
+    @Column
+    private Integer creditScore; // External credit score from ExternalScoreService
+    
+    // Note: riskLevel enum field (line 89) will be updated after external verification
+    
+    @Column
+    private Integer fraudScore; // 0-100 (now used as riskScoreNumeric)
+    
+    @Column(columnDefinition = "TEXT")
+    private String fraudReasons; // Risk factors explanation
+    
+    @Column
+    private Boolean redAlertFlag; // Critical risk indicator
+    
+    // FINANCIAL METRICS (from external verification)
+    @Column(precision = 15, scale = 2)
+    private java.math.BigDecimal totalOutstanding; // Total outstanding loan amount
+    
+    @Column
+    private Integer activeLoansCount; // Number of active loans
+    
+    @Column
+    private Integer totalMissedPayments; // Total missed payments
+    
+    @Column
+    private Boolean hasDefaults; // Loan default history flag
+    
+    @Column
+    private Integer activeFraudCases; // Active fraud cases count
+    
+    @Column
+    private LocalDateTime externalVerificationAt; // When external verification was completed
+    
+    // ESSENTIAL RELATIONSHIPS ONLY
+    // Note: ApplicantPersonalDetails is linked to User, not LoanApplication
+    // Access via: applicant.getPersonalDetails() if needed
+    
+    @OneToOne(mappedBy = "loanApplication", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private com.tss.loan.entity.financial.ApplicantFinancialProfile financialProfile;
+    
+    @OneToMany(mappedBy = "loanApplication", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<LoanDocument> documents;
+    
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+        if (submittedAt == null) {
+            submittedAt = LocalDateTime.now();
+        }
+    }
+    
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
+}

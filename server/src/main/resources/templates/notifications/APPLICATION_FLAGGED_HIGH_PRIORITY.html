@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HIGH PRIORITY Compliance Review</title>
+    <style>
+        body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; background-color: #f5f5f5; }
+        .container { max-width: 600px; margin: 20px auto; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); padding: 30px 20px; text-align: center; color: #fff; }
+        .header h1 { margin: 10px 0 0 0; font-size: 24px; font-weight: 600; }
+        .emoji { font-size: 48px; margin-bottom: 10px; }
+        .body { padding: 30px 20px; color: #333; line-height: 1.6; }
+        .greeting { font-size: 16px; margin-bottom: 20px; }
+        .user-email { color: #667eea; font-weight: 600; text-decoration: none; }
+        .urgent-box { background: #f8d7da; border-left: 4px solid #dc3545; padding: 20px; margin: 20px 0; border-radius: 4px; }
+        .urgent-box h3 { margin: 0 0 10px 0; color: #721c24; }
+        .action-items { background: #fff3cd; border-left: 4px solid #ffc107; padding: 20px; margin: 20px 0; border-radius: 4px; }
+        .action-items h3 { margin: 0 0 15px 0; color: #856404; }
+        .action-items ul { margin: 10px 0; padding-left: 20px; }
+        .action-items li { margin: 8px 0; color: #856404; font-weight: 500; }
+        .cta-button { display: inline-block; background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); color: #fff !important; padding: 14px 32px; text-decoration: none; border-radius: 6px; font-weight: 600; margin: 20px 0; box-shadow: 0 4px 6px rgba(220,53,69,0.3); }
+        .footer { background: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #e0e0e0; }
+        .footer p { margin: 5px 0; color: #6c757d; font-size: 14px; }
+        .copyright { font-size: 12px; color: #999; margin-top: 15px; }
+        .support-link { color: #667eea; text-decoration: none; font-weight: 500; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="emoji">🚨</div>
+            <h1>URGENT: HIGH PRIORITY Compliance Review</h1>
+        </div>
+        
+        <div class="body">
+            <div class="greeting">
+                Hi <a th:href="'mailto:' + ${userEmail}" class="user-email" th:text="${userEmail}">officer@loanscreening.com</a>! 👋
+            </div>
+            
+            <div class="urgent-box">
+                <h3>🚨 URGENT ACTION REQUIRED</h3>
+                <p><strong>A HIGH PRIORITY application has been flagged for immediate compliance review.</strong></p>
+            </div>
+            
+            <p><strong>Application ID:</strong> <span th:text="${applicationId}">APP-12345</span></p>
+            <p><strong>Priority Level:</strong> <span style="color: #dc3545; font-weight: bold;">HIGH</span></p>
+            
+            <div class="action-items">
+                <h3>⚡ Immediate Actions Required:</h3>
+                <ul>
+                    <li><strong>Review within 24 hours</strong></li>
+                    <li>Conduct thorough compliance investigation</li>
+                    <li>Verify all regulatory requirements</li>
+                    <li>Request additional documents if needed</li>
+                    <li>Escalate if necessary</li>
+                    <li>Make final decision</li>
+                </ul>
+            </div>
+            
+            <div style="background: #fee; border-left: 4px solid #dc3545; padding: 15px; margin: 20px 0; border-radius: 4px;">
+                <p style="margin: 0; color: #721c24; font-weight: 600;">
+                    ⏰ <strong>SLA:</strong> This is a high-priority case. Please review and take action within 24 hours.
+                </p>
+            </div>
+            
+            <div style="text-align: center;">
+                <a href="${dashboardUrl}" class="cta-button">Review Immediately</a>
+            </div>
+            
+            <p style="margin-top: 30px;">
+                Need urgent assistance? Contact support at 
+                <a href="mailto:support@loanscreening.com" class="support-link">support@loanscreening.com</a>
+            </p>
+        </div>
+        
+        <div class="footer">
+            <p>This is an urgent automated notification from Loan Screening App.</p>
+            <p>Please do not reply to this email.</p>
+            <div class="copyright">© 2024 Loan Screening App. All rights reserved.</div>
+        </div>
+    </div>
+</body>
+</html>

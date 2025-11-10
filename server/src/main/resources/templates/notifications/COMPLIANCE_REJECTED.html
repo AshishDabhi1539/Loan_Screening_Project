@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Application Rejected - Compliance</title>
+    <style>
+        body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; background-color: #f5f5f5; }
+        .container { max-width: 600px; margin: 20px auto; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); padding: 30px 20px; text-align: center; color: #fff; }
+        .header h1 { margin: 10px 0 0 0; font-size: 24px; font-weight: 600; }
+        .emoji { font-size: 48px; margin-bottom: 10px; }
+        .body { padding: 30px 20px; color: #333; line-height: 1.6; }
+        .greeting { font-size: 16px; margin-bottom: 20px; }
+        .user-email { color: #667eea; font-weight: 600; text-decoration: none; }
+        .rejection-box { background: #f8d7da; border-left: 4px solid #dc3545; padding: 20px; margin: 20px 0; border-radius: 4px; }
+        .rejection-box h3 { margin: 0 0 10px 0; color: #721c24; }
+        .info-box { background: #f8f9fa; border-left: 4px solid #6c757d; padding: 20px; margin: 20px 0; border-radius: 4px; }
+        .info-box h3 { margin: 0 0 15px 0; color: #2c3e50; }
+        .info-box p { margin: 8px 0; color: #495057; }
+        .cta-button { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff !important; padding: 14px 32px; text-decoration: none; border-radius: 6px; font-weight: 600; margin: 20px 0; box-shadow: 0 4px 6px rgba(102,126,234,0.3); }
+        .footer { background: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #e0e0e0; }
+        .footer p { margin: 5px 0; color: #6c757d; font-size: 14px; }
+        .copyright { font-size: 12px; color: #999; margin-top: 15px; }
+        .support-link { color: #667eea; text-decoration: none; font-weight: 500; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="emoji">❌</div>
+            <h1>Application Rejected</h1>
+        </div>
+        
+        <div class="body">
+            <div class="greeting">
+                Hi <a th:href="'mailto:' + ${userEmail}" class="user-email" th:text="${userEmail}">user@example.com</a>! 👋
+            </div>
+            
+            <div class="rejection-box">
+                <h3>Application Decision</h3>
+                <p>We regret to inform you that your loan application has been rejected due to compliance requirements.</p>
+            </div>
+            
+            <p>After careful review by our compliance team, we are unable to proceed with your application at this time.</p>
+            
+            <div class="info-box">
+                <h3>📋 Important Information:</h3>
+                <p><strong>Reason:</strong> Compliance requirements not met</p>
+                <p><strong>Decision Date:</strong> <span th:text="${#temporals.format(#temporals.createNow(), 'MMM dd, yyyy')}">Nov 4, 2024</span></p>
+                <p><strong>Appeal Rights:</strong> You may appeal this decision within 30 days</p>
+            </div>
+            
+            <div style="background: #e7f3ff; border-left: 4px solid #2196F3; padding: 15px; margin: 20px 0; border-radius: 4px;">
+                <p style="margin: 0; color: #0d47a1;">
+                    <strong>💡 Next Steps:</strong> If you believe this decision was made in error or if your circumstances have changed, you may contact our support team to discuss your options.
+                </p>
+            </div>
+            
+            <div style="text-align: center;">
+                <a href="${dashboardUrl}" class="cta-button">View Application Details</a>
+            </div>
+            
+            <p style="margin-top: 30px;">
+                Questions? Contact our support team at 
+                <a href="mailto:support@loanscreening.com" class="support-link">support@loanscreening.com</a>
+            </p>
+            
+            <p style="margin-top: 20px;">Thank you for your interest. 🙏</p>
+        </div>
+        
+        <div class="footer">
+            <p>This is an automated message from Loan Screening App.</p>
+            <p>Please do not reply to this email.</p>
+            <div class="copyright">© 2024 Loan Screening App. All rights reserved.</div>
+        </div>
+    </div>
+</body>
+</html>

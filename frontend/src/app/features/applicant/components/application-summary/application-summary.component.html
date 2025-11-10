@@ -1,0 +1,445 @@
+<div class="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-8 px-4">
+  <div class="max-w-6xl mx-auto">
+    
+    <!-- Loading State -->
+    @if (isLoading()) {
+      <div class="flex flex-col items-center justify-center min-h-[400px]">
+        <div class="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600 mb-4"></div>
+        <p class="text-lg text-gray-600 font-medium">Loading application details...</p>
+      </div>
+    } @else if (application()) {
+      
+      <!-- Header with Gradient -->
+      <div class="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg shadow-xl p-6 mb-6 text-white">
+        <div class="flex items-center justify-between flex-wrap gap-4">
+          <div class="flex items-center space-x-3">
+            <div class="bg-white/20 backdrop-blur-sm rounded-full p-3">
+              <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              </svg>
+            </div>
+            <div>
+              <h1 class="text-3xl font-bold">Application Summary</h1>
+              <p class="text-blue-100 mt-1">Review your application before final submission</p>
+            </div>
+          </div>
+          <div class="text-right bg-white/10 backdrop-blur-sm rounded-lg px-4 py-3 border border-white/20">
+            <div class="text-xs text-blue-100 font-medium uppercase tracking-wide">Application ID</div>
+            <div class="font-mono text-lg font-bold mt-1">{{ applicationId() }}</div>
+            <div class="text-xs text-blue-200 mt-1">{{ application()!.createdAt | date:'short' }}</div>
+          </div>
+        </div>
+
+        <!-- Completion Status -->
+        <div class="mt-4">
+          @if (isComplete()) {
+            <div class="flex items-center justify-between bg-white/20 backdrop-blur-sm px-4 py-3 rounded-lg border-2 border-green-400/50">
+              <div class="flex items-center">
+                <div class="bg-green-500 rounded-full p-2 mr-3 shadow-lg">
+                  <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                  </svg>
+                </div>
+                <div>
+                  <div class="font-bold text-lg">All Sections Completed!</div>
+                  <div class="text-xs text-blue-100">Your application is ready for submission</div>
+                </div>
+              </div>
+              <div class="bg-white/20 rounded-full px-4 py-2">
+                <span class="text-2xl font-bold">100%</span>
+              </div>
+            </div>
+          } @else {
+            <div class="flex items-center justify-between bg-white/20 backdrop-blur-sm px-4 py-3 rounded-lg border-2 border-orange-400/50">
+              <div class="flex items-center">
+                <div class="bg-orange-500 rounded-full p-3 mr-4 shadow-lg">
+                  <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                  </svg>
+                </div>
+                <div>
+                  <div class="font-bold text-xl">Incomplete Application</div>
+                  <div class="text-sm text-blue-100">Please complete all required sections below</div>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Loan Details Section -->
+      <div class="bg-white rounded-lg shadow-md p-6 mb-4 border-l-4 border-blue-500 hover:shadow-lg transition-all duration-300">
+        <div class="flex items-center mb-4">
+          <div class="bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg p-3 mr-3">
+            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+          <div>
+            <h2 class="text-xl font-bold text-gray-900">Loan Details</h2>
+            <p class="text-xs text-gray-500">Your loan request information (cannot be modified)</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+            <div class="text-xs text-gray-500 uppercase font-semibold mb-1">Loan Type</div>
+            <div class="font-bold text-gray-900 text-base">{{ getLoanTypeName(application()!.loanType) }}</div>
+          </div>
+          <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-200">
+            <div class="text-xs text-blue-600 uppercase font-semibold mb-1">Requested Amount</div>
+            <div class="font-bold text-blue-900 text-xl">₹{{ application()!.requestedAmount | number:'1.0-0' }}</div>
+          </div>
+          <div class="bg-gray-50 rounded-xl p-5 border border-gray-200">
+            <div class="text-xs text-gray-500 uppercase font-semibold mb-1">Tenure</div>
+            <div class="font-bold text-gray-900">{{ application()!.tenureMonths }} months</div>
+            <div class="text-sm text-gray-600 mt-1">({{ (application()!.tenureMonths / 12) | number:'1.0-1' }} years)</div>
+          </div>
+          <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-5 border border-green-200">
+            <div class="text-xs text-green-600 uppercase font-semibold mb-1">Monthly EMI</div>
+            <div class="font-bold text-green-900 text-xl">₹{{ monthlyEMI() | number:'1.0-0' }}</div>
+            <div class="text-xs text-green-600 mt-1 font-medium">Estimated</div>
+          </div>
+          <div class="md:col-span-2 bg-gray-50 rounded-lg p-4 border border-gray-200">
+            <div class="text-xs text-gray-500 uppercase font-bold mb-2 tracking-wide">Purpose</div>
+            <div class="font-medium text-gray-900 text-base">{{ application()!.purpose }}</div>
+          </div>
+        </div>
+
+        <!-- EMI Breakdown -->
+        <div class="mt-4 pt-4 border-t border-gray-200">
+          <h3 class="text-xs font-bold text-gray-700 mb-3 uppercase tracking-wide flex items-center">
+            <svg class="w-4 h-4 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+            </svg>
+            Payment Breakdown
+          </h3>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-center">
+            <div class="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200 hover:shadow-md transition-shadow">
+              <div class="text-xs text-blue-700 font-semibold uppercase mb-2">Loan Amount</div>
+              <div class="text-xl font-bold text-blue-900">₹{{ application()!.requestedAmount | number:'1.0-0' }}</div>
+            </div>
+            <div class="bg-gradient-to-br from-amber-50 to-orange-100 p-4 rounded-lg border border-orange-200 hover:shadow-md transition-shadow">
+              <div class="text-xs text-orange-700 font-semibold uppercase mb-2">Total Interest</div>
+              <div class="text-xl font-bold text-orange-900">₹{{ totalInterest() | number:'1.0-0' }}</div>
+            </div>
+            <div class="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-lg border border-purple-200 hover:shadow-md transition-shadow">
+              <div class="text-xs text-purple-700 font-semibold uppercase mb-2">Total Payable</div>
+              <div class="text-xl font-bold text-purple-900">₹{{ totalPayable() | number:'1.0-0' }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Personal Information Section -->
+      <div class="bg-white rounded-lg shadow-md p-6 mb-4 border-l-4 border-green-500 hover:shadow-lg transition-all duration-300">
+        <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+          <div class="flex items-center">
+            <div class="bg-gradient-to-br from-green-100 to-green-200 rounded-lg p-3 mr-3">
+              <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+              </svg>
+            </div>
+            <div>
+              <h2 class="text-xl font-bold text-gray-900">Personal Information</h2>
+              <p class="text-xs text-gray-500">Your contact details</p>
+            </div>
+          </div>
+          @if (application()!.hasPersonalDetails) {
+            <div class="flex items-center space-x-2">
+              <span class="text-green-600 text-xs font-semibold flex items-center bg-green-50 px-2 py-1 rounded-md">
+                <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                </svg>
+                Completed
+              </span>
+              <button 
+                type="button"
+                (click)="editSection('personal')"
+                class="px-3 py-1.5 bg-green-50 text-green-600 hover:bg-green-100 rounded-md font-medium text-xs flex items-center transition-all">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                </svg>
+                Edit
+              </button>
+            </div>
+          } @else {
+            <button 
+              type="button"
+              (click)="editSection('personal')"
+              class="px-4 py-2 bg-orange-50 text-orange-600 hover:bg-orange-100 rounded-md font-medium text-xs flex items-center transition-all">
+              Complete Now →
+            </button>
+          }
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+            <div class="text-xs text-gray-500 uppercase font-semibold mb-1">Full Name</div>
+            <div class="font-semibold text-gray-900 text-sm">{{ application()!.applicantName }}</div>
+          </div>
+          <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+            <div class="text-xs text-gray-500 uppercase font-semibold mb-1">Email Address</div>
+            <div class="font-medium text-gray-900 text-sm">{{ application()!.applicantEmail }}</div>
+          </div>
+          <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+            <div class="text-xs text-gray-500 uppercase font-semibold mb-1">Phone Number</div>
+            <div class="font-medium text-gray-900 text-sm">{{ application()!.applicantPhone }}</div>
+          </div>
+          <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+            <div class="text-xs text-gray-500 uppercase font-semibold mb-1">Date of Birth</div>
+            <div class="font-medium text-gray-900 text-sm">{{ personalDetails()?.dateOfBirth | date:'mediumDate' || 'Not provided' }}</div>
+          </div>
+          <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+            <div class="text-xs text-gray-500 uppercase font-semibold mb-1">Gender</div>
+            <div class="font-medium text-gray-900 text-sm">{{ personalDetails()?.gender || 'Not provided' }}</div>
+          </div>
+          <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+            <div class="text-xs text-gray-500 uppercase font-semibold mb-1">Marital Status</div>
+            <div class="font-medium text-gray-900 text-sm">{{ personalDetails()?.maritalStatus || 'Not provided' }}</div>
+          </div>
+          <div class="md:col-span-2 lg:col-span-3 bg-gray-50 rounded-lg p-3 border border-gray-200">
+            <div class="text-xs text-gray-500 uppercase font-semibold mb-1">Address</div>
+            <div class="font-medium text-gray-900 text-sm">{{ getFullAddress() }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Employment & Financial Details Section -->
+      <div class="bg-white rounded-lg shadow-md p-6 mb-4 border-l-4 border-indigo-500 hover:shadow-lg transition-all duration-300">
+        <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+          <div class="flex items-center">
+            <div class="bg-gradient-to-br from-indigo-100 to-indigo-200 rounded-lg p-3 mr-3">
+              <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+              </svg>
+            </div>
+            <div>
+              <h2 class="text-xl font-bold text-gray-900">Employment & Financial Details</h2>
+              <p class="text-xs text-gray-500">Your employment and income information</p>
+            </div>
+          </div>
+          @if (application()!.hasFinancialProfile) {
+            <div class="flex items-center space-x-3">
+              <span class="text-green-600 text-sm font-bold flex items-center bg-green-50 px-3 py-2 rounded-lg">
+                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                </svg>
+                Completed
+              </span>
+              <button 
+                type="button"
+                (click)="editSection('employment')"
+                class="px-4 py-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg font-medium text-sm flex items-center transition-all">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                </svg>
+                Edit
+              </button>
+            </div>
+          } @else {
+            <button 
+              type="button"
+              (click)="editSection('employment')"
+              class="px-5 py-2.5 bg-orange-50 text-orange-600 hover:bg-orange-100 rounded-lg font-medium text-sm flex items-center transition-all">
+              Complete Now →
+            </button>
+          }
+        </div>
+
+        @if (application()!.employmentType) {
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+              <div class="text-xs text-gray-500 uppercase font-semibold mb-1">Employment Type</div>
+              <div class="font-semibold text-gray-900 text-sm">{{ getEmploymentTypeDisplay(application()!.employmentType!) }}</div>
+            </div>
+            <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+              <div class="text-xs text-gray-500 uppercase font-semibold mb-1">Employer/Business Name</div>
+              <div class="font-medium text-gray-900 text-sm">{{ financialDetails()?.employerName || financialDetails()?.businessName || 'Not provided' }}</div>
+            </div>
+            <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+              <div class="text-xs text-gray-500 uppercase font-semibold mb-1">Designation/Position</div>
+              <div class="font-medium text-gray-900 text-sm">{{ financialDetails()?.designation || 'Not provided' }}</div>
+            </div>
+            <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-3 border border-blue-200">
+              <div class="text-xs text-blue-600 uppercase font-semibold mb-1">Monthly Income</div>
+              <div class="font-bold text-blue-900 text-base">₹{{ financialDetails()?.primaryMonthlyIncome | number:'1.0-0' || 'Not provided' }}</div>
+            </div>
+            <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+              <div class="text-xs text-gray-500 uppercase font-semibold mb-1">Additional Income</div>
+              <div class="font-medium text-gray-900 text-sm">₹{{ financialDetails()?.additionalIncome | number:'1.0-0' || '0' }}</div>
+            </div>
+            <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+              <div class="text-xs text-gray-500 uppercase font-semibold mb-1">Monthly Expenses</div>
+              <div class="font-medium text-gray-900 text-sm">₹{{ financialDetails()?.monthlyExpenses | number:'1.0-0' || 'Not provided' }}</div>
+            </div>
+            <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+              <div class="text-xs text-gray-500 uppercase font-semibold mb-1">Bank Name</div>
+              <div class="font-medium text-gray-900 text-sm">{{ financialDetails()?.bankName || 'Not provided' }}</div>
+            </div>
+            <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+              <div class="text-xs text-gray-500 uppercase font-semibold mb-1">Account Number</div>
+              <div class="font-medium text-gray-900 text-sm">{{ maskAccountNumber(financialDetails()?.accountNumber) }}</div>
+            </div>
+            <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+              <div class="text-xs text-gray-500 uppercase font-semibold mb-1">Work Experience</div>
+              <div class="font-medium text-gray-900 text-sm">{{ financialDetails()?.workExperienceYears || 'Not provided' }} years</div>
+            </div>
+          </div>
+        } @else {
+          <div class="text-center py-6 bg-gray-50 rounded-lg">
+            <p class="text-gray-600 font-medium">Employment and financial details not provided</p>
+            <p class="text-sm text-gray-500 mt-1">Click Edit to add information</p>
+          </div>
+        }
+      </div>
+
+      <!-- Documents Section -->
+      <div class="bg-white rounded-lg shadow-md p-6 mb-4 border-l-4 border-purple-500 hover:shadow-lg transition-all duration-300">
+        <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+          <div class="flex items-center">
+            <div class="bg-gradient-to-br from-purple-100 to-purple-200 rounded-lg p-3 mr-3">
+              <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              </svg>
+            </div>
+            <div>
+              <h2 class="text-xl font-bold text-gray-900">Uploaded Documents</h2>
+              <p class="text-xs text-gray-500">{{ documents().length }} document(s) uploaded</p>
+            </div>
+          </div>
+          @if (documents().length > 0) {
+            <div class="flex items-center space-x-3">
+              <span class="text-green-600 text-sm font-bold flex items-center bg-green-50 px-3 py-2 rounded-lg">
+                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                </svg>
+                Completed
+              </span>
+              <button 
+                type="button"
+                (click)="editSection('documents')"
+                class="px-4 py-2 bg-purple-50 text-purple-600 hover:bg-purple-100 rounded-lg font-medium text-sm flex items-center transition-all">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                </svg>
+                Manage
+              </button>
+            </div>
+          } @else {
+            <button 
+              type="button"
+              (click)="editSection('documents')"
+              class="px-5 py-2.5 bg-orange-50 text-orange-600 hover:bg-orange-100 rounded-lg font-medium text-sm flex items-center transition-all">
+              Upload Documents →
+            </button>
+          }
+        </div>
+
+        @if (documents().length > 0) {
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            @for (doc of documents(); track doc.id) {
+              <div class="flex items-center justify-between p-3 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200 hover:shadow-sm transition-all">
+                <div class="flex items-center flex-1">
+                  <div class="bg-blue-100 rounded-lg p-2 mr-3">
+                    <svg class="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/>
+                    </svg>
+                  </div>
+                  <div class="flex-1">
+                    <div class="font-semibold text-gray-900 text-xs">{{ doc.fileName }}</div>
+                    <div class="text-xs text-gray-500 mt-0.5">{{ getDocumentTypeName(doc.documentType) }} • {{ formatFileSize(doc.fileSize) }}</div>
+                  </div>
+                </div>
+                <div class="bg-green-100 rounded-full p-1.5">
+                  <svg class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                  </svg>
+                </div>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="text-center py-6 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+            <svg class="w-12 h-12 mx-auto text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+            </svg>
+            <p class="text-gray-600 font-medium">No documents uploaded yet</p>
+            <p class="text-sm text-gray-500 mt-2">Click "Upload Documents" to add required documents</p>
+          </div>
+        }
+      </div>
+
+      <!-- Terms and Conditions -->
+      <div class="bg-white rounded-lg shadow-md p-6 mb-4 border border-gray-200">
+        <div class="flex items-start">
+          <input 
+            type="checkbox" 
+            [checked]="agreedToTerms()"
+            (change)="toggleTerms()"
+            class="mt-0.5 h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer">
+          <div class="ml-3">
+            <label class="font-bold text-gray-900 cursor-pointer" (click)="toggleTerms()">
+              I agree to the Terms and Conditions
+            </label>
+            <p class="text-xs text-gray-600 mt-1.5 leading-relaxed">
+              By submitting this application, I confirm that all information provided is accurate and complete. 
+              I understand that false information may result in application rejection or loan cancellation.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex justify-between items-center flex-wrap gap-3">
+        <button 
+          type="button"
+          (click)="backToDashboard()"
+          class="px-5 py-2.5 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-semibold text-sm flex items-center">
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+          </svg>
+          Back to Dashboard
+        </button>
+
+        <button 
+          type="button"
+          (click)="submitApplication()"
+          [disabled]="!isComplete() || !agreedToTerms() || isSubmitting()"
+          class="px-8 py-3 text-white rounded-lg transition-all duration-300 font-bold flex items-center shadow-lg"
+          [class.bg-gradient-to-r]="isComplete() && agreedToTerms() && !isSubmitting()"
+          [class.from-green-600]="isComplete() && agreedToTerms() && !isSubmitting()"
+          [class.to-emerald-600]="isComplete() && agreedToTerms() && !isSubmitting()"
+          [class.hover:from-green-700]="isComplete() && agreedToTerms() && !isSubmitting()"
+          [class.hover:to-emerald-700]="isComplete() && agreedToTerms() && !isSubmitting()"
+          [class.hover:shadow-2xl]="isComplete() && agreedToTerms() && !isSubmitting()"
+          [class.bg-gray-300]="!isComplete() || !agreedToTerms() || isSubmitting()"
+          [class.cursor-not-allowed]="!isComplete() || !agreedToTerms() || isSubmitting()">
+          @if (isSubmitting()) {
+            <svg class="animate-spin -ml-1 mr-3 h-6 w-6 text-white" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Submitting...
+          } @else if (!isComplete()) {
+            <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+            Complete All Sections First
+          } @else if (!agreedToTerms()) {
+            <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            Agree to Terms to Submit
+          } @else {
+            <span>Submit Application</span>
+            <svg class="w-6 h-6 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          }
+        </button>
+      </div>
+
+    }
+  </div>
+</div>

@@ -1,0 +1,94 @@
+<!-- Toast Container -->
+<div 
+  class="fixed top-4 right-4 z-[9999] p-2 space-y-2 pointer-events-none"
+  [@listAnimation]="notifications().length"
+  style="width: 280px; max-width: calc(100vw - 2rem);"
+>
+  @for (notification of notifications(); track notification.id) {
+    <div 
+      [@slideIn]
+      [class]="getNotificationClasses(notification.type)"
+      class="pointer-events-auto toast-wrapper"
+    >
+      <div class="p-3 toast-content">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <!-- Icon -->
+            <svg 
+              [class]="getIconClasses(notification.type)"
+              class="h-4 w-4 toast-icon" 
+              fill="none" 
+              viewBox="0 0 24 24" 
+              stroke="currentColor"
+            >
+              <path 
+                stroke-linecap="round" 
+                stroke-linejoin="round" 
+                stroke-width="2" 
+                [attr.d]="getIcon(notification.type)"
+              />
+            </svg>
+          </div>
+          
+          <div class="ml-2 flex-1 min-w-0">
+            <!-- Title -->
+            <p class="text-xs font-medium text-gray-900 leading-tight toast-title">
+              {{ notification.title }}
+            </p>
+            
+            <!-- Message (truncated if too long) -->
+            <p class="text-xs text-gray-600 leading-tight break-words toast-message truncate">
+              {{ notification.message }}
+            </p>
+          </div>
+          
+          <!-- Close Button -->
+          <div class="ml-1 flex-shrink-0">
+            <button
+              type="button"
+              (click)="closeNotification(notification.id)"
+              class="text-gray-400 hover:text-gray-600 p-0.5 rounded toast-close-btn"
+            >
+              <svg class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                <path 
+                  fill-rule="evenodd" 
+                  d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" 
+                  clip-rule="evenodd" 
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Progress Bar (for timed notifications) -->
+      @if (!notification.persistent && notification.duration && notification.duration > 0) {
+        <div class="bg-gray-50 px-4 py-2">
+          <div class="w-full bg-gray-200 rounded-full h-1">
+            <div 
+              class="h-1 rounded-full transition-all duration-100 ease-linear"
+              [class]="notification.type === 'success' ? 'bg-green-400' : 
+                       notification.type === 'error' ? 'bg-red-400' : 
+                       notification.type === 'warning' ? 'bg-yellow-400' : 'bg-blue-400'"
+              [style.width.%]="100"
+              [style.animation]="'shrink ' + notification.duration + 'ms linear'"
+            ></div>
+          </div>
+        </div>
+      }
+    </div>
+  }
+  
+  <!-- Clear All Button (when multiple notifications) -->
+  @if (notifications().length > 1) {
+    <div class="flex justify-end">
+      <button
+        type="button"
+        (click)="clearAll()"
+        class="bg-white rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-sm border border-gray-300 pointer-events-auto clear-all-btn"
+      >
+        Clear All
+      </button>
+    </div>
+  }
+</div>

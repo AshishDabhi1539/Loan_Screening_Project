@@ -1,0 +1,19 @@
+<!-- Loan Screening Application -->
+
+<!-- Conditional Layout: Show MainLayout when authenticated, show landing/auth pages when not -->
+@if (isAuthenticated()) {
+  <!-- Authenticated Users: Show Main Layout -->
+  <app-main-layout></app-main-layout>
+} @else {
+  <!-- Non-authenticated Users: Show Landing Page or Auth Pages -->
+  @if (currentRoute === '/' || currentRoute === '') {
+    <!-- Landing Page: Show directly without wrapper -->
+    <router-outlet></router-outlet>
+  } @else {
+    <!-- Auth Pages: Show without wrapper -->
+    <router-outlet></router-outlet>
+  }
+}
+
+<!-- Toast Notifications -->
+<app-toast></app-toast>

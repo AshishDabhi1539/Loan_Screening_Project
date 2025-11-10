@@ -1,0 +1,328 @@
+<!-- Applicant Management Page -->
+<div class="space-y-6">
+  <!-- Page Header -->
+  <!-- <div class="bg-gradient-to-r from-primary-600 to-primary-800 text-white p-6 rounded-lg">
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold mb-2">Applicant Management</h1>
+        <p class="text-primary-100">Manage and monitor all loan applicants in the system</p>
+      </div>
+      <div class="hidden sm:block">
+        <svg class="w-12 h-12 text-primary-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+        </svg>
+      </div>
+    </div>
+  </div> -->
+
+  <!-- Stats Cards -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div class="flex items-center">
+        <div class="flex-shrink-0">
+          <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+            <svg class="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+          </div>
+        </div>
+        <div class="ml-4">
+          <p class="text-sm font-medium text-gray-600">Total Applicants</p>
+          <p class="text-2xl font-bold text-gray-900">{{ applicantStats().total }}</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div class="flex items-center">
+        <div class="flex-shrink-0">
+          <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+            <svg class="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+        </div>
+        <div class="ml-4">
+          <p class="text-sm font-medium text-gray-600">Active Applicants</p>
+          <p class="text-2xl font-bold text-gray-900">{{ applicantStats().active }}</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div class="flex items-center">
+        <div class="flex-shrink-0">
+          <div class="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center">
+            <svg class="w-5 h-5 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+        </div>
+        <div class="ml-4">
+          <p class="text-sm font-medium text-gray-600">Pending Verification</p>
+          <p class="text-2xl font-bold text-gray-900">{{ applicantStats().pending }}</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div class="flex items-center">
+        <div class="flex-shrink-0">
+          <div class="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
+            <svg class="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+            </svg>
+          </div>
+        </div>
+        <div class="ml-4">
+          <p class="text-sm font-medium text-gray-600">Inactive Applicants</p>
+          <p class="text-2xl font-bold text-gray-900">{{ applicantStats().inactive }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters and Actions -->
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+    <div class="px-6 py-4 border-b border-gray-200">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <h2 class="text-lg font-semibold text-gray-900">Applicants List</h2>
+        <div class="flex items-center space-x-3">
+          <button
+            (click)="refresh()"
+            [disabled]="isLoading()"
+            class="bg-gray-100 hover:bg-gray-200 disabled:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center"
+          >
+            <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Refresh
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="p-6 bg-gray-50 border-b border-gray-200">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <!-- Search -->
+          <div>
+            <label for="search" class="block text-sm font-medium text-gray-700 mb-2">Search</label>
+            <input
+              type="text"
+              id="search"
+              [(ngModel)]="searchTerm"
+              placeholder="Search by email, name, or phone..."
+              class="search-input block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+            />
+          </div>
+
+          <!-- Status Filter -->
+          <div>
+            <label for="status" class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+            <select
+              id="status"
+              [(ngModel)]="selectedStatus"
+              class="block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+            >
+              <option value="">All Status</option>
+              <option value="ACTIVE">Active</option>
+              <option value="INACTIVE">Inactive</option>
+              <option value="PENDING_VERIFICATION">Pending Verification</option>
+              <option value="SUSPENDED">Suspended</option>
+            </select>
+          </div>
+
+          <!-- Clear Filters Button -->
+          <div class="flex items-end md:col-span-1">
+            <button
+              (click)="clearFilters()"
+              class="w-full bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors duration-200"
+            >
+              Clear Filters
+            </button>
+          </div>
+        </div>
+      </div>
+
+    <!-- Table Container -->
+    <div class="overflow-hidden">
+      @if (isLoading()) {
+        <div class="flex items-center justify-center py-12">
+          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+          <span class="ml-3 text-gray-600">Loading applicants...</span>
+        </div>
+      } @else if (filteredApplicants().length === 0) {
+        <div class="text-center py-12">
+          <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+          </svg>
+          <h3 class="mt-2 text-sm font-medium text-gray-900">No applicants found</h3>
+          <p class="mt-1 text-sm text-gray-500">
+            @if (searchTerm() || selectedStatus()) {
+              Try adjusting your filters
+            } @else {
+              No applicants have been registered yet
+            }
+          </p>
+        </div>
+      } @else {
+        <!-- Items per page selector -->
+        <div class="px-6 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+          <div class="flex items-center space-x-2">
+            <label for="itemsPerPage" class="text-sm text-gray-700 font-medium">Show:</label>
+            <select
+              id="itemsPerPage"
+              [value]="itemsPerPage()"
+              (change)="onItemsPerPageChange(+$any($event.target).value)"
+              class="px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
+            >
+              @for (option of itemsPerPageOptions; track option) {
+                <option [value]="option">{{ option }}</option>
+              }
+            </select>
+            <span class="text-sm text-gray-700">entries per page</span>
+          </div>
+          <div class="text-sm text-gray-700">
+            Showing {{ showingFrom() }} to {{ showingTo() }} of {{ totalItems() }} applicants
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Applicant</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Login</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              @for (applicant of paginatedApplicants(); track applicant.id) {
+                <tr class="hover:bg-gray-50">
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex items-center">
+                      <div class="flex-shrink-0 h-10 w-10">
+                        <div class="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center">
+                          <span class="text-sm font-medium text-primary-800">
+                            {{ ((applicant.displayName && !applicant.displayName.includes('@')) ? applicant.displayName : applicant.email.split('@')[0]).charAt(0).toUpperCase() }}
+                          </span>
+                        </div>
+                      </div>
+                      <div class="ml-4">
+                        <div class="text-sm font-medium text-gray-900">
+                          {{ (applicant.displayName && !applicant.displayName.includes('@')) ? applicant.displayName : applicant.email.split('@')[0] }}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-900">{{ applicant.email }}</div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-900">{{ applicant.phone || 'N/A' }}</div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span [class]="'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ' + getStatusBadgeColor(applicant.status)">
+                      {{ getStatusDisplayName(applicant.status) }}
+                    </span>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {{ formatDate(applicant.lastLoginAt) }}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {{ formatDate(applicant.createdAt) }}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <div class="flex items-center justify-end space-x-3">
+                      <button
+                        (click)="viewApplicant(applicant.id)"
+                        class="text-primary-600 hover:text-primary-900 action-button"
+                        title="View Details"
+                      >
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                      </button>
+                      <!-- <button
+                        (click)="toggleApplicantStatus(applicant.id)"
+                        class="text-red-600 hover:text-red-900 action-button"
+                        title="Toggle Status"
+                      >
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 715.636 5.636m12.728 12.728L5.636 5.636" />
+                        </svg>
+                      </button> -->
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+
+    <!-- Pagination Controls -->
+    @if (!isLoading() && filteredApplicants().length > 0) {
+      <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
+        <!-- Pagination Info -->
+        <div class="text-sm text-gray-700">
+          Showing <span class="font-semibold">{{ showingFrom() }}</span> to <span class="font-semibold">{{ showingTo() }}</span> of <span class="font-semibold">{{ totalItems() }}</span> applicants
+        </div>
+
+        <!-- Pagination Buttons -->
+        <div class="flex items-center space-x-2">
+          <!-- Previous Button -->
+          <button
+            (click)="previousPage()"
+            [disabled]="!canGoPrevious()"
+            [class]="canGoPrevious() ? 'bg-white hover:bg-gray-50 text-gray-700 border-gray-300' : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'"
+            class="px-4 py-2 border rounded-lg font-medium transition-colors duration-200 flex items-center"
+          >
+            <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            </svg>
+            Previous
+          </button>
+
+          <!-- Page Numbers -->
+          <div class="hidden sm:flex items-center space-x-1">
+            @for (page of [].constructor(totalPages()); track $index) {
+              <button
+                (click)="goToPage($index + 1)"
+                [class]="($index + 1) === currentPage() ? 'bg-primary-600 text-white border-primary-600' : 'bg-white hover:bg-gray-50 text-gray-700 border-gray-300'"
+                class="px-3 py-2 border rounded-lg font-medium transition-colors duration-200 min-w-[40px]"
+              >
+                {{ $index + 1 }}
+              </button>
+            }
+          </div>
+
+          <!-- Current Page Indicator (Mobile) -->
+          <div class="sm:hidden px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700">
+            Page {{ currentPage() }} of {{ totalPages() }}
+          </div>
+
+          <!-- Next Button -->
+          <button
+            (click)="nextPage()"
+            [disabled]="!canGoNext()"
+            [class]="canGoNext() ? 'bg-white hover:bg-gray-50 text-gray-700 border-gray-300' : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'"
+            class="px-4 py-2 border rounded-lg font-medium transition-colors duration-200 flex items-center"
+          >
+            Next
+            <svg class="w-4 h-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+</div>

@@ -1,0 +1,161 @@
+/* Email Verification Component Specific Styles */
+
+.verify-container {
+  background: linear-gradient(135deg, var(--primary-50) 0%, var(--primary-100) 100%);
+}
+
+.verify-form .form-control:focus {
+  border-color: var(--primary-500);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* OTP Input Styling */
+.otp-input {
+  font-family: 'Courier New', monospace;
+  font-size: 1.25rem;
+  font-weight: 600;
+  text-align: center;
+  letter-spacing: 0.5em;
+  padding: 1rem;
+}
+
+.otp-input:focus {
+  letter-spacing: 0.5em;
+  text-align: center;
+}
+
+/* Email icon styling */
+.email-icon-container {
+  background: linear-gradient(135deg, var(--primary-100) 0%, var(--primary-200) 100%);
+  transition: all 0.3s ease;
+}
+
+.email-icon-container:hover {
+  transform: scale(1.05);
+}
+
+/* Success state animations */
+.success-checkmark {
+  animation: checkmarkBounce 0.6s ease-out;
+}
+
+@keyframes checkmarkBounce {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Resend button states */
+.resend-button {
+  transition: all 0.2s ease;
+}
+
+.resend-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.resend-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Cooldown timer styling */
+.cooldown-timer {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+/* Loading states */
+.spinner-sm {
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Error state animations */
+.form-error {
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Alert animations */
+.alert-enter {
+  animation: fadeInDown 0.3s ease-out;
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Navigation buttons */
+.nav-button {
+  transition: all 0.2s ease;
+}
+
+.nav-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .verify-form {
+    padding: 1rem;
+  }
+  
+  .otp-input {
+    font-size: 1.125rem;
+    padding: 0.875rem;
+  }
+  
+  .nav-button {
+    padding: 0.625rem 1rem;
+    font-size: 0.875rem;
+  }
+}
+
+/* Focus states for accessibility */
+.form-control:focus-visible {
+  outline: 2px solid var(--primary-500);
+  outline-offset: 2px;
+}
+
+button:focus-visible {
+  outline: 2px solid var(--primary-500);
+  outline-offset: 2px;
+}

@@ -1,0 +1,215 @@
+/* Toast Component Styles */
+
+.toast-container {
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  width: 280px;
+  max-width: calc(100vw - 2rem);
+}
+
+/* Ensure proper width and spacing */
+.toast-wrapper {
+  width: 100%;
+}
+
+/* Toast notification base styles */
+.toast-notification {
+  backdrop-filter: blur(10px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s ease-in-out;
+}
+
+.toast-notification:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 20px 35px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Success notification */
+.toast-success {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border-left: 4px solid #22c55e;
+}
+
+/* Error notification */
+.toast-error {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  border-left: 4px solid #ef4444;
+}
+
+/* Warning notification */
+.toast-warning {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border-left: 4px solid #f59e0b;
+}
+
+/* Info notification */
+.toast-info {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-left: 4px solid #3b82f6;
+}
+
+/* Icon animations */
+.toast-icon {
+  animation: iconPulse 2s infinite;
+}
+
+@keyframes iconPulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Close button styles */
+.toast-close-btn {
+  transition: all 0.2s ease;
+  border-radius: 50%;
+  padding: 0.25rem;
+}
+
+.toast-close-btn:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  transform: scale(1.1);
+}
+
+.toast-close-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+}
+
+/* Progress bar animation */
+@keyframes shrink {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+.progress-bar {
+  animation-fill-mode: forwards;
+}
+
+/* Clear all button */
+.clear-all-btn {
+  transition: all 0.2s ease;
+}
+
+.clear-all-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .toast-container {
+    left: 0.5rem;
+    right: 0.5rem;
+    top: 0.5rem;
+    width: auto;
+    max-width: calc(100vw - 1rem);
+  }
+  
+  .toast-content {
+    padding: 0.5rem;
+  }
+  
+  .toast-title {
+    font-size: 0.75rem;
+  }
+  
+  .toast-message {
+    font-size: 0.6875rem;
+  }
+}
+
+/* Animation states */
+.toast-enter {
+  opacity: 0;
+  transform: translateX(100%);
+}
+
+.toast-enter-active {
+  opacity: 1;
+  transform: translateX(0%);
+  transition: all 0.3s ease-in-out;
+}
+
+.toast-leave {
+  opacity: 1;
+  transform: translateX(0%);
+}
+
+.toast-leave-active {
+  opacity: 0;
+  transform: translateX(100%);
+  transition: all 0.3s ease-in-out;
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+  .toast-notification,
+  .toast-close-btn,
+  .clear-all-btn {
+    transition: none;
+  }
+  
+  .toast-icon {
+    animation: none;
+  }
+  
+  @keyframes shrink {
+    from { width: 100%; }
+    to { width: 0%; }
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .toast-notification {
+    border: 2px solid;
+  }
+  
+  .toast-success {
+    border-color: #16a34a;
+  }
+  
+  .toast-error {
+    border-color: #dc2626;
+  }
+  
+  .toast-warning {
+    border-color: #d97706;
+  }
+  
+  .toast-info {
+    border-color: #2563eb;
+  }
+}
+
+/* Focus management */
+.toast-notification:focus-within {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Scrollbar styling for container */
+.toast-container::-webkit-scrollbar {
+  width: 4px;
+}
+
+.toast-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.toast-container::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 2px;
+}
+
+.toast-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}

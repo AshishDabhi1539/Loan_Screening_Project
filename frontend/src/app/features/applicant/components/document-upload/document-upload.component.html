@@ -1,0 +1,233 @@
+<!-- BEAUTIFUL SECTION-BASED DOCUMENT UPLOAD PAGE -->
+<div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 py-8 px-4">
+  <div class="max-w-7xl mx-auto">
+    
+    <!-- Back Button and Completion Status -->
+    <div class="flex items-center justify-between mb-6 gap-4">
+      <button
+        type="button"
+        (click)="goBack()"
+        class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2"
+      >
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+        </svg>
+        <span class="text-sm font-medium">Back</span>
+      </button>
+      
+      <!-- Completion Status -->
+      @if (isComplete()) {
+        <div class="flex-1 flex items-center justify-end">
+          <span class="px-4 py-2 bg-green-100 text-green-800 rounded-lg text-sm font-semibold flex items-center gap-1.5 border border-green-300">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+            </svg>
+            All Required Documents Uploaded
+          </span>
+        </div>
+      }
+    </div>
+
+    <!-- Document Categories -->
+    <div class="space-y-5">
+      @for (category of documentCategories(); track category.id) {
+        <div class="bg-white rounded-lg border-2 border-gray-200 overflow-hidden">
+          
+          <!-- Category Header -->
+          <div class="bg-gradient-to-r from-gray-50 to-gray-100 px-4 py-3 border-b border-gray-200">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="text-xl">{{ category.icon }}</span>
+                <div>
+                  <h2 class="text-lg font-bold text-gray-900">
+                    {{ category.name }}
+                    @if (category.required) {
+                      <span class="text-red-500 ml-1">*</span>
+                    }
+                  </h2>
+                  <p class="text-xs text-gray-600 mt-0.5">{{ category.description }}</p>
+                </div>
+              </div>
+              
+              <!-- Category Status Badge -->
+              @if (isCategoryComplete(category)) {
+                <div class="flex items-center text-green-600 bg-green-50 px-2.5 py-1 rounded-full">
+                  <svg class="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                  </svg>
+                  <span class="text-xs font-semibold">Complete</span>
+                </div>
+              } @else if (getCategoryDocuments(category).length > 0) {
+                <div class="flex items-center text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full">
+                  <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  <span class="text-xs font-semibold">In Progress</span>
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- Documents Grid - 3 Columns -->
+          <div class="p-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              @for (document of category.documents; track document.documentType) {
+                <div class="bg-white rounded-lg border-2 transition-all duration-200 flex flex-col"
+                  [class.border-green-500]="isDocumentComplete(document)"
+                  [class.border-gray-300]="!isDocumentComplete(document)">
+                  
+                  <!-- Document Header -->
+                  <div class="p-3 border-b border-gray-200">
+                    <div class="flex items-start justify-between mb-1">
+                      <div class="flex-1">
+                        <h3 class="text-base font-bold text-gray-900 mb-0.5">
+                          {{ document.displayName }}
+                          @if (document.required) {
+                            <span class="text-red-500 ml-1">*</span>
+                          }
+                        </h3>
+                        <p class="text-xs text-gray-600 mb-1">{{ document.description }}</p>
+                      </div>
+                      <!-- Status Icon -->
+                      <div class="flex-shrink-0 ml-2">
+                        @if (isDocumentUploading(document)) {
+                          <svg class="animate-spin h-5 w-5 text-primary-600" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                        } @else if (isDocumentComplete(document)) {
+                          <svg class="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                          </svg>
+                        }
+                      </div>
+                    </div>
+                    
+                    <!-- Document Info -->
+                    <div class="flex items-center gap-2 text-xs text-gray-500">
+                      <span>Max {{ document.maxFiles }} file(s)</span>
+                      <span>•</span>
+                      <span>Max {{ document.maxFileSize }}MB</span>
+                    </div>
+                  </div>
+
+                  <!-- Upload Zone -->
+                  <div class="flex-1 p-3 flex flex-col">
+                    @if (getDocumentFiles(document).length < document.maxFiles) {
+                      <div 
+                        class="border-2 border-dashed rounded-lg p-4 text-center transition-all cursor-pointer flex-1 flex flex-col items-center justify-center"
+                        [class.border-gray-300]="!dragOver()"
+                        [class.bg-gray-50]="!dragOver()"
+                        [class.border-primary-400]="dragOver()"
+                        [class.bg-primary-50]="dragOver()"
+                        (dragover)="onDragOver($event)"
+                        (dragleave)="onDragLeave($event)"
+                        (drop)="onDrop($event, document)"
+                        (click)="fileInput.click()">
+                        
+                        <input #fileInput type="file" class="hidden" 
+                          [accept]="document.acceptedTypes.join(',')"
+                          [multiple]="document.maxFiles > 1"
+                          (change)="onFileSelected($event, document)">
+                        
+                        <svg class="w-10 h-10 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                        </svg>
+                        <p class="text-sm font-medium text-gray-700 mb-1">Click or drag & drop</p>
+                        <p class="text-xs text-gray-500">{{ getAcceptedTypesDisplay(document.acceptedTypes) }}</p>
+                      </div>
+                    }
+
+                    <!-- Uploaded Files -->
+                    @if (getDocumentFiles(document).length > 0) {
+                      <div class="mt-2 space-y-1.5 flex-1 overflow-y-auto">
+                        @for (file of getDocumentFiles(document); track file.id) {
+                          <div class="bg-gray-50 rounded-lg p-2 border border-gray-200">
+                            <div class="flex items-center gap-2 mb-1">
+                              <!-- File Icon -->
+                              <div class="flex-shrink-0">
+                                @if (file.type === 'application/pdf') {
+                                  <svg class="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/>
+                                  </svg>
+                                } @else {
+                                  <svg class="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/>
+                                  </svg>
+                                }
+                              </div>
+                              <!-- File Name -->
+                              <div class="flex-1 min-w-0">
+                                <p class="text-xs font-medium text-gray-900 truncate">{{ file.name }}</p>
+                                <p class="text-xs text-gray-500">{{ formatFileSize(file.size) }}</p>
+                              </div>
+                              <!-- Delete Button -->
+                              @if (!file.uploading) {
+                                <button type="button" (click)="deleteDocument(file)"
+                                  class="flex-shrink-0 p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
+                                  title="Delete">
+                                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                  </svg>
+                                </button>
+                              }
+                            </div>
+
+                            <!-- Progress Bar -->
+                            @if (file.uploading && file.progress !== undefined) {
+                              <div class="w-full bg-gray-200 rounded-full h-1.5">
+                                <div class="bg-primary-600 h-1.5 rounded-full transition-all"
+                                  [style.width.%]="file.progress">
+                                </div>
+                              </div>
+                            }
+
+                            <!-- Error Message -->
+                            @if (file.error) {
+                              <p class="text-xs text-red-600 mt-1">{{ file.error }}</p>
+                            }
+                          </div>
+                        }
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="mt-8  p-6">
+      <div class="flex justify-end items-center gap-3">
+        <button type="button" (click)="saveAndExit()"
+          class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium">
+          Save & Exit
+        </button>
+
+        <button type="button" (click)="submitAndContinue()"
+          [disabled]="!isComplete()"
+          class="px-4 py-2 text-white rounded-lg transition-all duration-200 text-sm font-medium"
+          [class.bg-primary-600]="isComplete()"
+          [class.hover:bg-primary-700]="isComplete()"
+          [class.bg-gray-300]="!isComplete()"
+          [class.cursor-not-allowed]="!isComplete()">
+          @if (isComplete()) {
+            <span class="flex items-center">
+              <span>Submit & Continue</span>
+              <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+              </svg>
+            </span>
+          } @else {
+            <span>Upload All Required Documents First</span>
+          }
+        </button>
+      </div>
+
+    </div>
+
+  </div>
+</div>

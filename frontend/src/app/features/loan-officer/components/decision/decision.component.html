@@ -1,0 +1,746 @@
+<div class="space-y-6">
+  <!-- Header -->
+  <!-- <div class="bg-white shadow rounded-lg p-6">
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">Loan Decision</h1>
+        <p class="mt-1 text-sm text-gray-500">Make a decision on this loan application</p>
+      </div>
+      <button
+        (click)="cancel()"
+        class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+      >
+        Cancel
+      </button>
+    </div>
+  </div> -->
+
+  <!-- Compliance Review Summary (Only if from compliance) -->
+  @if (isFromCompliance() && applicationDetails(); as app) {
+    <div class="bg-gradient-to-br from-orange-50 to-red-50 rounded-xl p-5 border-2 border-orange-300 shadow-lg mb-6">
+      <div class="flex items-center space-x-3 mb-4">
+        <div class="w-10 h-10 bg-gradient-to-br from-orange-500 to-red-500 rounded-lg flex items-center justify-center shadow-md">
+          <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+          </svg>
+        </div>
+        <div class="flex-1">
+          <h3 class="text-base font-bold text-orange-900">⚠️ Compliance Review Summary</h3>
+          <p class="text-xs text-orange-700">Reviewed by compliance team</p>
+        </div>
+        <span class="px-2 py-1 bg-orange-200 text-orange-900 rounded-full text-xs font-bold">IMPORTANT</span>
+      </div>
+
+      <!-- Compliance Notes -->
+      @if (app.applicationInfo.complianceNotes) {
+        <div class="bg-white rounded-lg p-4 border border-orange-200 mb-3">
+          <div class="flex items-center space-x-2 mb-2">
+            <svg class="w-4 h-4 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+            </svg>
+            <h4 class="font-semibold text-gray-900 text-sm">Compliance Findings:</h4>
+          </div>
+          <p class="text-xs text-gray-700 whitespace-pre-wrap leading-relaxed pl-6">{{ app.applicationInfo.complianceNotes }}</p>
+        </div>
+      }
+
+      <!-- Detailed Investigation Data (Expandable) -->
+      @if (complianceInvestigationData(); as investigation) {
+        @if (showInvestigationDetails()) {
+        <div class="bg-white rounded-lg p-5 border border-gray-200 mb-4 shadow-sm">
+          <h4 class="font-semibold text-gray-800 text-sm mb-4 pb-3 border-b border-gray-200">
+            📋 Investigation Details
+          </h4>
+          
+          <div class="grid grid-cols-2 gap-3">
+            <!-- Overall Assessment -->
+            @if (investigation.overallAssessment) {
+              <div class="col-span-2 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg p-4 border border-gray-200">
+                <p class="text-sm font-semibold text-gray-700 mb-3">Overall Assessment</p>
+                <div class="flex items-center gap-4 flex-wrap">
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs text-gray-600">Band:</span>
+                    <span class="px-3 py-1 rounded-full text-white text-xs font-semibold"
+                          [class.bg-green-500]="investigation.overallAssessment.band === 'EXCELLENT'"
+                          [class.bg-blue-500]="investigation.overallAssessment.band === 'GOOD'"
+                          [class.bg-yellow-500]="investigation.overallAssessment.band === 'FAIR'"
+                          [class.bg-orange-500]="investigation.overallAssessment.band === 'POOR'"
+                          [class.bg-red-500]="investigation.overallAssessment.band === 'CRITICAL'">
+                      {{ investigation.overallAssessment.band }}
+                    </span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs text-gray-600">Risk Level:</span>
+                    <span class="px-3 py-1 rounded-full text-white text-xs font-semibold"
+                          [class.bg-green-500]="investigation.overallAssessment.finalRiskLevel === 'LOW'"
+                          [class.bg-yellow-500]="investigation.overallAssessment.finalRiskLevel === 'MEDIUM'"
+                          [class.bg-red-500]="investigation.overallAssessment.finalRiskLevel === 'HIGH'">
+                      {{ investigation.overallAssessment.finalRiskLevel }}
+                    </span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs text-gray-600">Decision:</span>
+                    <span class="text-xs font-semibold text-gray-800">{{ investigation.overallAssessment.complianceDecision }}</span>
+                  </div>
+                </div>
+              </div>
+            }
+
+            <!-- Bank Details -->
+            @if (investigation.bank_details) {
+              <div class="bg-blue-50 rounded-lg p-4 border border-blue-100">
+                <p class="text-sm font-semibold text-blue-900 mb-3">🏦 Bank Details</p>
+                <div class="space-y-2">
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs text-gray-600">Band:</span>
+                    <span class="px-2 py-0.5 rounded-full text-white text-xs font-semibold"
+                          [class.bg-green-500]="investigation.bank_details.band === 'EXCELLENT' || investigation.bank_details.band === 'GOOD'"
+                          [class.bg-yellow-500]="investigation.bank_details.band === 'FAIR'"
+                          [class.bg-red-500]="investigation.bank_details.band === 'POOR'">
+                      {{ investigation.bank_details.band }}
+                    </span>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs text-gray-600">Risk:</span>
+                    <span class="px-2 py-0.5 rounded-full text-white text-xs font-semibold"
+                          [class.bg-green-500]="investigation.bank_details.riskLevel === 'LOW'"
+                          [class.bg-yellow-500]="investigation.bank_details.riskLevel === 'MEDIUM'"
+                          [class.bg-red-500]="investigation.bank_details.riskLevel === 'HIGH'">
+                      {{ investigation.bank_details.riskLevel }}
+                    </span>
+                  </div>
+                  @if (investigation.bank_details.riskTags && investigation.bank_details.riskTags.length > 0) {
+                    <div class="mt-2 pt-2 border-t border-blue-200">
+                      @for (tag of investigation.bank_details.riskTags; track tag) {
+                        <p class="text-gray-700 text-xs leading-relaxed">• {{ tag }}</p>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+
+            <!-- Fraud Records -->
+            @if (investigation.fraud_records) {
+              <div class="bg-red-50 rounded-lg p-4 border border-red-100">
+                <p class="text-sm font-semibold text-red-900 mb-3">🚫 Fraud Check</p>
+                <div class="space-y-2">
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs text-gray-600">Band:</span>
+                    <span class="px-2 py-0.5 rounded-full text-white text-xs font-semibold"
+                          [class.bg-green-500]="investigation.fraud_records.band === 'EXCELLENT'"
+                          [class.bg-blue-500]="investigation.fraud_records.band === 'GOOD'"
+                          [class.bg-red-500]="investigation.fraud_records.band === 'POOR'">
+                      {{ investigation.fraud_records.band }}
+                    </span>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs text-gray-600">Status:</span>
+                    <span class="px-2 py-0.5 rounded-full text-white text-xs font-semibold bg-green-500">
+                      {{ investigation.fraud_records.riskLevel }}
+                    </span>
+                  </div>
+                  @if (investigation.fraud_records.riskTags && investigation.fraud_records.riskTags.length > 0) {
+                    <div class="mt-2 pt-2 border-t border-red-200">
+                      @for (tag of investigation.fraud_records.riskTags; track tag) {
+                        <p class="text-gray-700 text-xs leading-relaxed">• {{ tag }}</p>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+
+            <!-- Loan History -->
+            @if (investigation.loan_history) {
+              <div class="bg-green-50 rounded-lg p-4 border border-green-100">
+                <p class="text-sm font-semibold text-green-900 mb-3">📊 Loan History</p>
+                <div class="space-y-2">
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs text-gray-600">Band:</span>
+                    <span class="px-2 py-0.5 rounded-full text-white text-xs font-semibold"
+                          [class.bg-green-500]="investigation.loan_history.band === 'EXCELLENT' || investigation.loan_history.band === 'GOOD'"
+                          [class.bg-yellow-500]="investigation.loan_history.band === 'FAIR'"
+                          [class.bg-red-500]="investigation.loan_history.band === 'POOR'">
+                      {{ investigation.loan_history.band }}
+                    </span>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs text-gray-600">Risk:</span>
+                    <span class="px-2 py-0.5 rounded-full text-white text-xs font-semibold"
+                          [class.bg-green-500]="investigation.loan_history.riskLevel === 'LOW'"
+                          [class.bg-yellow-500]="investigation.loan_history.riskLevel === 'MEDIUM'"
+                          [class.bg-red-500]="investigation.loan_history.riskLevel === 'HIGH'">
+                      {{ investigation.loan_history.riskLevel }}
+                    </span>
+                  </div>
+                  @if (investigation.loan_history.riskTags && investigation.loan_history.riskTags.length > 0) {
+                    <div class="mt-2 pt-2 border-t border-green-200">
+                      @for (tag of investigation.loan_history.riskTags; track tag) {
+                        <p class="text-gray-700 text-xs leading-relaxed">• {{ tag }}</p>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+
+            <!-- Applicant Profile -->
+            @if (investigation.applicantProfile) {
+              <div class="bg-purple-50 rounded-lg p-3">
+                <p class="text-xs font-semibold text-purple-900 mb-2 flex items-center">
+                  <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
+                  </svg>
+                  Applicant Profile
+                </p>
+                <div class="space-y-1 text-xs">
+                  @if (investigation.applicantProfile.name) {
+                    <p><span class="text-gray-600">Name:</span> <span class="font-medium">{{ investigation.applicantProfile.name }}</span></p>
+                  }
+                  @if (investigation.applicantProfile.verification_status) {
+                    <p><span class="text-gray-600">Verification:</span> <span class="font-medium">{{ investigation.applicantProfile.verification_status }}</span></p>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+
+          <!-- Consolidated Findings -->
+          @if (investigation.consolidatedFindings) {
+            <div class="mt-4 bg-yellow-50 rounded-lg p-4 border border-yellow-200">
+              <p class="text-sm font-semibold text-yellow-900 mb-3">📝 Consolidated Findings</p>
+              
+              @if (investigation.consolidatedFindings.riskFactors && investigation.consolidatedFindings.riskFactors.length > 0) {
+                <div class="mb-3">
+                  <p class="text-xs font-semibold text-red-800 mb-2">Risk Factors</p>
+                  <div class="space-y-1">
+                    @for (factor of investigation.consolidatedFindings.riskFactors; track factor) {
+                      <p class="text-xs text-gray-700 leading-relaxed">• {{ factor }}</p>
+                    }
+                  </div>
+                </div>
+              }
+              
+              @if (investigation.consolidatedFindings.recommendations && investigation.consolidatedFindings.recommendations.length > 0) {
+                <div class="mb-3">
+                  <p class="text-xs font-semibold text-blue-800 mb-2">Recommendations</p>
+                  <div class="space-y-1">
+                    @for (rec of investigation.consolidatedFindings.recommendations; track rec) {
+                      <p class="text-xs text-gray-700 leading-relaxed">• {{ rec }}</p>
+                    }
+                  </div>
+                </div>
+              }
+              
+              @if (investigation.consolidatedFindings.complianceRecommendation) {
+                <div class="mt-3 pt-3 border-t border-yellow-300">
+                  <p class="text-xs font-semibold text-yellow-900 mb-2">Compliance Recommendation</p>
+                  <div class="space-y-1">
+                    <p class="text-xs text-gray-700"><span class="font-semibold">Action:</span> {{ investigation.consolidatedFindings.complianceRecommendation.action }}</p>
+                    <p class="text-xs text-gray-700"><span class="font-semibold">Reasoning:</span> {{ investigation.consolidatedFindings.complianceRecommendation.reasoning }}</p>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+        }
+      }
+
+      <!-- Action Button -->
+      @if (complianceInvestigationData()) {
+        <button
+          (click)="toggleInvestigationDetails()"
+          class="w-full inline-flex items-center justify-center px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all text-sm font-semibold shadow-md hover:shadow-lg"
+        >
+          <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+          </svg>
+          {{ showInvestigationDetails() ? 'Hide' : 'See Complete' }} Investigation Details
+        </button>
+      }
+    </div>
+  }
+
+  <!-- Decision Type Selection -->
+  @if (!decisionType()) {
+    <div class="bg-white shadow rounded-lg p-6">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4">Select Decision Type</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <button
+          (click)="setDecisionType('approve')"
+          class="p-6 border-2 border-green-200 rounded-lg hover:border-green-500 hover:bg-green-50 transition-all text-left"
+        >
+          <div class="flex items-center space-x-3">
+            <svg class="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+              <div class="font-semibold text-gray-900">Approve</div>
+              <div class="text-sm text-gray-500 mt-1">Approve this loan application</div>
+            </div>
+          </div>
+        </button>
+
+        <button
+          (click)="setDecisionType('reject')"
+          class="p-6 border-2 border-red-200 rounded-lg hover:border-red-500 hover:bg-red-50 transition-all text-left"
+        >
+          <div class="flex items-center space-x-3">
+            <svg class="w-8 h-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+              <div class="font-semibold text-gray-900">Reject</div>
+              <div class="text-sm text-gray-500 mt-1">Reject this loan application</div>
+            </div>
+          </div>
+        </button>
+
+        <!-- Flag for Compliance button (only if NOT from compliance) -->
+        @if (!isFromCompliance()) {
+          <button
+            (click)="setDecisionType('flag')"
+            class="p-6 border-2 border-yellow-200 rounded-lg hover:border-yellow-500 hover:bg-yellow-50 transition-all text-left"
+          >
+            <div class="flex items-center space-x-3">
+              <svg class="w-8 h-8 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+              <div>
+                <div class="font-semibold text-gray-900">Flag for Compliance</div>
+                <div class="text-sm text-gray-500 mt-1">Flag for compliance review</div>
+              </div>
+            </div>
+          </button>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- Applicant Summary -->
+  @if (applicationDetails(); as app) {
+    <div class="bg-white shadow rounded-lg p-6">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4">📊 Applicant Summary</h2>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div>
+          <div class="text-sm text-gray-500">Applicant</div>
+          <div class="font-semibold text-gray-900">{{ app.applicantIdentity.personalDetails.fullName || 'N/A' }}</div>
+        </div>
+        <div>
+          <div class="text-sm text-gray-500">Credit Score</div>
+          <div class="font-semibold" [ngClass]="{
+            'text-green-600': (app.externalVerification?.creditScore || 0) >= 700,
+            'text-yellow-600': (app.externalVerification?.creditScore || 0) >= 550 && (app.externalVerification?.creditScore || 0) < 700,
+            'text-red-600': (app.externalVerification?.creditScore || 0) < 550
+          }">
+            {{ app.externalVerification?.creditScore || 'N/A' }}
+          </div>
+        </div>
+        <div>
+          <div class="text-sm text-gray-500">Risk Level</div>
+          <div class="font-semibold">
+            <span class="px-2 py-1 rounded text-xs" [ngClass]="{
+              'bg-green-100 text-green-800': app.externalVerification?.riskLevel === 'LOW',
+              'bg-yellow-100 text-yellow-800': app.externalVerification?.riskLevel === 'MEDIUM',
+              'bg-red-100 text-red-800': app.externalVerification?.riskLevel === 'HIGH'
+            }">
+              {{ app.externalVerification?.riskLevel || 'N/A' }}
+            </span>
+          </div>
+        </div>
+        <div>
+          <div class="text-sm text-gray-500">Monthly Income</div>
+          <div class="font-semibold text-gray-900">₹{{ app.employmentDetails.monthlyIncome | number:'1.0-0' }}</div>
+        </div>
+      </div>
+      
+      <div class="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="font-semibold text-blue-900">Requested Loan</div>
+            <div class="text-blue-700 text-lg">
+              ₹{{ app.applicationInfo.loanAmount | number:'1.0-0' }} for {{ app.applicationInfo.tenureMonths }} months
+            </div>
+          </div>
+          <div class="text-right">
+            <div class="text-sm text-blue-600">Loan Type</div>
+            <div class="font-semibold text-blue-900">{{ app.applicationInfo.loanType }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Approval Form -->
+  @if (decisionType() === 'approve') {
+    <form [formGroup]="approveForm" (ngSubmit)="submitApproval()" class="space-y-6">
+      <div class="bg-white shadow rounded-lg p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Approval Details</h2>
+        
+        <!-- Validation Warnings -->
+        @if (validationWarnings().length > 0) {
+          <div class="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div class="flex items-start space-x-2">
+              <svg class="w-5 h-5 text-yellow-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+              </svg>
+              <div class="flex-1">
+                <div class="font-semibold text-yellow-800 mb-1">Validation Warnings</div>
+                <ul class="text-sm text-yellow-700 space-y-1">
+                  @for (warning of validationWarnings(); track $index) {
+                    <li>{{ warning }}</li>
+                  }
+                </ul>
+              </div>
+            </div>
+          </div>
+        }
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Approved Amount *
+              @if (applicationDetails()) {
+                <span class="text-xs text-gray-500 ml-2">
+                  (Requested: ₹{{ applicationDetails()!.applicationInfo.loanAmount | number:'1.0-0' }})
+                </span>
+              }
+            </label>
+            <input
+              type="number"
+              formControlName="approvedAmount"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Enter approved amount"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Approved Tenure (Months) *
+              @if (applicationDetails()) {
+                <span class="text-xs text-gray-500 ml-2">
+                  (Requested: {{ applicationDetails()!.applicationInfo.tenureMonths }} months)
+                </span>
+              }
+            </label>
+            <input
+              type="number"
+              formControlName="approvedTenure"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Enter tenure"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Interest Rate (%) *
+              @if (applicationDetails()) {
+                <span class="text-xs text-gray-500 ml-2">
+                  (Recommended: {{ calculateRecommendedRate(applicationDetails()!) | number:'1.1-1' }}%)
+                </span>
+              }
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              formControlName="approvedInterestRate"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Enter interest rate"
+            />
+          </div>
+        </div>
+
+        <!-- EMI Calculator Display -->
+        @if (emiDetails(); as emi) {
+          <div class="mt-6 bg-gradient-to-br from-green-50 to-blue-50 rounded-lg p-6 border-2 border-green-200">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+              <svg class="w-6 h-6 text-green-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              EMI Breakdown (Real-time)
+            </h3>
+            
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+              <div class="bg-white rounded-lg p-4 shadow-sm">
+                <div class="text-sm text-gray-600 mb-1">Monthly EMI</div>
+                <div class="text-2xl font-bold text-green-600">₹{{ emi.monthlyEmi | number:'1.0-0' }}</div>
+              </div>
+              <div class="bg-white rounded-lg p-4 shadow-sm">
+                <div class="text-sm text-gray-600 mb-1">Total Interest</div>
+                <div class="text-xl font-semibold text-gray-700">₹{{ emi.totalInterest | number:'1.0-0' }}</div>
+              </div>
+              <div class="bg-white rounded-lg p-4 shadow-sm">
+                <div class="text-sm text-gray-600 mb-1">Total Repayment</div>
+                <div class="text-xl font-semibold text-gray-700">₹{{ emi.totalRepayment | number:'1.0-0' }}</div>
+              </div>
+              <div class="bg-white rounded-lg p-4 shadow-sm">
+                <div class="text-sm text-gray-600 mb-1">FOIR Ratio</div>
+                <div class="text-xl font-semibold" [ngClass]="{
+                  'text-green-600': emi.foirStatus === 'EXCELLENT' || emi.foirStatus === 'GOOD',
+                  'text-yellow-600': emi.foirStatus === 'MODERATE',
+                  'text-red-600': emi.foirStatus === 'HIGH_RISK'
+                }">
+                  {{ emi.foirRatio | number:'1.1-1' }}%
+                </div>
+              </div>
+            </div>
+            
+            <!-- FOIR Status Badge -->
+            <div class="flex items-center justify-between bg-white rounded-lg p-4 shadow-sm">
+              <div class="flex items-center space-x-3">
+                <span class="px-3 py-1 rounded-full text-sm font-semibold" [ngClass]="{
+                  'bg-green-100 text-green-800': emi.foirStatus === 'EXCELLENT' || emi.foirStatus === 'GOOD',
+                  'bg-yellow-100 text-yellow-800': emi.foirStatus === 'MODERATE',
+                  'bg-red-100 text-red-800': emi.foirStatus === 'HIGH_RISK'
+                }">
+                  {{ emi.foirStatus }}
+                </span>
+                <span class="text-sm text-gray-600">
+                  @if (emi.foirRatio <= 40) {
+                    <span class="text-green-600">✅ Within recommended limit (&lt;40%)</span>
+                  } @else {
+                    <span class="text-red-600">⚠️ Exceeds recommended limit (&gt;40%)</span>
+                  }
+                </span>
+              </div>
+              <div class="text-right">
+                <div class="text-xs text-gray-500">Applicant Monthly Income</div>
+                <div class="text-sm font-semibold text-gray-700">
+                  ₹{{ applicationDetails()!.employmentDetails.monthlyIncome | number:'1.0-0' }}
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+
+        <div class="mt-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Decision Reason *</label>
+          <textarea
+            formControlName="decisionReason"
+            rows="4"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            placeholder="Enter reason for approval..."
+          ></textarea>
+        </div>
+
+        <div class="mt-4">
+          <div class="flex items-center justify-between mb-2">
+            <label class="block text-sm font-medium text-gray-700">Conditions</label>
+            <button
+              type="button"
+              (click)="addCondition()"
+              class="text-sm text-blue-600 hover:text-blue-800"
+            >
+              + Add Condition
+            </button>
+          </div>
+          <div formArrayName="conditions" class="space-y-2">
+            @for (condition of getConditionsArray().controls; track $index) {
+              <div class="flex items-center space-x-2">
+                <input
+                  type="text"
+                  [formControl]="$any(condition)"
+                  class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Enter condition"
+                />
+                <button
+                  type="button"
+                  (click)="removeCondition($index)"
+                  class="px-3 py-2 text-red-600 hover:text-red-800"
+                >
+                  Remove
+                </button>
+              </div>
+            }
+          </div>
+        </div>
+
+        <div class="mt-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Internal Notes</label>
+          <textarea
+            formControlName="internalNotes"
+            rows="3"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            placeholder="Internal notes (optional)..."
+          ></textarea>
+        </div>
+
+        <div class="mt-6 flex justify-end space-x-3">
+          <button
+            type="button"
+            (click)="cancel()"
+            class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            [disabled]="isSubmitting() || approveForm.invalid"
+            class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            @if (isSubmitting()) {
+              <span class="flex items-center space-x-2">
+                <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <span>Approving...</span>
+              </span>
+            } @else {
+              Approve Application
+            }
+          </button>
+        </div>
+      </div>
+    </form>
+  }
+
+  <!-- Rejection Form -->
+  @if (decisionType() === 'reject') {
+    <form [formGroup]="rejectForm" (ngSubmit)="submitRejection()" class="space-y-6">
+      <div class="bg-white shadow rounded-lg p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Rejection Details</h2>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Rejection Reason *</label>
+          <textarea
+            formControlName="decisionReason"
+            rows="5"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+            placeholder="Enter detailed reason for rejection..."
+          ></textarea>
+        </div>
+
+        <div class="mt-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Internal Notes</label>
+          <textarea
+            formControlName="internalNotes"
+            rows="3"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+            placeholder="Internal notes (optional)..."
+          ></textarea>
+        </div>
+
+        <div class="mt-6 flex justify-end space-x-3">
+          <button
+            type="button"
+            (click)="cancel()"
+            class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            [disabled]="isSubmitting() || rejectForm.invalid"
+            class="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            @if (isSubmitting()) {
+              <span class="flex items-center space-x-2">
+                <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <span>Rejecting...</span>
+              </span>
+            } @else {
+              Reject Application
+            }
+          </button>
+        </div>
+      </div>
+    </form>
+  }
+
+  <!-- Flag Form -->
+  @if (decisionType() === 'flag') {
+    <form [formGroup]="flagForm" (ngSubmit)="submitFlag()" class="space-y-6">
+      <div class="bg-white shadow rounded-lg p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Compliance Flag Details</h2>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Flag Reason *</label>
+          <textarea
+            formControlName="flagReason"
+            rows="5"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+            placeholder="Enter reason for flagging this application for compliance review..."
+          ></textarea>
+        </div>
+
+        <div class="mt-4">
+          <div class="flex items-center justify-between mb-2">
+            <label class="block text-sm font-medium text-gray-700">Suspicious Activities</label>
+            <button
+              type="button"
+              (click)="addSuspiciousActivity()"
+              class="text-sm text-blue-600 hover:text-blue-800"
+            >
+              + Add Activity
+            </button>
+          </div>
+          <div formArrayName="suspiciousActivities" class="space-y-2">
+            @for (activity of getSuspiciousActivitiesArray().controls; track $index) {
+              <div class="flex items-center space-x-2">
+                <input
+                  type="text"
+                  [formControl]="$any(activity)"
+                  class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                  placeholder="Describe suspicious activity"
+                />
+                @if (getSuspiciousActivitiesArray().length > 1) {
+                  <button
+                    type="button"
+                    (click)="removeSuspiciousActivity($index)"
+                    class="px-3 py-2 text-red-600 hover:text-red-800"
+                  >
+                    Remove
+                  </button>
+                }
+              </div>
+            }
+          </div>
+        </div>
+
+        <div class="mt-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Priority *</label>
+          <select
+            formControlName="priority"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+          >
+            <option value="HIGH">High</option>
+            <option value="MEDIUM">Medium</option>
+            <option value="LOW">Low</option>
+          </select>
+        </div>
+
+        <div class="mt-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Additional Evidence</label>
+          <textarea
+            formControlName="additionalEvidence"
+            rows="3"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+            placeholder="Additional evidence or notes (optional)..."
+          ></textarea>
+        </div>
+
+        <div class="mt-6 flex justify-end space-x-3">
+          <button
+            type="button"
+            (click)="cancel()"
+            class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            [disabled]="isSubmitting() || flagForm.invalid"
+            class="px-6 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            @if (isSubmitting()) {
+              <span class="flex items-center space-x-2">
+                <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <span>Flagging...</span>
+              </span>
+            } @else {
+              Flag for Compliance
+            }
+          </button>
+        </div>
+      </div>
+    </form>
+  }
+</div>

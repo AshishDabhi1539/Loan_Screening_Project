@@ -1,0 +1,28 @@
+/* Applications List Styles */
+
+/* Table hover effect */
+tbody tr:hover {
+  background-color: #f9fafb;
+}
+
+/* Pagination button states */
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Loading animation */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Sort indicator */
+.rotate-180 {
+  transform: rotate(180deg);
+}

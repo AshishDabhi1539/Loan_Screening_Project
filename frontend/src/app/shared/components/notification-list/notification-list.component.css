@@ -1,0 +1,7 @@
+/* Minimal custom styles - most styling is done with Tailwind classes */
+/* Only keep styles that can't be easily achieved with Tailwind utilities */
+
+/* Ensure proper spacing for nested elements */
+.notification-list-page {
+  /* All styling moved to Tailwind classes in HTML */
+}
