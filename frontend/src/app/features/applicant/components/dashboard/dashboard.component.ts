@@ -315,7 +315,10 @@ export class DashboardComponent implements OnInit {
     if (!application.hasFinancialProfile) {
       this.notificationService.info('Continue Application', 'Please complete employment and financial details');
       this.router.navigate(['/applicant/employment-details'], {
-        queryParams: { applicationId: appId }
+        queryParams: { 
+          applicationId: appId,
+          returnUrl: '/applicant/dashboard'
+        }
       });
       return;
     }
@@ -325,7 +328,8 @@ export class DashboardComponent implements OnInit {
       this.router.navigate(['/applicant/document-upload'], {
         queryParams: {
           applicationId: appId,
-          employmentType: application.employmentType || 'SALARIED'
+          employmentType: application.employmentType || 'SALARIED',
+          returnUrl: '/applicant/dashboard'
         }
       });
       return;
@@ -336,7 +340,8 @@ export class DashboardComponent implements OnInit {
     this.router.navigate(['/applicant/application-summary'], {
       queryParams: {
         applicationId: appId,
-        employmentType: application.employmentType || 'SALARIED'
+        employmentType: application.employmentType || 'SALARIED',
+        returnUrl: '/applicant/dashboard'
       }
     });
   }

@@ -693,14 +693,29 @@ export class ApplicationDetailsComponent implements OnInit {
       return;
     }
 
-    // Check if employment details are filled (hasFinancialProfile = true means employment details are complete)
+    // Step 1: Check if personal details are complete
+    if (!summary?.hasPersonalDetails) {
+      this.notification.info('Complete Profile', 'Please complete your personal details first');
+      this.router.navigate(['/applicant/personal-details'], {
+        queryParams: {
+          applicationId: application.id,
+          returnUrl: `/applicant/application-details/${application.id}`
+        }
+      });
+      return;
+    }
+
+    // Step 2: Check if employment details are filled (hasFinancialProfile = true means employment details are complete)
     const employmentDetailsFilled = summary?.hasFinancialProfile === true;
 
     if (!employmentDetailsFilled) {
-      // Step 1: Employment & Financial Details not filled -> go to employment-details
+      // Step 2: Employment & Financial Details not filled -> go to employment-details
       this.notification.info('Continue Application', 'Please complete employment and financial details');
       this.router.navigate(['/applicant/employment-details'], {
-        queryParams: { applicationId: application.id }
+        queryParams: { 
+          applicationId: application.id,
+          returnUrl: `/applicant/application-details/${application.id}`
+        }
       });
       return;
     }
@@ -714,7 +729,8 @@ export class ApplicationDetailsComponent implements OnInit {
       this.router.navigate(['/applicant/document-upload'], {
         queryParams: {
           applicationId: application.id,
-          employmentType: summary?.employmentType || 'SALARIED'
+          employmentType: summary?.employmentType || 'SALARIED',
+          returnUrl: `/applicant/application-details/${application.id}`
         }
       });
       return;
@@ -725,7 +741,8 @@ export class ApplicationDetailsComponent implements OnInit {
     this.router.navigate(['/applicant/application-summary'], {
       queryParams: {
         applicationId: application.id,
-        employmentType: summary?.employmentType || 'SALARIED'
+        employmentType: summary?.employmentType || 'SALARIED',
+        returnUrl: `/applicant/application-details/${application.id}`
       }
     });
   }
