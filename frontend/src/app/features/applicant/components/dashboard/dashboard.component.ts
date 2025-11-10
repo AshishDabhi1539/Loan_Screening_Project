@@ -67,6 +67,8 @@ export class DashboardComponent implements OnInit {
   
   // Show CTA to apply first loan only for new users with completed profile
   showFirstLoanCTA = computed(() => {
+    // Don't show during loading - wait for data to load first
+    if (this.isLoading()) return false;
     if (!this.profileLoaded()) return false;
     const canApply = this.canApplyForLoan();
     const total = this.dashboardStats()?.totalApplications || 0;
