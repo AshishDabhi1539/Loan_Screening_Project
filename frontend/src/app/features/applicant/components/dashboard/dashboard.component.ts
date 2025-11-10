@@ -332,7 +332,13 @@ export class DashboardComponent implements OnInit {
     }
 
     // All steps complete, show summary for final submission
-    this.router.navigate(['/applicant/application-details', appId]);
+    this.notificationService.info('Application Ready', 'Your application is ready for submission');
+    this.router.navigate(['/applicant/application-summary'], {
+      queryParams: {
+        applicationId: appId,
+        employmentType: application.employmentType || 'SALARIED'
+      }
+    });
   }
 
   /**

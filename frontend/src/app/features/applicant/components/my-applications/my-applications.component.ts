@@ -173,8 +173,22 @@ export class MyApplicationsComponent implements OnInit {
   }
 
   viewApplication(applicationId: string): void {
-    // Always navigate to application-details page
-    this.router.navigate(['/applicant/application-details', applicationId]);
+    const app = this.applications().find(a => a.id === applicationId);
+    
+    if (!app) {
+      this.notificationService.error('Error', 'Application not found');
+      return;
+    }
+
+    // For non-DRAFT applications (submitted, under review, approved, etc.), show details page
+    if (app.status !== 'DRAFT') {
+      this.router.navigate(['/applicant/application-details', applicationId]);
+      return;
+    }
+
+    // For DRAFT applications, use smart routing to continue where they left off
+    // This provides the same behavior as the Resume button
+    this.resumeApplication(applicationId);
   }
 
   /**
@@ -221,9 +235,14 @@ export class MyApplicationsComponent implements OnInit {
       return;
     }
 
-    // Step 3: All application steps complete but still DRAFT -> show summary for final submission
+    // Step 3: All application steps complete but still DRAFT -> navigate to summary for final submission
     this.notificationService.info('Application Ready', 'Your application is ready for submission');
-    this.router.navigate(['/applicant/application-details', app.id]);
+    this.router.navigate(['/applicant/application-summary'], {
+      queryParams: {
+        applicationId: app.id,
+        employmentType: app.employmentType || 'SALARIED'
+      }
+    });
   }
 }
 

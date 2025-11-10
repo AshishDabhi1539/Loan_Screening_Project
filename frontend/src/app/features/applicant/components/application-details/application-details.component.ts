@@ -720,8 +720,14 @@ export class ApplicationDetailsComponent implements OnInit {
       return;
     }
 
-    // Step 3: All application steps complete but still DRAFT -> show summary for final submission
+    // Step 3: All application steps complete but still DRAFT -> navigate to summary for final submission
     this.notification.info('Application Ready', 'Your application is ready for submission');
+    this.router.navigate(['/applicant/application-summary'], {
+      queryParams: {
+        applicationId: application.id,
+        employmentType: summary?.employmentType || 'SALARIED'
+      }
+    });
   }
 
   /**
