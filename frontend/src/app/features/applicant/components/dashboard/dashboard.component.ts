@@ -46,6 +46,10 @@ export class DashboardComponent implements OnInit {
     // Always prioritize currentUser data from AuthService (has actual name from login)
     const user = this.currentUser();
     if (user?.displayName && user.displayName !== user.email) {
+      // Extract first and last name only
+      const parts = user.displayName.trim().split(/\s+/).filter(Boolean);
+      if (parts.length === 1) return parts[0];
+      if (parts.length >= 2) return `${parts[0]} ${parts[parts.length - 1]}`;
       return user.displayName;
     }
     

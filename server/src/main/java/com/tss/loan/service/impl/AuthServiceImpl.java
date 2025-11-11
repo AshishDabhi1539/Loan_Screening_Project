@@ -517,7 +517,9 @@ public class AuthServiceImpl implements AuthService {
             }
             // For officers, use OfficerProfileService
             else if ("LOAN_OFFICER".equals(user.getRole().toString()) || 
+                     "SENIOR_LOAN_OFFICER".equals(user.getRole().toString()) ||
                      "COMPLIANCE_OFFICER".equals(user.getRole().toString()) ||
+                     "SENIOR_COMPLIANCE_OFFICER".equals(user.getRole().toString()) ||
                      "ADMIN".equals(user.getRole().toString())) {
                 return officerProfileService.getOfficerDisplayName(user);
             }

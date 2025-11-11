@@ -210,8 +210,11 @@ export class MainLayoutComponent {
     const user = this.currentUser();
     if (!user) return 'Guest';
     
-    // If displayName exists, use it
+    // If displayName exists, extract first and last name only
     if (user.displayName) {
+      const parts = user.displayName.trim().split(/\s+/).filter(Boolean);
+      if (parts.length === 1) return parts[0];
+      if (parts.length >= 2) return `${parts[0]} ${parts[parts.length - 1]}`;
       return user.displayName;
     }
     
