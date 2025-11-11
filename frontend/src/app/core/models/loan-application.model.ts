@@ -47,6 +47,16 @@ export interface LoanApplicationResponse {
   submittedAt: string;
   createdAt: string;
   updatedAt: string;
+  
+  // Officer assignment
+  assignedOfficerId?: string;
+  assignedOfficerName?: string;
+  
+  // Application completion flags
+  hasPersonalDetails?: boolean;
+  hasFinancialProfile?: boolean;
+  documentsCount?: number;
+  employmentType?: string;
 }
 
 /**

@@ -72,11 +72,14 @@ export class AuthService {
       // Extract user info from token payload (avoid HTTP call during init)
       try {
         const payload = JSON.parse(atob(token.split('.')[1]));
+        // Try to get displayName from localStorage (stored during login)
+        const storedDisplayName = localStorage.getItem('user_display_name');
         const user: User = {
           id: payload.userId,
           email: payload.email || payload.sub,
           role: payload.role as any,
-          status: 'ACTIVE' // Assume active if token is valid
+          status: 'ACTIVE', // Assume active if token is valid
+          displayName: storedDisplayName || undefined
         };
         this._currentUser.set(user);
       } catch (error) {
@@ -129,8 +132,13 @@ export class AuthService {
             id: response.userId,
             email: response.email,
             role: response.role as any,
-            status: 'ACTIVE'
+            status: 'ACTIVE',
+            displayName: response.displayName
           };
+          // Store displayName in localStorage for persistence
+          if (response.displayName) {
+            localStorage.setItem('user_display_name', response.displayName);
+          }
           this.setAuthData(response.token, response.refreshToken, user);
         }
       }),
@@ -306,6 +314,7 @@ export class AuthService {
   private clearAuthData(): void {
     localStorage.removeItem(environment.auth.tokenKey);
     localStorage.removeItem(environment.auth.refreshTokenKey);
+    localStorage.removeItem('user_display_name');
     
     // SSE disabled
     // this.sseService.disconnect();
