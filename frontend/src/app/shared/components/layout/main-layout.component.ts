@@ -502,9 +502,10 @@ export class MainLayoutComponent {
    * Handle logout
    */
   logout(): void {
-    this.authService.logout();
-    this.notificationService.logoutSuccess();
     this.closeDropdowns();
+    this.authService.logout();
+    // Note: Toast notification removed from here - it will be shown after successful logout
+    // The notification is now handled in the auth service after logout completes
   }
 
   /**

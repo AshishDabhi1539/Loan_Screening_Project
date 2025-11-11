@@ -7,6 +7,7 @@ import { map, catchError, tap } from 'rxjs/operators';
 import { ApiService } from './api.service';
 import { NotificationSseService } from './notification-sse.service';
 import { InAppNotificationService } from './in-app-notification.service';
+import { NotificationService } from './notification.service';
 import { environment } from '../../../environments/environment';
 import {
   User,
@@ -26,7 +27,8 @@ export class AuthService {
   private readonly apiService = inject(ApiService);
   private readonly router = inject(Router);
   private readonly sseService = inject(NotificationSseService);
-  private readonly notificationService = inject(InAppNotificationService);
+  private readonly inAppNotificationService = inject(InAppNotificationService);
+  private readonly notificationService = inject(NotificationService);
 
   // Signals for reactive state management
   private readonly _currentUser = signal<User | null>(null);
@@ -197,63 +199,43 @@ export class AuthService {
    * Logout user
    */
   logout(): void {
-    this._isLoading.set(true);
+    // Get token before clearing storage (for API call)
+    const token = this.getStoredToken();
     
-    // CRITICAL: Clear auth state IMMEDIATELY to prevent any components from making authenticated requests
-    // This must happen synchronously before any async operations
+    // CRITICAL: Clear everything IMMEDIATELY and synchronously
+    // This prevents any components from making authenticated requests during logout
     this._isAuthenticated.set(false);
     this._currentUser.set(null);
     
-    // Get token before clearing storage (for API call)
-    const token = this.getStoredToken();
+    // Clear storage immediately
+    localStorage.removeItem(environment.auth.tokenKey);
+    localStorage.removeItem(environment.auth.refreshTokenKey);
+    sessionStorage.removeItem(environment.auth.tokenKey);
+    sessionStorage.removeItem(environment.auth.refreshTokenKey);
     
     // Disconnect SSE immediately
     this.sseService.disconnect();
     
     // Clear notification state
-    this.notificationService.clear();
+    this.inAppNotificationService.clear();
     
+    // Navigate immediately to prevent any dashboard loading
+    this.router.navigate(['/'], { replaceUrl: true }).then(() => {
+      // Show logout success notification AFTER navigation completes
+      setTimeout(() => {
+        this.notificationService.logoutSuccess();
+      }, 100);
+    });
+    
+    // Make logout API call in background (fire and forget)
     if (token) {
-      // Make logout API call with token still available
-      // Use HttpClient directly with text response type since backend returns plain text
       this.http.post(`${environment.apiUrl}/auth/logout`, {}, { 
         responseType: 'text',
         headers: { 'Authorization': `Bearer ${token}` }
       }).pipe(
-        catchError(() => {
-          // Ignore logout errors - we're logging out anyway
-          return of('');
-        })
-      ).subscribe({
-        next: () => {
-          this.performLogout();
-        },
-        error: () => {
-          // Even if API fails, still logout locally
-          this.performLogout();
-        }
-      });
-    } else {
-      // No token, just clear local data
-      this.performLogout();
+        catchError(() => of(''))
+      ).subscribe();
     }
-  }
-  
-  /**
-   * Perform local logout operations
-   */
-  private performLogout(): void {
-    // Clear storage (tokens already cleared from state above)
-    localStorage.removeItem(environment.auth.tokenKey);
-    localStorage.removeItem(environment.auth.refreshTokenKey);
-    
-    sessionStorage.removeItem(environment.auth.tokenKey);
-    sessionStorage.removeItem(environment.auth.refreshTokenKey);
-    
-    // Navigate immediately (no setTimeout needed since auth state already cleared)
-    this.router.navigate(['/'], { replaceUrl: true }).then(() => {
-      this._isLoading.set(false);
-    });
   }
 
   /**
@@ -310,7 +292,7 @@ export class AuthService {
     // this.sseService.connect(token);
     
     // Load initial notification count
-    this.notificationService.getUnreadCount().subscribe();
+    this.inAppNotificationService.getUnreadCount().subscribe();
     
     // Only navigate after login, not during initialization
     if (!this.isInitializing()) {
@@ -329,7 +311,7 @@ export class AuthService {
     // this.sseService.disconnect();
     
     // Clear notification state
-    this.notificationService.clear();
+    this.inAppNotificationService.clear();
     
     this._currentUser.set(null);
     this._isAuthenticated.set(false);
