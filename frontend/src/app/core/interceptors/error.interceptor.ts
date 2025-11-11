@@ -48,8 +48,12 @@ export class ErrorInterceptor implements HttpInterceptor {
           }
         }
 
-        // Log error for debugging (suppress logout errors as they're expected)
-        if (!req.url.includes('/auth/logout')) {
+        // Suppress errors during logout (expected behavior)
+        const isLoggingOut = !localStorage.getItem('auth_token') && !sessionStorage.getItem('auth_token');
+        const isLogoutRequest = req.url.includes('/auth/logout');
+        
+        // Log error for debugging (suppress logout-related errors as they're expected)
+        if (!isLogoutRequest && !isLoggingOut) {
           console.error('HTTP Error:', {
             status: error.status,
             message: errorMessage,
@@ -58,8 +62,8 @@ export class ErrorInterceptor implements HttpInterceptor {
           });
         }
 
-        // Handle specific error scenarios
-        if (error.status === 401) {
+        // Handle specific error scenarios (but not during logout)
+        if (error.status === 401 && !isLoggingOut) {
           // Redirect to login for unauthorized access
           this.router.navigate(['/auth/login']);
         }

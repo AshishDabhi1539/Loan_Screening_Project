@@ -10,6 +10,8 @@ import {
   SystemStats,
   RecentActivity
 } from '../models/admin.model';
+import { LoanApplicationResponse } from '../models/loan-application.model';
+import { CompleteApplicationDetailsResponse } from '../models/officer.model';
 
 @Injectable({
   providedIn: 'root'
@@ -128,8 +130,14 @@ export class AdminService {
    * Get admin dashboard data from backend
    */
   getAdminDashboardData(): Observable<{ stats: AdminStats; recentActivities: RecentActivity[] }> {
-    return this.apiService.get<any>('/admin/dashboard').pipe(
-      map(backendStats => ({
+    // Fetch both stats and activities in parallel
+    return forkJoin({
+      stats: this.apiService.get<any>('/admin/dashboard'),
+      activities: this.apiService.get<RecentActivity[]>('/admin/recent-activities').pipe(
+        catchError(() => of([]))
+      )
+    }).pipe(
+      map(({ stats: backendStats, activities }) => ({
         stats: {
           totalUsers: backendStats.totalUsers || 0,
           totalOfficers: backendStats.totalOfficers || 0,
@@ -140,7 +148,7 @@ export class AdminService {
           activeUsers: backendStats.activeUsers || 0,
           systemHealth: backendStats.systemHealth || 'good'
         },
-        recentActivities: [] // Will be populated when activity log API is available
+        recentActivities: activities
       })),
       catchError(error => {
         console.error('Error fetching admin dashboard:', error);
@@ -156,6 +164,37 @@ export class AdminService {
         );
       })
     );
+  }
+
+  /**
+   * Get recent applications for admin dashboard (last 5)
+   */
+  getRecentApplications(): Observable<LoanApplicationResponse[]> {
+    return this.apiService.get<LoanApplicationResponse[]>('/admin/recent-applications').pipe(
+      catchError(error => {
+        console.error('Error fetching recent applications:', error);
+        return of([]);
+      })
+    );
+  }
+
+  /**
+   * Get all applications for admin (for "View All" page)
+   */
+  getAllApplications(): Observable<LoanApplicationResponse[]> {
+    return this.apiService.get<LoanApplicationResponse[]>('/admin/applications').pipe(
+      catchError(error => {
+        console.error('Error fetching all applications:', error);
+        return of([]);
+      })
+    );
+  }
+
+  /**
+   * Get complete application details for admin (read-only view)
+   */
+  getApplicationDetails(applicationId: string): Observable<CompleteApplicationDetailsResponse> {
+    return this.apiService.get<CompleteApplicationDetailsResponse>(`/admin/applications/${applicationId}`);
   }
 
   /**

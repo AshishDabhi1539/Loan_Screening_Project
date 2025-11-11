@@ -511,16 +511,16 @@ public class AuthServiceImpl implements AuthService {
      */
     private String getUserDisplayName(User user) {
         try {
-            // For applicants, use UserDisplayService
-            if ("APPLICANT".equals(user.getRole().toString())) {
+            // For applicants and admins, use UserDisplayService
+            if ("APPLICANT".equals(user.getRole().toString()) || 
+                "ADMIN".equals(user.getRole().toString())) {
                 return userDisplayService.getDisplayName(user);
             }
             // For officers, use OfficerProfileService
             else if ("LOAN_OFFICER".equals(user.getRole().toString()) || 
                      "SENIOR_LOAN_OFFICER".equals(user.getRole().toString()) ||
                      "COMPLIANCE_OFFICER".equals(user.getRole().toString()) ||
-                     "SENIOR_COMPLIANCE_OFFICER".equals(user.getRole().toString()) ||
-                     "ADMIN".equals(user.getRole().toString())) {
+                     "SENIOR_COMPLIANCE_OFFICER".equals(user.getRole().toString())) {
                 return officerProfileService.getOfficerDisplayName(user);
             }
         } catch (Exception e) {

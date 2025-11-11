@@ -148,4 +148,17 @@ public interface LoanApplicationRepository extends JpaRepository<LoanApplication
            "LEFT JOIN FETCH la.documents " +
            "WHERE la.id = :id")
     Optional<LoanApplication> findByIdWithDocuments(@Param("id") UUID id);
+    
+    // ========== ADMIN DASHBOARD METHODS ==========
+    
+    /**
+     * Get all applications ordered by creation date (newest first) - for admin
+     */
+    List<LoanApplication> findAllByOrderByCreatedAtDesc();
+    
+    /**
+     * Get recent applications with pagination - for admin dashboard
+     */
+    @Query("SELECT la FROM LoanApplication la ORDER BY la.createdAt DESC")
+    org.springframework.data.domain.Page<LoanApplication> findAllByOrderByCreatedAtDesc(org.springframework.data.domain.Pageable pageable);
 }

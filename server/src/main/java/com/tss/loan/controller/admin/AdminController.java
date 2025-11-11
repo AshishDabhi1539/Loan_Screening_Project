@@ -59,64 +59,47 @@ public class AdminController {
     private LoanApplicationMapper loanApplicationMapper;
     
     @Autowired
-    private com.tss.loan.repository.UserRepository userRepository;
+    private com.tss.loan.service.AdminService adminService;
     
     /**
      * Get Admin Dashboard Statistics
      */
     @GetMapping("/dashboard")
     public ResponseEntity<java.util.Map<String, Object>> getAdminDashboard() {
-        log.info("Fetching admin dashboard statistics");
-        
-        // Use COUNT queries instead of loading all entities to avoid N+1 problem
-        long totalUsers = userRepository.count();
-        long totalOfficers = userRepository.countByRoleIn(
-            java.util.Arrays.asList(
-                com.tss.loan.entity.enums.RoleType.LOAN_OFFICER,
-                com.tss.loan.entity.enums.RoleType.SENIOR_LOAN_OFFICER,
-                com.tss.loan.entity.enums.RoleType.COMPLIANCE_OFFICER,
-                com.tss.loan.entity.enums.RoleType.SENIOR_COMPLIANCE_OFFICER
-            )
-        );
-        long totalApplications = loanApplicationRepository.count();
-        
-        // Count by status using repository methods (single query each)
-        long pendingApplications = loanApplicationRepository.countByStatusIn(
-            java.util.Arrays.asList(
-                com.tss.loan.entity.enums.ApplicationStatus.SUBMITTED,
-                com.tss.loan.entity.enums.ApplicationStatus.DOCUMENT_VERIFICATION,
-                com.tss.loan.entity.enums.ApplicationStatus.UNDER_REVIEW,
-                com.tss.loan.entity.enums.ApplicationStatus.READY_FOR_DECISION
-            )
-        );
-        
-        long approvedApplications = loanApplicationRepository.countByStatus(
-            com.tss.loan.entity.enums.ApplicationStatus.APPROVED
-        );
-        
-        long rejectedApplications = loanApplicationRepository.countByStatus(
-            com.tss.loan.entity.enums.ApplicationStatus.REJECTED
-        );
-        
-        long activeUsers = userRepository.countByStatus(
-            com.tss.loan.entity.enums.UserStatus.ACTIVE
-        );
-        
-        // Build response
-        java.util.Map<String, Object> stats = new java.util.HashMap<>();
-        stats.put("totalUsers", totalUsers);
-        stats.put("totalOfficers", totalOfficers);
-        stats.put("totalApplications", totalApplications);
-        stats.put("pendingApplications", pendingApplications);
-        stats.put("approvedApplications", approvedApplications);
-        stats.put("rejectedApplications", rejectedApplications);
-        stats.put("activeUsers", activeUsers);
-        stats.put("systemHealth", pendingApplications > 50 ? "warning" : "good");
-        
-        log.info("Admin dashboard stats: {} users, {} officers, {} applications", 
-                totalUsers, totalOfficers, totalApplications);
-        
-        return ResponseEntity.ok(stats);
+        return ResponseEntity.ok(adminService.getDashboardStatistics());
+    }
+    
+    /**
+     * Get Recent Activities
+     */
+    @GetMapping("/recent-activities")
+    public ResponseEntity<List<java.util.Map<String, Object>>> getRecentActivities() {
+        return ResponseEntity.ok(adminService.getRecentActivities());
+    }
+    
+    /**
+     * Get Recent Applications (Last 5 for dashboard)
+     */
+    @GetMapping("/recent-applications")
+    public ResponseEntity<List<com.tss.loan.dto.response.LoanApplicationResponse>> getRecentApplications() {
+        return ResponseEntity.ok(adminService.getRecentApplications());
+    }
+    
+    /**
+     * Get All Applications (for "View All" page)
+     */
+    @GetMapping("/applications")
+    public ResponseEntity<List<com.tss.loan.dto.response.LoanApplicationResponse>> getAllApplications() {
+        return ResponseEntity.ok(adminService.getAllApplications());
+    }
+    
+    /**
+     * Get Application Details (Read-only for admin)
+     */
+    @GetMapping("/applications/{applicationId}")
+    public ResponseEntity<com.tss.loan.dto.response.CompleteApplicationDetailsResponse> getApplicationDetails(
+            @PathVariable java.util.UUID applicationId) {
+        return ResponseEntity.ok(adminService.getApplicationDetails(applicationId));
     }
     
     /**

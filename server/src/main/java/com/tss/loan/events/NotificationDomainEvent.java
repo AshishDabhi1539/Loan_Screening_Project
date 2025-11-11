@@ -7,6 +7,7 @@ import org.springframework.context.ApplicationEvent;
 
 import com.tss.loan.entity.enums.BusinessEventType;
 
+@SuppressWarnings("serial")
 public class NotificationDomainEvent extends ApplicationEvent {
     private final BusinessEventType eventType;
     private final UUID recipientUserId;

@@ -181,18 +181,14 @@ export interface SystemStats {
  * Recent activity
  */
 export interface RecentActivity {
-  id: string;
-  userId?: string;
-  userName?: string;
-  action?: string;
-  entityType?: string;
-  entityId?: string;
+  id: string | number;
+  action: string;
+  type: string;
+  description: string;
   timestamp: string | Date;
-  details?: string;
-  // Service-specific fields
-  type?: 'USER_REGISTRATION' | 'OFFICER_CREATED' | 'APPLICATION_SUBMITTED' | 'APPLICATION_APPROVED' | 'APPLICATION_REJECTED';
-  description?: string;
-  userEmail?: string;
+  entityType?: string;
+  userName?: string;
+  userType?: string; // Applicant, Loan Officer, etc.
 }
 
 /**
