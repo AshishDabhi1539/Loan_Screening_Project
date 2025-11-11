@@ -29,6 +29,7 @@ export class ApplicationDetailsComponent implements OnInit {
   documents = signal<any[]>([]);
   isLoadingDocuments = signal(false);
   confettiShown = signal(false);
+  showTimelineModal = signal(false);
 
   // Computed properties for approved applications
   isApproved = computed(() => {
@@ -177,6 +178,21 @@ export class ApplicationDetailsComponent implements OnInit {
 
   getStatusBadgeColor(status: string): string {
     return this.dashboardService.getStatusBadgeColor(status);
+  }
+
+  getStatusHeaderColor(status: string): string {
+    const colorMap: { [key: string]: string } = {
+      'DRAFT': 'bg-gradient-to-r from-slate-300 to-slate-400',
+      'SUBMITTED': 'bg-gradient-to-r from-sky-300 to-blue-300',
+      'UNDER_REVIEW': 'bg-gradient-to-r from-amber-200 to-yellow-300',
+      'PENDING_DOCUMENTS': 'bg-gradient-to-r from-orange-200 to-orange-300',
+      'APPROVED': 'bg-gradient-to-r from-emerald-300 to-green-300',
+      'AUTO_APPROVED': 'bg-gradient-to-r from-emerald-300 to-green-300',
+      'MANUAL_APPROVED': 'bg-gradient-to-r from-emerald-300 to-green-300',
+      'REJECTED': 'bg-gradient-to-r from-rose-300 to-red-300',
+      'CANCELLED': 'bg-gradient-to-r from-slate-300 to-slate-400'
+    };
+    return colorMap[status] || 'bg-gradient-to-r from-sky-300 to-blue-300';
   }
 
   formatCurrency(amount: number): string {
@@ -809,6 +825,183 @@ export class ApplicationDetailsComponent implements OnInit {
   }
 
   /**
+   * Open timeline modal
+   */
+  openTimelineModal(): void {
+    this.showTimelineModal.set(true);
+  }
+
+  /**
+   * Close timeline modal
+   */
+  closeTimelineModal(): void {
+    this.showTimelineModal.set(false);
+  }
+
+  /**
+   * Get timeline step status based on application status
+   */
+  getTimelineStepStatus(step: string): { status: 'completed' | 'current' | 'pending', color: string, icon: string } {
+    const app = this.app();
+    if (!app) return { status: 'pending', color: 'bg-gray-300', icon: 'clock' };
+
+    const currentStatus = app.status;
+    const isSubmitted = !!app.submittedAt;
+
+    switch (step) {
+      case 'created':
+        // Always completed since application exists
+        return { status: 'completed', color: 'bg-green-500', icon: 'check' };
+
+      case 'submitted':
+        if (isSubmitted) {
+          return { status: 'completed', color: 'bg-green-500', icon: 'check' };
+        }
+        return { status: 'pending', color: 'bg-gray-300', icon: 'clock' };
+
+      case 'review':
+        if (['REJECTED', 'APPROVED', 'AUTO_APPROVED', 'MANUAL_APPROVED'].includes(currentStatus)) {
+          return { status: 'completed', color: 'bg-green-500', icon: 'check' };
+        }
+        if (['UNDER_REVIEW', 'PENDING_DOCUMENTS'].includes(currentStatus)) {
+          return { status: 'current', color: 'bg-blue-500', icon: 'review' };
+        }
+        if (['PENDING_RESUBMISSION', 'PENDING_REVERIFICATION'].includes(currentStatus)) {
+          return { status: 'current', color: 'bg-orange-500', icon: 'processing' };
+        }
+        if (['RESUBMISSION_COMPLETED', 'SUBMITTED_REVERIFICATION'].includes(currentStatus)) {
+          return { status: 'current', color: 'bg-blue-500', icon: 'review' };
+        }
+        if (isSubmitted && !['DRAFT'].includes(currentStatus)) {
+          return { status: 'current', color: 'bg-yellow-500', icon: 'processing' };
+        }
+        return { status: 'pending', color: 'bg-gray-300', icon: 'clock' };
+
+      case 'decision':
+        if (['APPROVED', 'AUTO_APPROVED', 'MANUAL_APPROVED'].includes(currentStatus)) {
+          return { status: 'completed', color: 'bg-green-500', icon: 'approved' };
+        }
+        if (currentStatus === 'REJECTED') {
+          return { status: 'completed', color: 'bg-red-500', icon: 'rejected' };
+        }
+        return { status: 'pending', color: 'bg-gray-300', icon: 'clock' };
+
+      default:
+        return { status: 'pending', color: 'bg-gray-300', icon: 'clock' };
+    }
+  }
+
+  /**
+   * Get timeline step details based on application status
+   */
+  getTimelineStepDetails(step: string): { title: string, description: string, date?: string } {
+    const app = this.app();
+    if (!app) return { title: '', description: '' };
+
+    switch (step) {
+      case 'created':
+        return {
+          title: 'Application Created',
+          description: 'Your loan application has been successfully created',
+          date: app.createdAt
+        };
+
+      case 'submitted':
+        if (app.submittedAt) {
+          return {
+            title: 'Application Submitted',
+            description: 'Your application has been submitted for review',
+            date: app.submittedAt
+          };
+        }
+        return {
+          title: 'Application Submission',
+          description: 'Pending - Complete all sections to submit'
+        };
+
+      case 'review':
+        if (['REJECTED', 'APPROVED', 'AUTO_APPROVED', 'MANUAL_APPROVED'].includes(app.status)) {
+          return {
+            title: 'Review Completed',
+            description: 'Our team has completed the review of your application',
+            date: app.updatedAt
+          };
+        }
+        if (app.status === 'UNDER_REVIEW') {
+          return {
+            title: 'Under Review',
+            description: 'Our team is currently reviewing your application'
+          };
+        }
+        if (app.status === 'PENDING_DOCUMENTS') {
+          return {
+            title: 'Pending Documents',
+            description: 'Additional documents are required for processing'
+          };
+        }
+        if (app.status === 'PENDING_RESUBMISSION') {
+          return {
+            title: 'Document Resubmission Required',
+            description: 'Loan officer has requested additional documents. Please resubmit the required documents.'
+          };
+        }
+        if (app.status === 'RESUBMISSION_COMPLETED') {
+          return {
+            title: 'Documents Resubmitted',
+            description: 'Your documents have been resubmitted and are under review by the loan officer',
+            date: app.updatedAt
+          };
+        }
+        if (app.status === 'PENDING_REVERIFICATION') {
+          return {
+            title: 'Document Reverification Required',
+            description: 'Compliance officer has requested document reverification. Please submit the required documents.'
+          };
+        }
+        if (app.status === 'SUBMITTED_REVERIFICATION') {
+          return {
+            title: 'Reverification Documents Submitted',
+            description: 'Your reverification documents have been submitted and are under compliance review',
+            date: app.updatedAt
+          };
+        }
+        if (app.submittedAt && !['DRAFT'].includes(app.status)) {
+          return {
+            title: 'Processing',
+            description: `Your application is being processed - Status: ${this.getStatusDisplay(app.status)}`
+          };
+        }
+        return {
+          title: 'Review Process',
+          description: 'Pending - Submit application to start review'
+        };
+
+      case 'decision':
+        if (['APPROVED', 'AUTO_APPROVED', 'MANUAL_APPROVED'].includes(app.status)) {
+          return {
+            title: 'Application Approved! 🎉',
+            description: 'Congratulations! Your loan application has been approved',
+            date: app.updatedAt
+          };
+        }
+        if (app.status === 'REJECTED') {
+          return {
+            title: 'Application Rejected',
+            description: 'Unfortunately, your application was not approved at this time',
+            date: app.updatedAt
+          };
+        }
+        return {
+          title: 'Final Decision',
+          description: 'Pending - Awaiting review completion'
+        };
+
+      default:
+        return { title: '', description: '' };
+    }
+  }
+
+  /**
    * Trigger confetti animation for approved applications
    */
   private async triggerConfetti(): Promise<void> {
@@ -912,5 +1105,3 @@ export class ApplicationDetailsComponent implements OnInit {
     }
   }
 }
-
-

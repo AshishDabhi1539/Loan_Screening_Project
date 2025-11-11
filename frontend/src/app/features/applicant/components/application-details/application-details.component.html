@@ -1,18 +1,18 @@
-<div class="min-h-screen bg-gradient-to-br from-primary-50 to-accent-50 pt-2 pb-8 px-4">
+<div class="min-h-screen bg-gray-50 py-6 px-4">
   <div class="max-w-5xl mx-auto">
     
     <!-- Header -->
     <div class="pb-4 mb-6">
       <div class="flex items-center justify-between">
         <a routerLink="/applicant/applications" 
-          class="px-6 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors flex items-center no-underline">
+          class="px-6 py-2 border-2 border-primary-600 text-primary-600 bg-white rounded-md hover:bg-primary-50 transition-colors flex items-center no-underline">
           <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
           </svg>
           Back
         </a>
         <button type="button" (click)="onDownloadPdf()" 
-          class="px-6 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors flex items-center">
+          class="px-6 py-2 border-2 border-primary-600 text-primary-600 bg-white rounded-md hover:bg-primary-50 transition-colors flex items-center">
           <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
           </svg>
@@ -245,223 +245,240 @@
         </div>
       }
 
-      <!-- Application Information Card - All sections in 2-column layout -->
-      <div class="bg-white rounded-lg shadow-md border border-gray-200 mb-6 overflow-hidden">
-        <!-- Header -->
-        <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
-          <div class="flex items-center justify-between">
-            <div>
-              <h2 class="text-2xl font-bold text-gray-900">{{ getLoanTypeDisplay(app()!.loanType) }}</h2>
-              <p class="text-sm text-gray-600 mt-1">Application ID: {{ app()!.id }}</p>
+      
+      
+      <!-- Header -->
+      <div class="bg-gradient-to-r from-primary-600 to-primary-700 rounded-lg shadow-lg p-6 mb-6 text-white">
+        <div class="flex items-center justify-between flex-wrap gap-4">
+          <div class="flex items-center space-x-4">
+            <div class="bg-white/20 backdrop-blur-sm rounded-lg p-3">
+              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              </svg>
             </div>
-            <div class="text-right">
-              <div class="text-3xl font-bold text-primary-600">{{ formatCurrency(app()!.requestedAmount) }}</div>
-              <div class="text-sm text-gray-600">Requested Amount</div>
+            <div>
+              <h1 class="text-2xl font-bold text-white">{{ getLoanTypeDisplay(app()!.loanType) }}</h1>
+              <p class="text-white/80 text-sm mt-1">Application ID: {{ app()!.id.substring(0, 8) }}...</p>
             </div>
           </div>
-          <div class="flex items-center gap-3 mt-3">
-            <span class="px-3 py-1 rounded-full text-sm font-medium {{ getStatusBadgeColor(app()!.status) }}">
-              {{ getStatusDisplay(app()!.status) }}
-            </span>
-            @if (app()!.riskLevel) {
-              <span class="px-3 py-1 rounded-full text-xs font-medium {{ getRiskLevelColor(app()!.riskLevel) }}">
-                Risk: {{ app()!.riskLevel }}
-              </span>
-            }
+          <div class="text-right bg-white/10 backdrop-blur-sm rounded-lg px-4 py-3 border border-white/20">
+            <div class="text-xs text-white/70 font-medium uppercase tracking-wide">Requested Amount</div>
+            <div class="font-mono text-lg font-bold text-white mt-1">{{ formatCurrency(app()!.requestedAmount) }}</div>
+            <div class="text-xs text-white/60 mt-1">{{ app()!.createdAt | date:'short' }}</div>
           </div>
         </div>
 
-        <!-- Content in 2-column structure -->
-        <div class="p-6">
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <!-- Left Column -->
-            <div class="space-y-6">
-              <!-- Loan Information -->
-              <div>
-                <h3 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200">Loan Information</h3>
-                <div class="space-y-4">
-                  <div>
-                    <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">Loan Type</div>
-                    <div class="text-base font-medium text-gray-900">{{ getLoanTypeDisplay(app()!.loanType) }}</div>
-                  </div>
-                  <div>
-                    <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">Tenure</div>
-                    <div class="text-base font-medium text-gray-900">{{ app()!.tenureMonths }} months</div>
-                  </div>
-                  <div>
-                    <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">Monthly EMI</div>
-                    <div class="text-base font-medium text-gray-900">{{ calculateEMI(app()!.requestedAmount, app()!.tenureMonths) }}</div>
-                  </div>
-                  <div>
-                    <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">Interest Rate</div>
-                    <div class="text-base font-medium text-gray-900">{{ getInterestRate(app()!.loanType) }}% p.a.</div>
-                  </div>
-                  <div>
-                    <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">Purpose</div>
-                    <div class="text-base font-medium text-gray-900">{{ app()!.purpose }}</div>
-                  </div>
-                </div>
+        <!-- Status -->
+        <div class="mt-6">
+          <div class="flex items-center justify-between bg-white/10 backdrop-blur-sm px-4 py-3 rounded-lg border border-white/20">
+            <div class="flex items-center">
+              <div class="bg-blue-500 rounded-full p-2 mr-3">
+                <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                </svg>
               </div>
-
-              <!-- Applicant Information -->
               <div>
-                <h3 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200">Applicant Information</h3>
-                <div class="space-y-4">
-                  <div>
-                    <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">Full Name</div>
-                    <div class="text-base font-medium text-gray-900">{{ app()!.applicantName }}</div>
-                  </div>
-                  <div>
-                    <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">Email Address</div>
-                    <div class="text-base font-medium text-gray-900">{{ app()!.applicantEmail }}</div>
-                  </div>
-                  <div>
-                    <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">Phone Number</div>
-                    <div class="text-base font-medium text-gray-900">{{ app()!.applicantPhone }}</div>
-                  </div>
-                </div>
+                <div class="font-semibold text-white">Current Status</div>
+                <div class="text-sm text-white/80">{{ getStatusDisplay(app()!.status) }}</div>
               </div>
             </div>
-
-            <!-- Right Column -->
-            <div class="space-y-6">
-              <!-- Application Dates -->
-              <div>
-                <h3 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200">Application Dates</h3>
-                <div class="space-y-4">
-                  <div>
-                    <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">Application Date</div>
-                    <div class="text-base font-medium text-gray-900">{{ app()!.createdAt | date:'medium' }}</div>
-                  </div>
-                  @if (!isIncomplete() && app()!.submittedAt) {
-                    <div>
-                      <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">Submitted Date</div>
-                      <div class="text-base font-medium text-gray-900">{{ app()!.submittedAt | date:'medium' }}</div>
-                    </div>
-                  }
-                  <div>
-                    <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">Last Updated</div>
-                    <div class="text-base font-medium text-gray-900">{{ app()!.updatedAt | date:'medium' }}</div>
-                  </div>
-                </div>
+            @if (app()!.riskLevel) {
+              <div class="bg-white/20 rounded-lg px-3 py-1">
+                <span class="text-xs font-bold text-white">Risk: {{ app()!.riskLevel }}</span>
               </div>
-
-              <!-- Timeline - Only show for submitted applications -->
-              @if (!isIncomplete()) {
-                <div>
-                  <h3 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200">Application Timeline</h3>
-                  <div class="space-y-4">
-                    <div class="flex items-center">
-                      <div class="flex-shrink-0 w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
-                        <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                        </svg>
-                      </div>
-                      <div class="ml-4">
-                        <div class="font-medium text-gray-900">Application Submitted</div>
-                        <div class="text-sm text-gray-600">{{ app()!.submittedAt | date:'medium' }}</div>
-                      </div>
-                    </div>
-                    <div class="flex items-center">
-                      <div class="flex-shrink-0 w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
-                        <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                        </svg>
-                      </div>
-                      <div class="ml-4">
-                        <div class="font-medium text-gray-900">Under Review</div>
-                        <div class="text-sm text-gray-600">Current Status: {{ getStatusDisplay(app()!.status) }}</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              }
-            </div>
+            }
           </div>
         </div>
       </div>
 
-      <!-- Submitted Documents - Only show for submitted applications -->
-      @if (!isIncomplete()) {
-        <div class="bg-white rounded-lg shadow-md border border-gray-200 mb-6 overflow-hidden">
-          <div class="px-6 py-4 bg-gradient-to-r from-cyan-50 to-blue-50 border-b border-cyan-200">
-            <h3 class="text-lg font-semibold text-gray-900">Submitted Documents</h3>
+      <!-- Application Information Card -->
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+
+        <!-- Loan Details Section -->
+        <div class="flex items-center mb-6">
+          <div class="bg-primary-50 rounded-lg p-3 mr-4">
+            <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
           </div>
-          <div class="p-6">
-            @if (isLoadingDocuments()) {
-              <div class="text-center py-8">
-                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto mb-2"></div>
-                <p class="text-sm text-gray-600">Loading documents...</p>
-              </div>
-            } @else if (documents().length === 0) {
-              <div class="text-center py-8">
-                <svg class="mx-auto h-12 w-12 text-gray-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          <div>
+            <h2 class="text-xl font-semibold text-gray-900">Loan Details</h2>
+            <p class="text-sm text-gray-600 mt-1">Your loan request information</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-8">
+          <div class="bg-gray-50 rounded-md p-3 border border-gray-200">
+            <div class="text-xs text-gray-500 uppercase font-medium mb-1">Loan Type</div>
+            <div class="font-semibold text-gray-900 text-sm">{{ getLoanTypeDisplay(app()!.loanType) }}</div>
+          </div>
+          <div class="bg-gray-50 rounded-md p-3 border border-gray-200">
+            <div class="text-xs text-gray-500 uppercase font-medium mb-1">Tenure</div>
+            <div class="font-semibold text-gray-900 text-sm">{{ app()!.tenureMonths }} months</div>
+            <div class="text-xs text-gray-600 mt-0.5">({{ (app()!.tenureMonths / 12) | number:'1.0-1' }} years)</div>
+          </div>
+          <div class="bg-primary-50 rounded-md p-3 border border-primary-200">
+            <div class="text-xs text-primary-700 uppercase font-medium mb-1">Monthly EMI</div>
+            <div class="font-bold text-primary-900 text-base">{{ calculateEMI(app()!.requestedAmount, app()!.tenureMonths) }}</div>
+          </div>
+          <div class="bg-gray-50 rounded-md p-3 border border-gray-200">
+            <div class="text-xs text-gray-500 uppercase font-medium mb-1">Interest Rate</div>
+            <div class="font-medium text-gray-900 text-sm">{{ getInterestRate(app()!.loanType) }}% p.a.</div>
+          </div>
+          <div class="bg-gray-50 rounded-md p-3 border border-gray-200">
+            <div class="text-xs text-gray-500 uppercase font-medium mb-1">Purpose</div>
+            <div class="font-medium text-gray-900 text-sm">{{ app()!.purpose }}</div>
+          </div>
+        </div>
+
+        <!-- Applicant Information Section -->
+        <div class="flex items-center mb-6">
+          <div class="bg-green-50 rounded-lg p-3 mr-4">
+            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+            </svg>
+          </div>
+          <div>
+            <h2 class="text-xl font-semibold text-gray-900">Applicant Information</h2>
+            <p class="text-sm text-gray-600 mt-1">Your personal and contact details</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-8">
+          <div class="bg-gray-50 rounded-md p-3 border border-gray-200">
+            <div class="text-xs text-gray-500 uppercase font-medium mb-1">Full Name</div>
+            <div class="font-semibold text-gray-900 text-sm">{{ app()!.applicantName }}</div>
+          </div>
+          <div class="bg-gray-50 rounded-md p-3 border border-gray-200">
+            <div class="text-xs text-gray-500 uppercase font-medium mb-1">Email Address</div>
+            <div class="font-medium text-gray-900 text-sm">{{ app()!.applicantEmail }}</div>
+          </div>
+          <div class="bg-gray-50 rounded-md p-3 border border-gray-200">
+            <div class="text-xs text-gray-500 uppercase font-medium mb-1">Phone Number</div>
+            <div class="font-medium text-gray-900 text-sm">{{ app()!.applicantPhone }}</div>
+          </div>
+        </div>
+
+        <!-- Application Timeline Section -->
+        @if (!isIncomplete()) {
+          <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center">
+              <div class="bg-blue-50 rounded-lg p-3 mr-4">
+                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
-                <p class="text-sm text-gray-600">No documents submitted yet</p>
               </div>
-            } @else {
-              <div class="overflow-x-auto">
-                <table class="w-full divide-y divide-gray-200">
-                  <thead class="bg-gray-50">
-                    <tr>
-                      <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Document Type</th>
-                      <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">File Name</th>
-                      <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Uploaded Date</th>
-                      <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody class="bg-white divide-y divide-gray-200">
-                    @for (doc of documents(); track doc.id) {
-                      <tr class="hover:bg-gray-50">
-                        <td class="px-4 py-3 whitespace-nowrap">
-                          <div class="text-sm font-medium text-gray-900">{{ getDocumentTypeDisplay(doc.documentType) }}</div>
-                        </td>
-                        <td class="px-4 py-3">
-                          <div class="text-sm text-gray-900">{{ doc.fileName }}</div>
-                        </td>
-                        <td class="px-4 py-3 whitespace-nowrap">
-                          <div class="text-sm text-gray-600">{{ formatDate(doc.uploadedAt) }}</div>
-                        </td>
-                        <td class="px-4 py-3 whitespace-nowrap">
-                          <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full"
-                            [class.bg-green-100]="doc.status === 'VERIFIED'"
-                            [class.text-green-800]="doc.status === 'VERIFIED'"
-                            [class.bg-yellow-100]="doc.status === 'PENDING'"
-                            [class.text-yellow-800]="doc.status === 'PENDING'"
-                            [class.bg-red-100]="doc.status === 'REJECTED'"
-                            [class.text-red-800]="doc.status === 'REJECTED'">
-                            {{ doc.status }}
-                          </span>
-                        </td>
-                        <td class="px-4 py-3 whitespace-nowrap text-center">
-                          <button
-                            type="button"
-                            (click)="downloadDocument(doc.id, doc.fileName)"
-                            class="text-primary-600 hover:text-primary-900 transition-colors"
-                            title="Download Document">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                            </svg>
-                          </button>
-                        </td>
-                      </tr>
-                    }
-                  </tbody>
-                </table>
+              <div>
+                <h2 class="text-xl font-semibold text-gray-900">Application Timeline</h2>
+                <p class="text-sm text-gray-600 mt-1">Track your application progress</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              (click)="openTimelineModal()"
+              class="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium shadow-sm">
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+              </svg>
+              View Timeline
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div class="bg-gray-50 rounded-md p-3 border border-gray-200">
+              <div class="text-xs text-gray-500 uppercase font-medium mb-1">Application Date</div>
+              <div class="font-medium text-gray-900 text-sm">{{ app()!.createdAt | date:'medium' }}</div>
+            </div>
+            @if (app()!.submittedAt) {
+              <div class="bg-gray-50 rounded-md p-3 border border-gray-200">
+                <div class="text-xs text-gray-500 uppercase font-medium mb-1">Submitted Date</div>
+                <div class="font-medium text-gray-900 text-sm">{{ app()!.submittedAt | date:'medium' }}</div>
               </div>
             }
+            <div class="bg-gray-50 rounded-md p-3 border border-gray-200">
+              <div class="text-xs text-gray-500 uppercase font-medium mb-1">Last Updated</div>
+              <div class="font-medium text-gray-900 text-sm">{{ app()!.updatedAt | date:'medium' }}</div>
+            </div>
           </div>
+        }
+      </div>
+
+      <!-- Submitted Documents - Only show for submitted applications -->
+      @if (!isIncomplete()) {
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+          <div class="flex items-center mb-6">
+            <div class="bg-purple-50 rounded-lg p-3 mr-4">
+              <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              </svg>
+            </div>
+            <div>
+              <h2 class="text-xl font-semibold text-gray-900">Submitted Documents</h2>
+              <p class="text-sm text-gray-600 mt-1">{{ documents().length }} document(s) uploaded</p>
+            </div>
+          </div>
+
+          @if (isLoadingDocuments()) {
+            <div class="text-center py-8">
+              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto mb-2"></div>
+              <p class="text-sm text-gray-600">Loading documents...</p>
+            </div>
+          } @else if (documents().length === 0) {
+            <div class="text-center py-8">
+              <svg class="mx-auto h-12 w-12 text-gray-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              </svg>
+              <p class="text-sm text-gray-600">No documents submitted yet</p>
+            </div>
+          } @else {
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              @for (doc of documents(); track doc.id) {
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-md border border-gray-200 hover:bg-gray-100 transition-colors">
+                  <div class="flex items-center flex-1">
+                    <div class="bg-primary-100 rounded-md p-2 mr-3">
+                      <svg class="w-4 h-4 text-primary-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/>
+                      </svg>
+                    </div>
+                    <div class="flex-1">
+                      <div class="font-semibold text-gray-900 text-sm">{{ getDocumentTypeDisplay(doc.documentType) }}</div>
+                      <div class="text-xs text-gray-500 mt-0.5">{{ doc.fileName }} • {{ formatDate(doc.uploadedAt) }}</div>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full uppercase"
+                      [class.bg-green-100]="doc.status === 'VERIFIED'"
+                      [class.text-green-800]="doc.status === 'VERIFIED'"
+                      [class.bg-yellow-100]="doc.status === 'PENDING'"
+                      [class.text-yellow-800]="doc.status === 'PENDING'"
+                      [class.bg-red-100]="doc.status === 'REJECTED'"
+                      [class.text-red-800]="doc.status === 'REJECTED'">
+                      {{ doc.status }}
+                    </span>
+                    <button
+                      type="button"
+                      (click)="downloadDocument(doc.id, doc.fileName)"
+                      class="p-1.5 text-primary-600 hover:text-primary-700 hover:bg-primary-50 rounded transition-colors"
+                      title="Download Document">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+          }
         </div>
       }
 
       <!-- Action Buttons -->
       @if (isIncomplete()) {
-        <div class="bg-white rounded-lg shadow-md border border-gray-200">
-          <div class="p-6">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div class="flex justify-center">
             <button type="button" (click)="resumeApplication()" 
-              class="flex items-center px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors font-semibold">
+              class="flex items-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium shadow-sm">
               <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -471,6 +488,138 @@
           </div>
         </div>
       }
+    }
+
+    <!-- Timeline Modal -->
+    @if (showTimelineModal()) {
+      <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" (click)="closeTimelineModal()">
+        <div class="bg-white rounded-lg shadow-xl max-w-xl w-full mx-4 max-h-[85vh] overflow-y-auto scrollbar-hide" (click)="$event.stopPropagation()" style="scrollbar-width: none; -ms-overflow-style: none;">
+          <style>
+            .scrollbar-hide::-webkit-scrollbar {
+              display: none;
+            }
+          </style>
+          <!-- Modal Header -->
+          <div class="flex items-center justify-between p-4 border-b border-gray-200">
+            <div class="flex items-center">
+              <div class="bg-blue-50 rounded-lg p-2 mr-3">
+                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+              </div>
+              <div>
+                <h3 class="text-lg font-semibold text-gray-900">Application Timeline</h3>
+                <p class="text-xs text-gray-600 mt-0.5">Track your application progress</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              (click)="closeTimelineModal()"
+              class="text-gray-400 hover:text-gray-600 transition-colors">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Modal Content - Vertical Timeline -->
+          <div class="p-4">
+            <div class="relative">
+              <!-- Vertical Line - stops before the last step -->
+              <div class="absolute left-6 top-6 w-0.5 bg-gray-200" style="height: calc(100% - 120px);"></div>
+              
+              <!-- Timeline Steps -->
+              <div class="space-y-4">
+                @for (step of ['created', 'submitted', 'review', 'decision']; track step) {
+                  <div class="relative flex items-start">
+                    <div class="flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center relative z-10" [ngClass]="getTimelineStepStatus(step).color">
+                      @switch (getTimelineStepStatus(step).icon) {
+                        @case ('check') {
+                          <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                          </svg>
+                        }
+                        @case ('review') {
+                          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                          </svg>
+                        }
+                        @case ('processing') {
+                          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                          </svg>
+                        }
+                        @case ('approved') {
+                          <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                          </svg>
+                        }
+                        @case ('rejected') {
+                          <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                          </svg>
+                        }
+                        @default {
+                          <svg class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                          </svg>
+                        }
+                      }
+                    </div>
+                    <div class="ml-4 flex-1">
+                      <div class="rounded-lg p-3 shadow-sm border" 
+                           [ngClass]="{
+                             'bg-white border-gray-200': getTimelineStepStatus(step).status === 'completed' || getTimelineStepStatus(step).status === 'current',
+                             'bg-gray-50 border-gray-200': getTimelineStepStatus(step).status === 'pending',
+                             'bg-green-50 border-green-200': step === 'decision' && getTimelineStepStatus(step).status === 'completed' && getTimelineStepStatus(step).color === 'bg-green-500',
+                             'bg-red-50 border-red-200': step === 'decision' && getTimelineStepStatus(step).status === 'completed' && getTimelineStepStatus(step).color === 'bg-red-500'
+                           }">
+                        <h4 class="text-base font-semibold" 
+                            [ngClass]="{
+                              'text-gray-900': getTimelineStepStatus(step).status === 'completed' || getTimelineStepStatus(step).status === 'current',
+                              'text-gray-500': getTimelineStepStatus(step).status === 'pending',
+                              'text-green-900': step === 'decision' && getTimelineStepStatus(step).status === 'completed' && getTimelineStepStatus(step).color === 'bg-green-500',
+                              'text-red-900': step === 'decision' && getTimelineStepStatus(step).status === 'completed' && getTimelineStepStatus(step).color === 'bg-red-500'
+                            }">{{ getTimelineStepDetails(step).title }}</h4>
+                        <p class="text-xs mt-1" 
+                           [ngClass]="{
+                             'text-gray-600': getTimelineStepStatus(step).status === 'completed' || getTimelineStepStatus(step).status === 'current',
+                             'text-gray-400': getTimelineStepStatus(step).status === 'pending',
+                             'text-green-700': step === 'decision' && getTimelineStepStatus(step).status === 'completed' && getTimelineStepStatus(step).color === 'bg-green-500',
+                             'text-red-700': step === 'decision' && getTimelineStepStatus(step).status === 'completed' && getTimelineStepStatus(step).color === 'bg-red-500'
+                           }">{{ getTimelineStepDetails(step).description }}</p>
+                        @if (getTimelineStepDetails(step).date) {
+                          <div class="mt-2 flex items-center text-xs" 
+                               [ngClass]="{
+                                 'text-gray-500': getTimelineStepStatus(step).status === 'completed' || getTimelineStepStatus(step).status === 'current',
+                                 'text-green-600': step === 'decision' && getTimelineStepStatus(step).status === 'completed' && getTimelineStepStatus(step).color === 'bg-green-500',
+                                 'text-red-600': step === 'decision' && getTimelineStepStatus(step).status === 'completed' && getTimelineStepStatus(step).color === 'bg-red-500'
+                               }">
+                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            {{ getTimelineStepDetails(step).date | date:'medium' }}
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+
+          <!-- Modal Footer -->
+          <div class="flex justify-end p-4 border-t border-gray-200">
+            <button
+              type="button"
+              (click)="closeTimelineModal()"
+              class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium text-sm">
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
     }
   </div>
 </div>
