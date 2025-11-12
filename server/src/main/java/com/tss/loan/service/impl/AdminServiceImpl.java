@@ -216,7 +216,7 @@ public class AdminServiceImpl implements AdminService {
         
         String action = auditLog.getAction();
         
-        // Only CRITICAL business activities for admin dashboard
+        // Include the actual actions from your database
         return action.equals("USER_REGISTRATION") ||
                action.equals("OFFICER_CREATED") ||
                action.equals("LOAN_APPLICATION_SUBMITTED") ||
@@ -226,7 +226,11 @@ public class AdminServiceImpl implements AdminService {
                action.equals("STATUS_CHANGED") ||
                action.equals("DOCUMENT_UPLOADED") ||
                action.equals("COMPLIANCE_REVIEW_COMPLETED") ||
-               action.equals("DECISION_MADE");
+               action.equals("DECISION_MADE") ||
+               action.equals("COMPLETE_APPLICATION_DETAILS") ||
+               action.equals("USER_UPDATED") ||
+               action.equals("LOGIN") ||
+               action.equals("LOGOUT");
     }
     
     /**
