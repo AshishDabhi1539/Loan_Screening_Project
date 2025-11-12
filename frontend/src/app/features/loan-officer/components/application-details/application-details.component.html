@@ -74,29 +74,29 @@
     </div>
 
     <!-- Progress Indicator - Enhanced Design (Show only for active workflow) -->
-    @if (app.status !== 'APPROVED' && 
+    <!-- @if (app.status !== 'APPROVED' && 
          app.status !== 'REJECTED' && 
          app.status !== 'DISBURSED' &&
          app.status !== 'CANCELLED') {
     <div class="bg-white shadow-lg rounded-xl p-8">
-      <h3 class="text-xl font-bold text-gray-900 mb-8">Application Progress</h3>
+      <h3 class="text-xl font-bold text-gray-900 mb-8">Application Progress</h3> -->
       
       <!-- Progress Stepper -->
-      <div class="relative">
+      <!-- <div class="relative"> -->
         <!-- Progress Line Background -->
-        <div class="absolute top-6 left-0 right-0 h-1.5 bg-gray-200 rounded-full" style="z-index: 0;"></div>
+        <!-- <div class="absolute top-6 left-0 right-0 h-1.5 bg-gray-200 rounded-full" style="z-index: 0;"></div> -->
         
         <!-- Progress Line Active -->
-        <div class="absolute top-6 left-0 h-1.5 bg-gradient-to-r from-green-500 via-green-400 to-blue-500 rounded-full transition-all duration-700 ease-in-out shadow-md" 
+        <!-- <div class="absolute top-6 left-0 h-1.5 bg-gradient-to-r from-green-500 via-green-400 to-blue-500 rounded-full transition-all duration-700 ease-in-out shadow-md" 
              [style.width.%]="getProgressPercentage()" 
-             style="z-index: 1;"></div>
+             style="z-index: 1;"></div> -->
         
         <!-- Steps -->
-        <div class="relative flex justify-between" style="z-index: 2;">
+        <!-- <div class="relative flex justify-between" style="z-index: 2;">
           @for (step of getProgressSteps(); track step.name; let i = $index) {
-            <div class="flex flex-col items-center" [style.flex]="'1'">
+            <div class="flex flex-col items-center" [style.flex]="'1'"> -->
               <!-- Step Circle -->
-              <div class="relative">
+              <!-- <div class="relative">
                 <div [ngClass]="{
                   'bg-gradient-to-br from-blue-500 to-blue-600 shadow-xl shadow-blue-500/40 scale-110': step.status === 'current',
                   'bg-gradient-to-br from-green-500 to-green-600 shadow-lg shadow-green-500/30': step.status === 'completed',
@@ -112,26 +112,26 @@
                   } @else {
                     <span class="text-gray-500 opacity-70">{{ i + 1 }}</span>
                   }
-                </div>
+                </div> -->
                 
                 <!-- Slow Pulse Animation for Current Step -->
-                @if (step.status === 'current') {
+                <!-- @if (step.status === 'current') {
                   <div class="absolute inset-0 rounded-full bg-blue-400 slow-ping opacity-40"></div>
                 }
-              </div>
+              </div> -->
               
               <!-- Step Label -->
-              <div class="mt-4 text-center max-w-[120px]">
+              <!-- <div class="mt-4 text-center max-w-[120px]">
                 <div [ngClass]="{
                   'text-blue-600 font-bold': step.status === 'current',
                   'text-green-600 font-semibold': step.status === 'completed',
                   'text-gray-500 font-medium': step.status === 'pending'
                 }" class="text-sm leading-tight">
                   {{ step.name }}
-                </div>
+                </div> -->
                 
                 <!-- Status Badge -->
-                <div class="mt-2">
+                <!-- <div class="mt-2">
                   @if (step.status === 'completed') {
                     <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 shadow-sm">
                       <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
@@ -159,7 +159,7 @@
         </div>
       </div>
     </div>
-    }
+    } -->
 
     <!-- Tabs Navigation -->
     <div class="bg-white shadow rounded-lg">
