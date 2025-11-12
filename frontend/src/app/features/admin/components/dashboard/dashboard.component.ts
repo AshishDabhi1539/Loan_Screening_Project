@@ -152,14 +152,13 @@ export class DashboardComponent implements OnInit {
   /**
    * Format date for display
    */
-  formatDate(date: Date): string {
+  formatDate(date: Date | string): string {
+    const dateObj = date instanceof Date ? date : new Date(date);
     return new Intl.DateTimeFormat('en-IN', {
       year: 'numeric',
       month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(date);
+      day: 'numeric'
+    }).format(dateObj);
   }
 
   /**

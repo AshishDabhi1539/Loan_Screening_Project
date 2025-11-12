@@ -1,0 +1,51 @@
+/* Application Details Component Styles */
+
+/* Loading spinner animation */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Smooth transitions */
+button {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Card hover effects */
+.bg-white:hover {
+  transition: box-shadow 0.2s ease-in-out;
+}
+
+/* Badge styles */
+.rounded-full {
+  white-space: nowrap;
+}
+
+/* Document card hover */
+.bg-gray-50:hover {
+  background-color: #f9fafb;
+}
+
+/* Grid responsive adjustments */
+@media (max-width: 768px) {
+  .grid-cols-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Print styles */
+@media print {
+  button {
+    display: none;
+  }
+  
+  .shadow-sm,
+  .shadow-lg {
+    box-shadow: none;
+  }
+}

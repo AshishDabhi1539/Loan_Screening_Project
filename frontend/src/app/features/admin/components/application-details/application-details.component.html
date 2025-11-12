@@ -1,0 +1,495 @@
+<!-- Admin Application Details - Full Viewport -->
+<div class="space-y-6">
+
+  @if (isLoading()) {
+    <!-- Loading State -->
+    <div class="flex justify-center items-center py-12">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+    </div>
+  } @else if (applicationDetails()) {
+    <!-- Application Details Content -->
+    <ng-container *ngIf="applicationDetails() as details">
+      <ng-container *ngIf="details.applicationInfo as app">
+
+    <!-- Header with Application Info and Actions -->
+    <div class="bg-white shadow rounded-lg p-6">
+      <div class="flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <div class="flex items-center space-x-3">
+            <!-- Loan Type with Icon -->
+            <div class="flex items-center space-x-2">
+              @if (app.loanType === 'PERSONAL_LOAN') {
+                <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                  </svg>
+                </div>
+              } @else if (app.loanType === 'HOME_LOAN') {
+                <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                  <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                  </svg>
+                </div>
+              } @else if (app.loanType === 'CAR_LOAN') {
+                <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                  <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
+                  </svg>
+                </div>
+              } @else {
+                <div class="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
+                  <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                  </svg>
+                </div>
+              }
+              <h1 class="text-2xl font-bold text-gray-900">{{ app.loanType }}</h1>
+            </div>
+            <span [class]="'px-3 py-1 text-sm font-semibold rounded-full ' + getStatusBadgeClass(formatStatus(app.status))">
+              {{ formatStatus(app.status) }}
+            </span>
+            <span [class]="'px-3 py-1 text-sm font-semibold rounded-full ' + getPriorityBadgeClass(app.priority || 'MEDIUM')">
+              {{ app.priority || 'MEDIUM' }} Priority
+            </span>
+          </div>
+          <p class="mt-2 text-sm text-gray-500">
+            Application ID: {{ app.id }} • Submitted: {{ formatDate(app.submittedAt) }}
+          </p>
+        </div>
+        <div class="flex items-center space-x-3">
+          <button
+            (click)="onDownloadPdf()"
+            class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            Download PDF
+          </button>
+          <button
+            (click)="goBack()"
+            class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+            </svg>
+            Back to Applications
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs Navigation -->
+    <div class="bg-white shadow rounded-lg">
+      <div class="border-b border-gray-200 overflow-x-auto scrollbar-hide">
+        <nav class="flex -mb-px min-w-max" aria-label="Tabs">
+          <button
+            (click)="setActiveTab('overview')"
+            [ngClass]="{
+              'border-blue-500 text-blue-600': activeTab() === 'overview',
+              'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab() !== 'overview'
+            }"
+            class="whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm"
+          >
+            Overview
+          </button>
+          <button
+            (click)="setActiveTab('personal')"
+            [ngClass]="{
+              'border-blue-500 text-blue-600': activeTab() === 'personal',
+              'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab() !== 'personal'
+            }"
+            class="whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm"
+          >
+            Applicant Identity
+          </button>
+          <button
+            (click)="setActiveTab('financial')"
+            [ngClass]="{
+              'border-blue-500 text-blue-600': activeTab() === 'financial',
+              'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab() !== 'financial'
+            }"
+            class="whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm"
+          >
+            Employment Details
+          </button>
+          <button
+            (click)="setActiveTab('documents')"
+            [ngClass]="{
+              'border-blue-500 text-blue-600': activeTab() === 'documents',
+              'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab() !== 'documents'
+            }"
+            class="whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm"
+          >
+            Uploaded Documents
+            @if (applicationDetails()!.documents && applicationDetails()!.documents.length > 0) {
+              <span class="ml-2 px-2 py-0.5 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                {{ applicationDetails()!.documents.length }}
+              </span>
+            }
+          </button>
+        </nav>
+      </div>
+
+      <!-- Tab Content -->
+      <div class="p-6">
+        <!-- Overview Tab -->
+        @if (activeTab() === 'overview') {
+          <div class="space-y-6">
+            <!-- Loan Information -->
+            <div>
+              <h3 class="text-lg font-semibold text-gray-900 mb-4">Loan Information</h3>
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="bg-gray-50 rounded-lg p-4">
+                  <div class="text-sm text-gray-500">Loan Type</div>
+                  <div class="text-lg font-semibold text-gray-900 mt-1">{{ app.loanType }}</div>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4">
+                  <div class="text-sm text-gray-500">Requested Amount</div>
+                  <div class="text-lg font-semibold text-gray-900 mt-1">{{ formatCurrency(app.loanAmount) }}</div>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4">
+                  <div class="text-sm text-gray-500">Tenure</div>
+                  <div class="text-lg font-semibold text-gray-900 mt-1">{{ app.tenureMonths }} months</div>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4">
+                  <div class="text-sm text-gray-500">Purpose</div>
+                  <div class="text-lg font-medium text-gray-900 mt-1">{{ app.purpose || 'Not specified' }}</div>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4">
+                  <div class="text-sm text-gray-500">Risk Level</div>
+                  <div class="mt-1">
+                    <span [class]="'px-2 py-1 text-sm font-semibold rounded-full ' + getRiskLevelBadgeClass(details.financialAssessment.riskAssessment.riskLevel || 'MEDIUM')">
+                      {{ details.financialAssessment.riskAssessment.riskLevel || 'MEDIUM' }}
+                    </span>
+                  </div>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4">
+                  <div class="text-sm text-gray-500">Assigned Officer</div>
+                  <div class="text-lg font-semibold text-gray-900 mt-1">{{ app.assignedOfficerName || 'Unassigned' }}</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Applicant Information -->
+            <div>
+              <h3 class="text-lg font-semibold text-gray-900 mb-4">Applicant Information</h3>
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="bg-gray-50 rounded-lg p-4">
+                  <div class="text-sm text-gray-500">Full Name</div>
+                  <div class="text-lg font-semibold text-gray-900 mt-1">{{ details.applicantIdentity.personalDetails.fullName || 'N/A' }}</div>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4">
+                  <div class="text-sm text-gray-500">Email</div>
+                  <div class="text-lg font-semibold text-gray-900 mt-1">{{ details.applicantIdentity.contactInfo.email || 'N/A' }}</div>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4">
+                  <div class="text-sm text-gray-500">Phone</div>
+                  <div class="text-lg font-semibold text-gray-900 mt-1">{{ details.applicantIdentity.contactInfo.phone || 'N/A' }}</div>
+                </div>
+              </div>
+            </div>
+</div>
+        }
+
+        <!-- Personal Details Tab -->
+        @if (activeTab() === 'personal') {
+          <div class="space-y-6">
+            <!-- Personal Information -->
+            <div>
+              <h3 class="text-lg font-semibold text-gray-900 mb-4">Personal Information</h3>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-gray-50 rounded-lg p-4">
+                  <div class="text-sm text-gray-500 mb-1">Full Name</div>
+                  <div class="text-lg font-semibold text-gray-900">{{ details.applicantIdentity.personalDetails.fullName || 'N/A' }}</div>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4">
+                  <div class="text-sm text-gray-500 mb-1">Date of Birth</div>
+                  <div class="text-lg font-semibold text-gray-900">{{ details.applicantIdentity.personalDetails.dateOfBirth ? formatDate(details.applicantIdentity.personalDetails.dateOfBirth) : 'N/A' }}</div>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4">
+                  <div class="text-sm text-gray-500 mb-1">PAN Number</div>
+                  <div class="text-lg font-semibold text-gray-900 font-mono">{{ details.applicantIdentity.personalDetails.panNumber || 'N/A' }}</div>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4">
+                  <div class="text-sm text-gray-500 mb-1">Aadhaar Number</div>
+                  <div class="text-lg font-semibold text-gray-900 font-mono">{{ details.applicantIdentity.personalDetails.aadhaarNumber || 'N/A' }}</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Contact Information -->
+            <div>
+              <h3 class="text-lg font-semibold text-gray-900 mb-4">Contact Information</h3>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-gray-50 rounded-lg p-4">
+                  <div class="text-sm text-gray-500 mb-1">Email Address</div>
+                  <div class="text-lg font-semibold text-gray-900">{{ details.applicantIdentity.contactInfo.email || 'N/A' }}</div>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4">
+                  <div class="text-sm text-gray-500 mb-1">Phone Number</div>
+                  <div class="text-lg font-semibold text-gray-900">{{ details.applicantIdentity.contactInfo.phone || 'N/A' }}</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Address Information -->
+            <div>
+              <h3 class="text-lg font-semibold text-gray-900 mb-4">Address Information</h3>
+              <div class="bg-gray-50 rounded-lg p-6">
+                @if (details.applicantIdentity.personalDetails.address) {
+                  <div class="text-lg text-gray-900">
+                    {{ details.applicantIdentity.personalDetails.address.permanentAddress }}<br>
+                    {{ details.applicantIdentity.personalDetails.address.city }}, {{ details.applicantIdentity.personalDetails.address.state }} - {{ details.applicantIdentity.personalDetails.address.pincode }}
+                  </div>
+                } @else {
+                  <div class="text-gray-500">Address information not available</div>
+                }
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- Financial Details Tab -->
+        @if (activeTab() === 'financial') {
+          <div class="space-y-6">
+            <!-- Employment Information -->
+            <div>
+              <h3 class="text-lg font-semibold text-gray-900 mb-4">Employment Information</h3>
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="bg-gray-50 rounded-lg p-4">
+                  <div class="text-sm text-gray-500">Employment Type</div>
+                  <div class="text-lg font-semibold text-gray-900 mt-1">{{ details.employmentDetails.employmentType ? formatEmploymentType(details.employmentDetails.employmentType) : 'N/A' }}</div>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4">
+                  <div class="text-sm text-gray-500">Company Name</div>
+                  <div class="text-lg font-semibold text-gray-900 mt-1">{{ details.employmentDetails.companyName || 'Not specified' }}</div>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4">
+                  <div class="text-sm text-gray-500">Designation</div>
+                  <div class="text-lg font-semibold text-gray-900 mt-1">{{ details.employmentDetails.designation || 'Not specified' }}</div>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4">
+                  <div class="text-sm text-gray-500">Work Experience</div>
+                  <div class="text-lg font-semibold text-gray-900 mt-1">{{ details.employmentDetails.workExperience || 'Not specified' }}</div>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4">
+                  <div class="text-sm text-gray-500">Monthly Income</div>
+                  @if (details.employmentDetails.monthlyIncome && details.employmentDetails.monthlyIncome > 0) {
+                    <div class="text-lg font-semibold text-green-600 mt-1">{{ formatCurrency(details.employmentDetails.monthlyIncome) }}</div>
+                  } @else {
+                    <div class="text-sm text-gray-500 mt-1 italic">
+                      <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600">
+                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        Income verification pending
+                      </span>
+                    </div>
+                  }
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4">
+                  <div class="text-sm text-gray-500">Annual Income</div>
+                  @if (details.employmentDetails.annualIncome && details.employmentDetails.annualIncome > 0) {
+                    <div class="text-lg font-semibold text-green-600 mt-1">{{ formatCurrency(details.employmentDetails.annualIncome) }}</div>
+                  } @else {
+                    <div class="text-sm text-gray-500 mt-1 italic">
+                      <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600">
+                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        Income verification pending
+                      </span>
+                    </div>
+                  }
+                </div>
+              </div>
+            </div>
+
+            <!-- Financial Assessment -->
+            <div>
+              <h3 class="text-lg font-semibold text-gray-900 mb-4">Financial Assessment</h3>
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="bg-gray-50 rounded-lg p-4">
+                  <div class="text-sm text-gray-500">Risk Level</div>
+                  <div class="mt-1">
+                    <span [class]="'px-3 py-1 text-sm font-semibold rounded-full ' + getRiskLevelBadgeClass(details.financialAssessment.riskAssessment.riskLevel || 'MEDIUM')">
+                      {{ details.financialAssessment.riskAssessment.riskLevel || 'MEDIUM' }}
+                    </span>
+                  </div>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4">
+                  <div class="text-sm text-gray-500">Risk Score</div>
+                  @if (details.financialAssessment.riskAssessment.fraudScore !== null && details.financialAssessment.riskAssessment.fraudScore !== undefined && details.financialAssessment.riskAssessment.fraudScore > 0) {
+                    <div class="text-lg font-semibold text-gray-900 mt-1">{{ details.financialAssessment.riskAssessment.fraudScore }}</div>
+                  } @else {
+                    <div class="text-sm text-gray-500 mt-1 italic">
+                      <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600">
+                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        Not calculated yet
+                      </span>
+                    </div>
+                  }
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4">
+                  <div class="text-sm text-gray-500">Credit Card Outstanding</div>
+                  @if (details.employmentDetails.creditCardOutstanding && details.employmentDetails.creditCardOutstanding > 0) {
+                    <div class="text-lg font-semibold text-red-600 mt-1">{{ formatCurrency(details.employmentDetails.creditCardOutstanding) }}</div>
+                  } @else {
+                    <div class="text-sm text-green-600 mt-1 font-medium">
+                      <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100">
+                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        No outstanding debt
+                      </span>
+                    </div>
+                  }
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4">
+                  <div class="text-sm text-gray-500">Monthly Expenses</div>
+                  @if (details.employmentDetails.monthlyExpenses && details.employmentDetails.monthlyExpenses > 0) {
+                    <div class="text-lg font-semibold text-red-600 mt-1">{{ formatCurrency(details.employmentDetails.monthlyExpenses) }}</div>
+                  } @else {
+                    <div class="text-sm text-gray-500 mt-1 italic">
+                      <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600">
+                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        Not provided
+                      </span>
+                    </div>
+                  }
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4">
+                  <div class="text-sm text-gray-500">Existing Loan EMI</div>
+                  @if (details.employmentDetails.existingLoanEmi && details.employmentDetails.existingLoanEmi > 0) {
+                    <div class="text-lg font-semibold text-red-600 mt-1">{{ formatCurrency(details.employmentDetails.existingLoanEmi) }}</div>
+                  } @else {
+                    <div class="text-sm text-green-600 mt-1 font-medium">
+                      <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100">
+                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        No existing loans
+                      </span>
+                    </div>
+                  }
+                </div>
+              </div>
+            </div>
+
+            <!-- Bank Details -->
+            @if (details.employmentDetails.bankDetails) {
+              <div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Bank Details</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div class="bg-gray-50 rounded-lg p-4">
+                    <div class="text-sm text-gray-500">Bank Name</div>
+                    <div class="text-lg font-semibold text-gray-900 mt-1">{{ details.employmentDetails.bankDetails.bankName || 'N/A' }}</div>
+                  </div>
+                  <div class="bg-gray-50 rounded-lg p-4">
+                    <div class="text-sm text-gray-500">Account Number</div>
+                    <div class="text-lg font-semibold text-gray-900 mt-1 font-mono">{{ details.employmentDetails.bankDetails.accountNumber || 'N/A' }}</div>
+                  </div>
+                  <div class="bg-gray-50 rounded-lg p-4">
+                    <div class="text-sm text-gray-500">IFSC Code</div>
+                    <div class="text-lg font-semibold text-gray-900 mt-1 font-mono">{{ details.employmentDetails.bankDetails.ifscCode || 'N/A' }}</div>
+                  </div>
+                  <div class="bg-gray-50 rounded-lg p-4">
+                    <div class="text-sm text-gray-500">Account Type</div>
+                    <div class="text-lg font-semibold text-gray-900 mt-1">{{ details.employmentDetails.bankDetails.accountType || 'N/A' }}</div>
+                  </div>
+                  <div class="bg-gray-50 rounded-lg p-4">
+                    <div class="text-sm text-gray-500">Branch Name</div>
+                    <div class="text-lg font-semibold text-gray-900 mt-1">{{ details.employmentDetails.bankDetails.branchName || 'N/A' }}</div>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        }
+
+        <!-- Documents Tab -->
+        @if (activeTab() === 'documents') {
+          <div class="space-y-6">
+            @if (details.documents && details.documents.length > 0) {
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                @for (doc of details.documents; track doc.documentId) {
+                  <div class="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                    <div class="flex items-center gap-3 mb-3">
+                      <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                        </svg>
+                      </div>
+                      <div class="flex-1">
+                        <div class="text-sm font-medium text-gray-900">{{ doc.documentType }}</div>
+                        <div class="text-xs text-gray-500 mt-1">{{ doc.fileName }}</div>
+                      </div>
+                      <span [class]="'px-2 py-1 text-xs font-semibold rounded-full ' + getDocumentStatusBadgeClass(doc.verificationStatus)">
+                        {{ doc.verificationStatus }}
+                      </span>
+                    </div>
+                    <div class="text-xs text-gray-500 mb-3">
+                      Uploaded: {{ formatDate(doc.uploadDate) }}
+                      @if (doc.verifiedAt) {
+                        <br>Verified: {{ formatDate(doc.verifiedAt) }}
+                      }
+                    </div>
+                    @if (doc.verificationNotes) {
+                      <div class="text-xs text-gray-600 mb-3 bg-gray-50 p-2 rounded">
+                        Notes: {{ doc.verificationNotes }}
+                      </div>
+                    }
+                    <div class="flex space-x-2">
+                      <button
+                        (click)="viewDocument(doc)"
+                        class="flex-1 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded hover:bg-blue-100 transition-colors"
+                      >
+                        View
+                      </button>
+                      <button
+                        (click)="downloadDocument(doc)"
+                        class="flex-1 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 rounded hover:bg-gray-200 transition-colors"
+                      >
+                        Download
+                      </button>
+                    </div>
+                  </div>
+                }
+              </div>
+            } @else {
+              <div class="text-center py-12">
+                <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">No Documents</h3>
+                <p class="text-gray-500">No documents have been uploaded for this application yet.</p>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+
+    </ng-container>
+  </ng-container>
+  } @else {
+    <!-- Application Not Found -->
+    <div class="bg-white shadow rounded-lg p-8 text-center">
+      <div class="text-6xl mb-4">❌</div>
+      <h2 class="text-xl font-semibold text-gray-900 mb-2">Application Not Found</h2>
+      <p class="text-gray-600 mb-4">The requested application could not be found.</p>
+      <button
+        (click)="goBack()"
+        class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+      >
+        ← Back to Applications
+      </button>
+    </div>
+  }
+
+</div>
