@@ -273,7 +273,7 @@
                       <div class="text-gray-900 break-words">{{ formatCurrency(application.requestedAmount) }}</div>
                     </td>
                     <td class="px-3 py-2">
-                      <span [class]="'inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ' + getStatusBadgeColor(application.status)">
+                      <span [class]="'inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium uppercase ' + getStatusBadgeColor(application.status)">
                         {{ getStatusDisplay(application.status) }}
                       </span>
                     </td>
