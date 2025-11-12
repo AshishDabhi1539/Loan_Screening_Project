@@ -158,19 +158,6 @@
           }
         </div>
       </div>
-      
-      <!-- Progress Summary -->
-      <div class="mt-8 pt-6 border-t border-gray-200">
-        <div class="flex items-center justify-between text-sm">
-          <div class="flex items-center space-x-2">
-            <div class="w-3 h-3 bg-green-500 rounded-full"></div>
-            <span class="text-gray-600">{{ getCompletedStepsCount() }} of {{ getProgressSteps().length }} steps completed</span>
-          </div>
-          <div class="text-blue-600 font-semibold">
-            {{ getProgressPercentage() }}% Complete
-          </div>
-        </div>
-      </div>
     </div>
     }
 
@@ -270,30 +257,16 @@
                   <div class="text-lg font-semibold text-gray-900 mt-1">{{ app.tenureMonths }} months</div>
                 </div>
                 <div class="bg-gray-50 rounded-lg p-4">
-                  <div class="text-sm text-gray-500">Purpose</div>
-                  <div class="text-lg font-medium text-gray-900 mt-1">{{ app.purpose || 'Not specified' }}</div>
-                </div>
-                <div class="bg-gray-50 rounded-lg p-4">
                   <div class="text-sm text-gray-500">Existing Loans</div>
-                  <div class="text-lg font-semibold text-gray-900 mt-1">
-                    {{ hasExistingLoans() ? 'Yes' : 'No' }}
-                    @if (hasExistingLoans() && getTotalExistingEmi() > 0) {
-                      <span class="text-sm font-normal text-gray-600">(EMI: {{ formatCurrency(getTotalExistingEmi()) }})</span>
-                    }
-                  </div>
+                  <div class="text-lg font-semibold text-gray-900 mt-1">{{ hasExistingLoans() ? 'Yes' : 'No' }} @if (hasExistingLoans() && getTotalExistingEmi() > 0) {<span class="text-sm font-normal text-gray-600">(EMI: {{ formatCurrency(getTotalExistingEmi()) }})</span>}</div>
                 </div>
                 <div class="bg-gray-50 rounded-lg p-4">
                   <div class="text-sm text-gray-500">Risk Level</div>
-                  <div class="mt-1">
-                    <span [ngClass]="getRiskLevelBadgeClass(getRiskLevel())"
-                          class="px-2 py-1 text-sm font-semibold rounded-full">
-                      {{ getRiskLevel() }}
-                    </span>
-                  </div>
+                  <div class="mt-1"><span [ngClass]="getRiskLevelBadgeClass(getRiskLevel())" class="px-2 py-1 text-sm font-semibold rounded-full">{{ getRiskLevel() }}</span></div>
                 </div>
               </div>
             </div>
-
+            
             <!-- Applicant Information -->
             <div>
               <h3 class="text-lg font-semibold text-gray-900 mb-4">Applicant Information</h3>
@@ -318,7 +291,7 @@
                 </div>
               </div>
             </div>
-
+            
             <!-- Verification Status -->
             <div>
               <h3 class="text-lg font-semibold text-gray-900 mb-4">Verification Status</h3>
@@ -329,67 +302,18 @@
                     <div class="text-2xl font-bold text-blue-600">{{ verifiedDocumentsCount() }}/{{ totalDocumentsCount() }}</div>
                     <div class="text-sm text-blue-600 font-medium">{{ verificationPercentage() }}%</div>
                   </div>
-                  <div class="mt-2 text-xs text-gray-500">
-                    @if (verificationPercentage() === 0) {
-                      All documents pending verification
-                    } @else if (verificationPercentage() === 100) {
-                      All documents verified
-                    } @else {
-                      {{ verifiedDocumentsCount() }} verified, {{ totalDocumentsCount() - verifiedDocumentsCount() }} pending
-                    }
-                  </div>
-                  <div class="mt-2 w-full bg-blue-200 rounded-full h-2">
-                    <div class="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                         [style.width.%]="verificationPercentage()"></div>
-                  </div>
+                  <div class="mt-2 text-xs text-gray-500">@if (verificationPercentage() === 0) {All documents pending verification} @else if (verificationPercentage() === 100) {All documents verified} @else {{{ verifiedDocumentsCount() }} verified, {{ totalDocumentsCount() - verifiedDocumentsCount() }} pending}</div>
+                  <div class="mt-2 w-full bg-blue-200 rounded-full h-2"><div class="bg-blue-600 h-2 rounded-full transition-all duration-300" [style.width.%]="verificationPercentage()"></div></div>
                 </div>
                 <div class="bg-purple-50 rounded-lg p-4">
                   <div class="text-sm text-gray-600">Personal Details</div>
-                  <div class="mt-2">
-                    @if (isPersonalDetailsVerified()) {
-                      <span class="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full font-medium flex items-center gap-1 w-fit">
-                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                          <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                        </svg>
-                        VERIFIED
-                      </span>
-                    } @else if (getPersonalDetails()) {
-                      <span class="text-xs px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full font-medium">
-                        SUBMITTED
-                      </span>
-                    } @else {
-                      <span class="text-xs px-2 py-1 bg-gray-100 text-gray-800 rounded-full font-medium">
-                        PENDING
-                      </span>
-                    }
-                  </div>
-                  <div class="text-xs text-gray-500 mt-2">
-                    {{ isPersonalDetailsVerified() ? 'Verification complete' : 'Awaiting verification' }}
-                  </div>
+                  <div class="mt-2">@if (isPersonalDetailsVerified()) {<span class="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full font-medium flex items-center gap-1 w-fit"><svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>VERIFIED</span>} @else if (getPersonalDetails()) {<span class="text-xs px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full font-medium">SUBMITTED</span>} @else {<span class="text-xs px-2 py-1 bg-gray-100 text-gray-800 rounded-full font-medium">PENDING</span>}</div>
+                  <div class="text-xs text-gray-500 mt-2">{{ isPersonalDetailsVerified() ? 'Verification complete' : 'Awaiting verification' }}</div>
                 </div>
                 <div class="bg-green-50 rounded-lg p-4">
                   <div class="text-sm text-gray-600">Financial Details</div>
-                  <div class="mt-2">
-                    @if (isFinancialDetailsVerified()) {
-                      <span class="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full font-medium flex items-center gap-1 w-fit">
-                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                          <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                        </svg>
-                        VERIFIED
-                      </span>
-                    } @else if (getFinancialDetails()) {
-                      <span class="text-xs px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full font-medium">
-                        SUBMITTED
-                      </span>
-                    } @else {
-                      <span class="text-xs px-2 py-1 bg-gray-100 text-gray-800 rounded-full font-medium">
-                        PENDING
-                      </span>
-                    }
-                  </div>
-                  <div class="text-xs text-gray-500 mt-2">
-                    {{ isFinancialDetailsVerified() ? 'Verification complete' : 'Awaiting verification' }}
-                  </div>
+                  <div class="mt-2">@if (isFinancialDetailsVerified()) {<span class="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full font-medium flex items-center gap-1 w-fit"><svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>VERIFIED</span>} @else if (getFinancialDetails()) {<span class="text-xs px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full font-medium">SUBMITTED</span>} @else {<span class="text-xs px-2 py-1 bg-gray-100 text-gray-800 rounded-full font-medium">PENDING</span>}</div>
+                  <div class="text-xs text-gray-500 mt-2">{{ isFinancialDetailsVerified() ? 'Verification complete' : 'Awaiting verification' }}</div>
                 </div>
               </div>
             </div>
@@ -400,26 +324,14 @@
         @if (activeTab() === 'personal' && getPersonalDetails()) {
           <ng-container *ngIf="getPersonalDetails() as personal">
           <div class="space-y-6">
-            <!-- Basic Information -->
+            <!-- Personal & KYC Information -->
             <div>
-              <h3 class="text-lg font-semibold text-gray-900 mb-4">Basic Information</h3>
+              <h3 class="text-lg font-semibold text-gray-900 mb-4">Personal & KYC Information</h3>
               <div class="bg-gray-50 rounded-lg p-4">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <div class="text-sm text-gray-500">Full Name</div>
                     <div class="text-base font-medium text-gray-900 mt-1">{{ personal.fullName }}</div>
-                  </div>
-                  <div>
-                    <div class="text-sm text-gray-500">First Name</div>
-                    <div class="text-base font-medium text-gray-900 mt-1">{{ personal.firstName }}</div>
-                  </div>
-                  <div>
-                    <div class="text-sm text-gray-500">Middle Name</div>
-                    <div class="text-base font-medium text-gray-900 mt-1">{{ personal.middleName || 'N/A' }}</div>
-                  </div>
-                  <div>
-                    <div class="text-sm text-gray-500">Last Name</div>
-                    <div class="text-base font-medium text-gray-900 mt-1">{{ personal.lastName }}</div>
                   </div>
                   <div>
                     <div class="text-sm text-gray-500">Date of Birth</div>
@@ -433,15 +345,6 @@
                     <div class="text-sm text-gray-500">Marital Status</div>
                     <div class="text-base font-medium text-gray-900 mt-1">{{ personal.maritalStatus || 'Not provided' }}</div>
                   </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- KYC Information -->
-            <div>
-              <h3 class="text-lg font-semibold text-gray-900 mb-4">KYC Information</h3>
-              <div class="bg-gray-50 rounded-lg p-4">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <div class="text-sm text-gray-500">PAN Number</div>
                     <div class="text-base font-medium text-gray-900 mt-1">{{ personal.panNumber }}</div>
@@ -454,52 +357,55 @@
               </div>
             </div>
 
-            <!-- Address Information -->
+            <!-- Address & Contact Information -->
             <div>
-              <h3 class="text-lg font-semibold text-gray-900 mb-4">Address</h3>
+              <h3 class="text-lg font-semibold text-gray-900 mb-4">Address & Contact Information</h3>
               <div class="bg-gray-50 rounded-lg p-4">
-                <div class="text-sm text-gray-500">Current Address</div>
-                <div class="text-base font-medium text-gray-900 mt-1">
-                  {{ personal.address.currentAddress || 'N/A' }}
-                </div>
-                @if (personal.address.permanentAddress && personal.address.permanentAddress !== personal.address.currentAddress) {
-                  <div class="mt-4">
-                    <div class="text-sm text-gray-500">Permanent Address</div>
-                    <div class="text-base font-medium text-gray-900 mt-1">
-                      {{ personal.address.permanentAddress }}
-                    </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <!-- Address Column -->
+                  <div>
+                    <div class="text-sm text-gray-500">Address</div>
+                    @if (personal.addresses.currentAddress && personal.addresses.permanentAddress && personal.addresses.currentAddress === personal.addresses.permanentAddress) {
+                      <div class="text-base font-medium text-gray-900">{{ personal.addresses.currentAddress }}</div>
+                      <div class="mt-1 text-sm text-gray-900">{{ personal.addresses.city }}, {{ personal.addresses.state }} - {{ personal.addresses.pincode }}</div>
+                      <div class="mt-2 text-xs text-gray-600 italic">Current & Permanent Address (Same)</div>
+                    } @else {
+                      <div class="text-sm text-gray-500">Current Address</div>
+                      <div class="text-base font-medium text-gray-900">{{ personal.addresses.currentAddress || 'N/A' }}</div>
+                      @if (personal.addresses.permanentAddress && personal.addresses.permanentAddress !== personal.addresses.currentAddress) {
+                        <div class="mt-3">
+                          <div class="text-sm text-gray-500">Permanent Address</div>
+                          <div class="text-base font-medium text-gray-900">{{ personal.addresses.permanentAddress }}</div>
+                        </div>
+                      }
+                      <div class="mt-2 text-sm text-gray-900">{{ personal.addresses.city }}, {{ personal.addresses.state }} - {{ personal.addresses.pincode }}</div>
+                    }
                   </div>
-                }
-                <div class="mt-2 text-sm text-gray-500">
-                  {{ personal.address.city }}, {{ personal.address.state }} - {{ personal.address.pincode }}
+                  
+                  <!-- Contact Column -->
+                  @if (getContactInfo()) {
+                    <div>
+                      <div class="space-y-3">
+                        <div>
+                          <div class="text-sm text-gray-500">Phone</div>
+                          <div class="text-base font-medium text-gray-900">{{ getContactInfo()?.phone || 'N/A' }}</div>
+                        </div>
+                        <div>
+                          <div class="text-sm text-gray-500">Email</div>
+                          <div class="text-base font-medium text-gray-900">{{ getContactInfo()?.email || 'N/A' }}</div>
+                        </div>
+                        @if (getContactInfo()?.alternatePhone) {
+                          <div>
+                            <div class="text-sm text-gray-500">Alternate Phone</div>
+                            <div class="text-base font-medium text-gray-900">{{ getContactInfo()?.alternatePhone }}</div>
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  }
                 </div>
               </div>
             </div>
-
-            <!-- Contact Information -->
-            @if (getContactInfo()) {
-              <div>
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">Contact Information</h3>
-                <div class="bg-gray-50 rounded-lg p-4">
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <div class="text-sm text-gray-500">Phone</div>
-                      <div class="text-base font-medium text-gray-900 mt-1">{{ getContactInfo()?.phone || 'N/A' }}</div>
-                    </div>
-                    <div>
-                      <div class="text-sm text-gray-500">Email</div>
-                      <div class="text-base font-medium text-gray-900 mt-1">{{ getContactInfo()?.email || 'N/A' }}</div>
-                    </div>
-                    @if (getContactInfo()?.alternatePhone) {
-                      <div>
-                        <div class="text-sm text-gray-500">Alternate Phone</div>
-                        <div class="text-base font-medium text-gray-900 mt-1">{{ getContactInfo()?.alternatePhone }}</div>
-                      </div>
-                    }
-                  </div>
-                </div>
-              </div>
-            }
           </div>
           </ng-container>
         }
@@ -508,68 +414,92 @@
         @if (activeTab() === 'financial' && getFinancialDetails()) {
           <ng-container *ngIf="getFinancialDetails() as financial">
           <div class="space-y-6">
-            <!-- Employment Information -->
+            <!-- Employment, Income & Obligations -->
             <div>
-              <h3 class="text-lg font-semibold text-gray-900 mb-4">Employment Information</h3>
+              <h3 class="text-lg font-semibold text-gray-900 mb-4">Employment Details</h3>
               <div class="bg-gray-50 rounded-lg p-4">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <!-- Column 1: Basic Employment -->
                   <div>
-                    <div class="text-sm text-gray-500">Employment Type</div>
-                    <div class="text-base font-medium text-gray-900 mt-1">{{ financial.employmentType }}</div>
+                    <div class="space-y-3">
+                      <div>
+                        <div class="text-sm text-gray-500">Employment Type</div>
+                        <div class="text-sm font-medium text-gray-900">{{ financial.employmentType }}</div>
+                      </div>
+                      @if (financial.companyName) {
+                        <div>
+                          <div class="text-sm text-gray-500">Company Name</div>
+                          <div class="text-sm font-medium text-gray-900">{{ financial.companyName }}</div>
+                        </div>
+                      }
+                      @if (financial.existingEmi) {
+                        <div>
+                          <div class="text-sm text-gray-500">Existing EMI</div>
+                          <div class="text-sm font-medium text-gray-900">{{ formatCurrency(financial.existingEmi) }}</div>
+                        </div>
+                      }
+                    </div>
                   </div>
-                  @if (financial.companyName) {
-                    <div>
-                      <div class="text-sm text-gray-500">Company Name</div>
-                      <div class="text-base font-medium text-gray-900 mt-1">{{ financial.companyName }}</div>
+                  
+                  <!-- Column 2: Job & Income -->
+                  <div>
+                    <div class="space-y-3">
+                      @if (financial.jobTitle) {
+                        <div>
+                          <div class="text-sm text-gray-500">Job Title</div>
+                          <div class="text-sm font-medium text-gray-900">{{ financial.jobTitle }}</div>
+                        </div>
+                      }
+                      <div>
+                        <div class="text-sm text-gray-500">Monthly Income</div>
+                        <div class="text-lg font-bold text-gray-900">{{ formatCurrency(financial.monthlyIncome) }}</div>
+                      </div>
+                      @if (financial.creditCardOutstanding) {
+                        <div>
+                          <div class="text-sm text-gray-500">Credit Card Outstanding</div>
+                          <div class="text-sm font-medium text-gray-900">{{ formatCurrency(financial.creditCardOutstanding) }}</div>
+                        </div>
+                      }
                     </div>
-                  }
-                  @if (financial.jobTitle) {
-                    <div>
-                      <div class="text-sm text-gray-500">Job Title</div>
-                      <div class="text-base font-medium text-gray-900 mt-1">{{ financial.jobTitle }}</div>
+                  </div>
+                  
+                  <!-- Column 3: Dates & Expenses -->
+                  <div>
+                    <div class="space-y-3">
+                      @if (financial.employmentStartDate) {
+                        <div>
+                          <div class="text-sm text-gray-500">Employment Start Date</div>
+                          <div class="text-sm font-medium text-gray-900">{{ formatDate(financial.employmentStartDate) }}</div>
+                        </div>
+                      }
+                      @if (financial.monthlyExpenses) {
+                        <div>
+                          <div class="text-sm text-gray-500">Monthly Expenses</div>
+                          <div class="text-sm font-medium text-gray-900">{{ formatCurrency(financial.monthlyExpenses) }}</div>
+                        </div>
+                      }
+                      @if (financial.otherObligations) {
+                        <div>
+                          <div class="text-sm text-gray-500">Other Obligations</div>
+                          <div class="text-sm font-medium text-gray-900">{{ formatCurrency(financial.otherObligations) }}</div>
+                        </div>
+                      }
                     </div>
-                  }
-                  @if (financial.employmentStartDate) {
+                  </div>
+                </div>
+                
+                <!-- Company Address (Full Width) -->
+                @if (financial.companyAddress) {
+                  <div class="mt-4 pt-4 border-t border-gray-200">
                     <div>
-                      <div class="text-sm text-gray-500">Employment Start Date</div>
-                      <div class="text-base font-medium text-gray-900 mt-1">{{ formatDate(financial.employmentStartDate) }}</div>
-                    </div>
-                  }
-                  @if (financial.companyAddress) {
-                    <div class="md:col-span-2">
                       <div class="text-sm text-gray-500">Company Address</div>
-                      <div class="text-base font-medium text-gray-900 mt-1">{{ financial.companyAddress }}</div>
+                      <div class="text-sm font-medium text-gray-900 mt-1">{{ financial.companyAddress }}</div>
                     </div>
-                  }
-                </div>
-              </div>
-            </div>
-
-            <!-- Income Information -->
-            <div>
-              <h3 class="text-lg font-semibold text-gray-900 mb-4">Income Information</h3>
-              <div class="bg-gray-50 rounded-lg p-4">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <div class="text-sm text-gray-500">Monthly Income</div>
-                    <div class="text-xl font-bold text-gray-900 mt-1">{{ formatCurrency(financial.monthlyIncome) }}</div>
                   </div>
-                  @if (financial.additionalIncome) {
-                    <div>
-                      <div class="text-sm text-gray-500">Additional Income</div>
-                      <div class="text-xl font-bold text-gray-900 mt-1">{{ formatCurrency(financial.additionalIncome) }}</div>
-                    </div>
-                  }
-                  @if (financial.foir) {
-                    <div>
-                      <div class="text-sm text-gray-500">FOIR (Fixed Obligation to Income Ratio)</div>
-                      <div class="text-xl font-bold text-gray-900 mt-1">{{ financial.foir }}%</div>
-                    </div>
-                  }
-                </div>
+                }
               </div>
             </div>
-
+            
             <!-- Banking Information -->
             <div>
               <h3 class="text-lg font-semibold text-gray-900 mb-4">Banking Information</h3>
@@ -591,39 +521,6 @@
                     <div class="text-sm text-gray-500">Account Type</div>
                     <div class="text-base font-medium text-gray-900 mt-1">{{ financial.accountType }}</div>
                   </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Existing Obligations -->
-            <div>
-              <h3 class="text-lg font-semibold text-gray-900 mb-4">Existing Obligations</h3>
-              <div class="bg-gray-50 rounded-lg p-4">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  @if (financial.existingEmi) {
-                    <div>
-                      <div class="text-sm text-gray-500">Existing EMI</div>
-                      <div class="text-base font-medium text-gray-900 mt-1">{{ formatCurrency(financial.existingEmi) }}</div>
-                    </div>
-                  }
-                  @if (financial.creditCardOutstanding) {
-                    <div>
-                      <div class="text-sm text-gray-500">Credit Card Outstanding</div>
-                      <div class="text-base font-medium text-gray-900 mt-1">{{ formatCurrency(financial.creditCardOutstanding) }}</div>
-                    </div>
-                  }
-                  @if (financial.monthlyExpenses) {
-                    <div>
-                      <div class="text-sm text-gray-500">Monthly Expenses</div>
-                      <div class="text-base font-medium text-gray-900 mt-1">{{ formatCurrency(financial.monthlyExpenses) }}</div>
-                    </div>
-                  }
-                  @if (financial.otherObligations) {
-                    <div>
-                      <div class="text-sm text-gray-500">Other Obligations</div>
-                      <div class="text-base font-medium text-gray-900 mt-1">{{ formatCurrency(financial.otherObligations) }}</div>
-                    </div>
-                  }
                 </div>
               </div>
             </div>

@@ -314,7 +314,7 @@ export class DocumentVerificationComponent implements OnInit {
   }
 
   getAddressDetails() {
-    return this.applicationDetails()?.applicantIdentity?.personalDetails?.address;
+    return this.applicationDetails()?.applicantIdentity?.personalDetails?.addresses;
   }
 
   getEmploymentDetails() {
