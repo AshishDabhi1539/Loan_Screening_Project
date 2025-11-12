@@ -1,5 +1,5 @@
-<div class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 py-8 px-4">
-  <div class="max-w-6xl mx-auto">
+<div class="min-h-screen bg-gray-50 py-6 px-4">
+  <div class="max-w-6xl mx-auto space-y-6">
     
     <!-- Loading State -->
     @if (isLoading()) {
@@ -9,31 +9,24 @@
     } @else if (requirements()) {
       
       <!-- Header -->
-      <div class="bg-white rounded-2xl shadow-xl p-8 mb-8">
+      <div class="bg-white shadow rounded-lg p-6">
         <div class="flex items-center justify-between">
-          <div class="flex items-center space-x-4">
-            <div class="w-16 h-16 bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl flex items-center justify-center shadow-lg">
-              <svg class="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-              </svg>
-            </div>
-            <div>
-              <h1 class="text-3xl font-bold text-gray-900">Document Resubmission</h1>
-              <p class="text-gray-600 mt-1">Upload corrected documents for review</p>
-            </div>
+          <div>
+            <h1 class="text-2xl font-semibold text-gray-900">Document Resubmission</h1>
+            <p class="text-gray-600 mt-1">Upload corrected documents for review</p>
           </div>
           <button
             (click)="cancel()"
-            class="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-all font-medium"
+            class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
           >
             ← Back to Dashboard
           </button>
         </div>
 
         <!-- Status Banner -->
-        <div class="mt-6 bg-orange-50 border-l-4 border-orange-500 rounded-lg p-4">
+        <div class="mt-4 bg-orange-50 border border-orange-200 rounded-lg p-4">
           <div class="flex items-start">
-            <svg class="w-6 h-6 text-orange-600 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg class="w-5 h-5 text-orange-600 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
             </svg>
             <div class="ml-3 flex-1">
@@ -46,43 +39,43 @@
         </div>
 
         <!-- Statistics -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-          <div class="bg-gradient-to-br from-red-50 to-red-100 rounded-xl p-4 border border-red-200">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+          <div class="bg-red-50 rounded-lg p-4 border border-red-200">
             <div class="flex items-center justify-between">
               <div>
                 <p class="text-sm text-red-600 font-medium">Rejected</p>
-                <p class="text-3xl font-bold text-red-700 mt-1">{{ rejectedDocuments().length }}</p>
+                <p class="text-2xl font-semibold text-red-700 mt-1">{{ rejectedDocuments().length }}</p>
               </div>
-              <div class="w-12 h-12 bg-red-200 rounded-full flex items-center justify-center">
-                <svg class="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                <svg class="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                 </svg>
               </div>
             </div>
           </div>
 
-          <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
+          <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
             <div class="flex items-center justify-between">
               <div>
                 <p class="text-sm text-blue-600 font-medium">Pending Review</p>
-                <p class="text-3xl font-bold text-blue-700 mt-1">{{ pendingDocuments().length }}</p>
+                <p class="text-2xl font-semibold text-blue-700 mt-1">{{ pendingDocuments().length }}</p>
               </div>
-              <div class="w-12 h-12 bg-blue-200 rounded-full flex items-center justify-center">
-                <svg class="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <svg class="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
               </div>
             </div>
           </div>
 
-          <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 border border-green-200">
+          <div class="bg-green-50 rounded-lg p-4 border border-green-200">
             <div class="flex items-center justify-between">
               <div>
                 <p class="text-sm text-green-600 font-medium">Verified</p>
-                <p class="text-3xl font-bold text-green-700 mt-1">{{ verifiedDocuments().length }}</p>
+                <p class="text-2xl font-semibold text-green-700 mt-1">{{ verifiedDocuments().length }}</p>
               </div>
-              <div class="w-12 h-12 bg-green-200 rounded-full flex items-center justify-center">
-                <svg class="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                <svg class="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                 </svg>
               </div>
@@ -93,32 +86,32 @@
 
       <!-- Rejected Documents Section -->
       @if (rejectedDocuments().length > 0) {
-        <div class="bg-white rounded-2xl shadow-xl p-8 mb-8">
-          <div class="flex items-center space-x-3 mb-6">
-            <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-              <svg class="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div class="bg-white shadow rounded-lg p-6">
+          <div class="flex items-center space-x-3 mb-4">
+            <div class="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
+              <svg class="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
               </svg>
             </div>
             <div>
-              <h2 class="text-2xl font-bold text-gray-900">Rejected Documents</h2>
+              <h2 class="text-xl font-semibold text-gray-900">Rejected Documents</h2>
               <p class="text-sm text-gray-600">These documents were rejected and need to be resubmitted</p>
             </div>
           </div>
 
           <div class="space-y-4">
             @for (doc of rejectedDocuments(); track doc.documentType) {
-              <div class="border-2 border-red-200 rounded-xl p-6 bg-red-50 hover:border-red-300 transition-all">
-                <div class="flex items-start justify-between mb-4">
+              <div class="border border-red-200 rounded-lg p-4 bg-red-50 hover:border-red-300 transition-colors">
+                <div class="flex items-start justify-between mb-3">
                   <div class="flex-1">
                     <div class="flex items-center space-x-3">
-                      <h3 class="text-lg font-semibold text-gray-900">{{ getDocumentTypeName(doc.documentType) }}</h3>
-                      <span [class]="'px-3 py-1 rounded-full text-xs font-bold ' + getStatusBadgeClass(doc.currentStatus)">
+                      <h3 class="text-base font-medium text-gray-900">{{ getDocumentTypeName(doc.documentType) }}</h3>
+                      <span [class]="'px-2 py-1 rounded text-xs font-medium ' + getStatusBadgeClass(doc.currentStatus)">
                         {{ doc.currentStatus }}
                       </span>
                     </div>
                     @if (doc.rejectionReason) {
-                      <div class="mt-3 bg-white rounded-lg p-4 border border-red-200">
+                      <div class="mt-2 bg-white rounded-lg p-3 border border-red-200">
                         <p class="text-sm font-medium text-red-900 mb-1">Rejection Reason:</p>
                         <p class="text-sm text-red-700">{{ doc.rejectionReason }}</p>
                       </div>
@@ -132,24 +125,24 @@
                 </div>
 
                 <!-- File Upload Section -->
-                <div class="mt-4">
+                <div class="mt-3">
                   @if (selectedFiles().has(doc.documentType)) {
-                    <div class="bg-white rounded-lg p-4 border-2 border-green-300">
+                    <div class="bg-white rounded-lg p-3 border border-green-300">
                       <div class="flex items-center justify-between">
                         <div class="flex items-center space-x-3">
-                          <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                            <svg class="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                            <svg class="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                             </svg>
                           </div>
                           <div>
-                            <p class="font-medium text-gray-900">{{ selectedFiles().get(doc.documentType)?.name }}</p>
-                            <p class="text-sm text-gray-600">{{ formatFileSize(selectedFiles().get(doc.documentType)?.size || 0) }}</p>
+                            <p class="text-sm font-medium text-gray-900">{{ selectedFiles().get(doc.documentType)?.name }}</p>
+                            <p class="text-xs text-gray-600">{{ formatFileSize(selectedFiles().get(doc.documentType)?.size || 0) }}</p>
                           </div>
                         </div>
                         <button
                           (click)="removeFile(doc.documentType)"
-                          class="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors font-medium"
+                          class="px-3 py-1.5 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors text-sm"
                         >
                           Remove
                         </button>
@@ -157,8 +150,8 @@
                     </div>
                   } @else {
                     <label class="block cursor-pointer">
-                      <div class="border-2 border-dashed border-gray-300 rounded-xl p-6 hover:border-blue-500 hover:bg-blue-50 transition-all text-center">
-                        <svg class="w-12 h-12 text-gray-400 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-blue-500 hover:bg-blue-50 transition-colors text-center">
+                        <svg class="w-8 h-8 text-gray-400 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
                         </svg>
                         <p class="text-sm font-medium text-gray-700">Click to upload new document</p>
@@ -180,10 +173,10 @@
       }
 
       <!-- Submit Section -->
-      <div class="bg-white rounded-2xl shadow-xl p-8">
+      <div class="bg-white shadow rounded-lg p-6">
         <div class="flex items-center justify-between">
           <div>
-            <h3 class="text-lg font-semibold text-gray-900">Ready to Submit?</h3>
+            <h3 class="text-base font-semibold text-gray-900">Ready to Submit?</h3>
             <p class="text-sm text-gray-600 mt-1">
               @if (canSubmit()) {
                 You have uploaded {{ selectedFiles().size }} document(s). Click submit to send for review.
@@ -192,10 +185,10 @@
               }
             </p>
           </div>
-          <div class="flex space-x-4">
+          <div class="flex space-x-3">
             <button
               (click)="cancel()"
-              class="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-all font-medium"
+              class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
             >
               Cancel
             </button>
@@ -203,19 +196,17 @@
               (click)="submitResubmission()"
               [disabled]="!canSubmit()"
               [class]="canSubmit() 
-                ? 'px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all font-medium shadow-lg hover:shadow-xl transform hover:scale-105'
-                : 'px-8 py-3 bg-gray-300 text-gray-500 rounded-xl cursor-not-allowed font-medium'"
+                ? 'px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2'
+                : 'px-6 py-2 bg-gray-300 text-gray-500 rounded-lg cursor-not-allowed flex items-center space-x-2'"
             >
               @if (isSubmitting()) {
-                <span class="flex items-center space-x-2">
-                  <svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  <span>Submitting...</span>
-                </span>
+                <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <span>Submitting...</span>
               } @else {
-                Submit Resubmission
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                </svg>
+                <span>Submit Resubmission</span>
               }
             </button>
           </div>
