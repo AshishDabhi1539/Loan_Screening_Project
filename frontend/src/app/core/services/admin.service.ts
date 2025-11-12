@@ -141,6 +141,8 @@ export class AdminService {
         stats: {
           totalUsers: backendStats.totalUsers || 0,
           totalOfficers: backendStats.totalOfficers || 0,
+          complianceOfficers: backendStats.complianceOfficers || 0,
+          totalApplicants: backendStats.totalApplicants || 0,
           totalApplications: backendStats.totalApplications || 0,
           pendingApplications: backendStats.pendingApplications || 0,
           approvedApplications: backendStats.approvedApplications || 0,

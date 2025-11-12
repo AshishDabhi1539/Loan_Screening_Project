@@ -29,6 +29,8 @@ export class DashboardComponent implements OnInit {
   adminStats = signal<AdminStats>({
     totalUsers: 0,
     totalOfficers: 0,
+    totalApplicants: 0,
+    complianceOfficers: 0,
     totalApplications: 0,
     pendingApplications: 0,
     approvedApplications: 0,
@@ -95,6 +97,8 @@ export class DashboardComponent implements OnInit {
         this.adminStats.set({
           totalUsers: 0,
           totalOfficers: 0,
+          complianceOfficers: 0,
+          totalApplicants: 0,
           totalApplications: 0,
           pendingApplications: 0,
           approvedApplications: 0,

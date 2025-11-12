@@ -10,6 +10,7 @@ export interface AdminStats {
   totalOfficers?: number;
   activeOfficers?: number;
   totalApplicants?: number;
+  complianceOfficers?: number;
   activeApplications?: number;
   totalDisbursed?: number;
   systemHealth: 'good' | 'warning' | 'critical' | number;

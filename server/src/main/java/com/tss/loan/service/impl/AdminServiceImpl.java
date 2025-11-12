@@ -91,26 +91,70 @@ public class AdminServiceImpl implements AdminService {
                 RoleType.SENIOR_COMPLIANCE_OFFICER
             )
         );
-        long totalApplications = loanApplicationRepository.count();
         
-        // Count by status using repository methods
-        long pendingApplications = loanApplicationRepository.countByStatusIn(
+        // Separate counts for different officer types
+        long complianceOfficers = userRepository.countByRoleIn(
             Arrays.asList(
-                ApplicationStatus.SUBMITTED,
-                ApplicationStatus.DOCUMENT_VERIFICATION,
-                ApplicationStatus.UNDER_REVIEW,
-                ApplicationStatus.READY_FOR_DECISION
+                RoleType.COMPLIANCE_OFFICER,
+                RoleType.SENIOR_COMPLIANCE_OFFICER
             )
         );
         
-        long approvedApplications = loanApplicationRepository.countByStatus(ApplicationStatus.APPROVED);
-        long rejectedApplications = loanApplicationRepository.countByStatus(ApplicationStatus.REJECTED);
+        long totalApplicants = userRepository.countByRole(RoleType.APPLICANT);
+        long totalApplications = loanApplicationRepository.count();
+        
+        // Count by status using repository methods - ALL statuses that are "in progress"
+        long pendingApplications = loanApplicationRepository.countByStatusIn(
+            Arrays.asList(
+                ApplicationStatus.DRAFT,
+                ApplicationStatus.SUBMITTED,
+                ApplicationStatus.DOCUMENT_VERIFICATION,
+                ApplicationStatus.DOCUMENT_INCOMPLETE,
+                ApplicationStatus.DOCUMENT_REVERIFICATION,
+                ApplicationStatus.FINANCIAL_REVIEW,
+                ApplicationStatus.CREDIT_CHECK,
+                ApplicationStatus.EMPLOYMENT_VERIFICATION,
+                ApplicationStatus.RISK_ASSESSMENT,
+                ApplicationStatus.FRAUD_CHECK,
+                ApplicationStatus.UNDER_INVESTIGATION,
+                ApplicationStatus.COLLATERAL_VERIFICATION,
+                ApplicationStatus.UNDER_REVIEW,
+                ApplicationStatus.PENDING_EXTERNAL_VERIFICATION,
+                ApplicationStatus.READY_FOR_DECISION,
+                ApplicationStatus.FLAGGED_FOR_COMPLIANCE,
+                ApplicationStatus.COMPLIANCE_REVIEW,
+                ApplicationStatus.PENDING_COMPLIANCE_DOCS,
+                ApplicationStatus.AWAITING_COMPLIANCE_DECISION,
+                ApplicationStatus.COMPLIANCE_TIMEOUT,
+                ApplicationStatus.MANAGER_APPROVAL,
+                ApplicationStatus.PRE_APPROVED,
+                ApplicationStatus.DOCUMENTATION,
+                ApplicationStatus.DISBURSEMENT_PENDING,
+                ApplicationStatus.ON_HOLD
+            )
+        );
+        
+        long approvedApplications = loanApplicationRepository.countByStatusIn(
+            Arrays.asList(
+                ApplicationStatus.APPROVED,
+                ApplicationStatus.DISBURSED
+            )
+        );
+        long rejectedApplications = loanApplicationRepository.countByStatusIn(
+            Arrays.asList(
+                ApplicationStatus.REJECTED,
+                ApplicationStatus.CANCELLED,
+                ApplicationStatus.EXPIRED
+            )
+        );
         long activeUsers = userRepository.countByStatus(UserStatus.ACTIVE);
         
         // Build response
         Map<String, Object> stats = new HashMap<>();
         stats.put("totalUsers", totalUsers);
         stats.put("totalOfficers", totalOfficers);
+        stats.put("complianceOfficers", complianceOfficers);
+        stats.put("totalApplicants", totalApplicants);
         stats.put("totalApplications", totalApplications);
         stats.put("pendingApplications", pendingApplications);
         stats.put("approvedApplications", approvedApplications);
@@ -118,8 +162,10 @@ public class AdminServiceImpl implements AdminService {
         stats.put("activeUsers", activeUsers);
         stats.put("systemHealth", pendingApplications > 50 ? "warning" : "good");
         
-        log.info("Admin dashboard stats: {} users, {} officers, {} applications", 
-                totalUsers, totalOfficers, totalApplications);
+        log.info("Admin dashboard stats: {} users, {} officers ({} compliance), {} applicants, {} applications ({}+{}+{}={})", 
+                totalUsers, totalOfficers, complianceOfficers, totalApplicants, totalApplications,
+                pendingApplications, approvedApplications, rejectedApplications, 
+                (pendingApplications + approvedApplications + rejectedApplications));
         
         return stats;
     }
