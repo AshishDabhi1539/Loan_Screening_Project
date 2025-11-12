@@ -23,14 +23,13 @@ export class DashboardComponent implements OnInit {
 
   // Signals for reactive state
   currentUser = this.authService.currentUser;
-  isLoading = signal(false);
   
-  // Admin-specific stats
+  // Signals for reactive data
   adminStats = signal<AdminStats>({
     totalUsers: 0,
     totalOfficers: 0,
-    totalApplicants: 0,
     complianceOfficers: 0,
+    totalApplicants: 0,
     totalApplications: 0,
     pendingApplications: 0,
     approvedApplications: 0,
@@ -38,10 +37,15 @@ export class DashboardComponent implements OnInit {
     systemHealth: 'good',
     activeUsers: 0
   });
-
+  
+  // New comprehensive analytics
+  dashboardAnalytics = signal<any>(null); // Using any for now to avoid TypeScript issues
+  
   recentActivities = signal<RecentActivity[]>([]);
   recentApplications = signal<LoanApplicationResponse[]>([]);
-  
+  isLoading = signal(true);
+  isAnalyticsLoading = signal(true);
+
   // Computed values
   userDisplayName = computed(() => {
     const user = this.currentUser();
@@ -72,6 +76,7 @@ export class DashboardComponent implements OnInit {
   ngOnInit(): void {
     this.loadAdminData();
     this.loadRecentApplications();
+    this.loadDashboardAnalytics();
   }
 
   /**
@@ -123,6 +128,27 @@ export class DashboardComponent implements OnInit {
       error: (error) => {
         console.error('❌ Failed to load recent applications:', error);
         this.recentApplications.set([]);
+      }
+    });
+  }
+
+  /**
+   * Load comprehensive dashboard analytics
+   */
+  private loadDashboardAnalytics(): void {
+    this.isAnalyticsLoading.set(true);
+    
+    this.adminService.getDashboardAnalytics().subscribe({
+      next: (analytics) => {
+        this.dashboardAnalytics.set(analytics);
+        this.isAnalyticsLoading.set(false);
+        console.log('✅ Dashboard analytics loaded:', analytics);
+      },
+      error: (error) => {
+        console.error('❌ Failed to load dashboard analytics:', error);
+        this.isAnalyticsLoading.set(false);
+        // Set empty analytics on error
+        this.dashboardAnalytics.set(null);
       }
     });
   }

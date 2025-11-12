@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.tss.loan.dto.request.OfficerCreationRequest;
@@ -76,6 +77,38 @@ public class AdminController {
     @GetMapping("/recent-activities")
     public ResponseEntity<List<java.util.Map<String, Object>>> getRecentActivities() {
         return ResponseEntity.ok(adminService.getRecentActivities());
+    }
+    
+    /**
+     * Get Comprehensive Dashboard Analytics
+     */
+    @GetMapping("/analytics")
+    public ResponseEntity<com.tss.loan.dto.response.DashboardAnalytics> getDashboardAnalytics() {
+        return ResponseEntity.ok(adminService.getDashboardAnalytics());
+    }
+    
+    /**
+     * Get Financial Analytics
+     */
+    @GetMapping("/analytics/financial")
+    public ResponseEntity<java.util.Map<String, Object>> getFinancialAnalytics() {
+        return ResponseEntity.ok(adminService.getFinancialAnalytics());
+    }
+    
+    /**
+     * Get Performance Metrics
+     */
+    @GetMapping("/analytics/performance")
+    public ResponseEntity<java.util.Map<String, Object>> getPerformanceMetrics() {
+        return ResponseEntity.ok(adminService.getPerformanceMetrics());
+    }
+    
+    /**
+     * Get Trend Analytics
+     */
+    @GetMapping("/analytics/trends")
+    public ResponseEntity<java.util.Map<String, Object>> getTrendAnalytics(@RequestParam(defaultValue = "month") String period) {
+        return ResponseEntity.ok(adminService.getTrendAnalytics(period));
     }
     
     /**

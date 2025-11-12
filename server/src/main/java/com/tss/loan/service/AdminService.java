@@ -55,4 +55,30 @@ public interface AdminService {
      * @return List of audit log entries
      */
     List<AuditLogResponse> getApplicationAuditTrail(UUID applicationId);
+    
+    /**
+     * Get comprehensive dashboard analytics
+     * Includes key metrics, charts data, performance metrics, and financial data
+     * @return Complete dashboard analytics
+     */
+    com.tss.loan.dto.response.DashboardAnalytics getDashboardAnalytics();
+    
+    /**
+     * Get financial analytics for admin dashboard
+     * @return Financial statistics and trends
+     */
+    Map<String, Object> getFinancialAnalytics();
+    
+    /**
+     * Get performance metrics for system monitoring
+     * @return System performance data
+     */
+    Map<String, Object> getPerformanceMetrics();
+    
+    /**
+     * Get trend analysis for specified period
+     * @param period The period for analysis (week, month, quarter, year)
+     * @return Trend analysis data
+     */
+    Map<String, Object> getTrendAnalytics(String period);
 }

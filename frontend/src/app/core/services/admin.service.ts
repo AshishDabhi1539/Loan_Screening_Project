@@ -1,28 +1,45 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable, map, catchError, of, forkJoin } from 'rxjs';
+import { Observable, map, catchError, of, forkJoin, throwError } from 'rxjs';
 import { ApiService } from './api.service';
-import {
-  AdminStats,
-  OfficerResponse,
-  UserResponse,
-  OfficerDetailsResponse,
+import { AuthService } from './auth.service';
+import { 
+  AdminStats, 
+  OfficerResponse, 
+  UserResponse, 
+  OfficerDetailsResponse, 
   OfficerCreationRequest,
   SystemStats,
-  RecentActivity
+  RecentActivity,
+  DashboardAnalytics
 } from '../models/admin.model';
-import { LoanApplicationResponse } from '../models/loan-application.model';
 import { CompleteApplicationDetailsResponse } from '../models/officer.model';
+import { LoanApplicationResponse } from '../models/loan-application.model';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AdminService {
   private apiService = inject(ApiService);
+  private authService = inject(AuthService);
+
+  /**
+   * Check if user is authenticated before making API calls
+   */
+  private checkAuthentication(): Observable<boolean> {
+    if (!this.authService.isAuthenticated()) {
+      console.log('User not authenticated, skipping API call');
+      return throwError(() => new Error('User not authenticated'));
+    }
+    return of(true);
+  }
 
   /**
    * Get all officers from backend
    */
   getAllOfficers(): Observable<OfficerResponse[]> {
+    if (!this.authService.isAuthenticated()) {
+      return throwError(() => new Error('User not authenticated'));
+    }
     return this.apiService.get<OfficerResponse[]>('/admin/officers');
   }
 
@@ -61,6 +78,9 @@ export class AdminService {
    * Get all users from backend
    */
   getAllUsers(): Observable<UserResponse[]> {
+    if (!this.authService.isAuthenticated()) {
+      return throwError(() => new Error('User not authenticated'));
+    }
     return this.apiService.get<UserResponse[]>('/admin/users');
   }
 
@@ -130,6 +150,12 @@ export class AdminService {
    * Get admin dashboard data from backend
    */
   getAdminDashboardData(): Observable<{ stats: AdminStats; recentActivities: RecentActivity[] }> {
+    // Check authentication first
+    if (!this.authService.isAuthenticated()) {
+      console.log('User not authenticated, returning empty dashboard data');
+      return throwError(() => new Error('User not authenticated'));
+    }
+
     // Fetch both stats and activities in parallel
     return forkJoin({
       stats: this.apiService.get<any>('/admin/dashboard'),
@@ -221,6 +247,54 @@ export class AdminService {
   }
 
   /**
+   * Get comprehensive dashboard analytics
+   */
+  getDashboardAnalytics(): Observable<DashboardAnalytics> {
+    return this.apiService.get<DashboardAnalytics>('/admin/analytics').pipe(
+      catchError(error => {
+        console.error('Error fetching dashboard analytics:', error);
+        return of(this.getEmptyDashboardAnalytics());
+      })
+    );
+  }
+
+  /**
+   * Get financial analytics
+   */
+  getFinancialAnalytics(): Observable<any> {
+    return this.apiService.get<any>('/admin/analytics/financial').pipe(
+      catchError(error => {
+        console.error('Error fetching financial analytics:', error);
+        return of({});
+      })
+    );
+  }
+
+  /**
+   * Get performance metrics
+   */
+  getPerformanceMetrics(): Observable<any> {
+    return this.apiService.get<any>('/admin/analytics/performance').pipe(
+      catchError(error => {
+        console.error('Error fetching performance metrics:', error);
+        return of({});
+      })
+    );
+  }
+
+  /**
+   * Get trend analytics
+   */
+  getTrendAnalytics(period: string = 'month'): Observable<any> {
+    return this.apiService.get<any>(`/admin/analytics/trends?period=${period}`).pipe(
+      catchError(error => {
+        console.error('Error fetching trend analytics:', error);
+        return of({});
+      })
+    );
+  }
+
+  /**
    * Test admin API connection
    */
   testConnection(): Observable<any> {
@@ -239,6 +313,51 @@ export class AdminService {
         });
       })
     );
+  }
+
+  /**
+   * Get empty dashboard analytics for error cases
+   */
+  private getEmptyDashboardAnalytics(): DashboardAnalytics {
+    return {
+      keyMetrics: {
+        newApplicationsThisMonth: 0,
+        newApplicationsGrowth: 0,
+        activeOfficers: 0,
+        activeOfficersGrowth: 0,
+        pendingReviews: 0,
+        pendingReviewsChange: 0,
+        approvalRateThisMonth: 0,
+        approvalRateChange: 0
+      },
+      chartData: {
+        applicationStatusDistribution: {},
+        monthlyApplicationTrends: [],
+        dailyUserActivity: [],
+        officerPerformance: []
+      },
+      performanceData: {
+        averageProcessingTimeDays: 0,
+        averageApprovalTimeDays: 0,
+        systemUptimePercentage: 99.9,
+        totalActiveUsers: 0,
+        totalSystemTransactions: 0
+      },
+      financialData: {
+        totalLoanAmountRequested: 0,
+        totalLoanAmountApproved: 0,
+        totalLoanAmountDisbursed: 0,
+        averageLoanAmount: 0,
+        disbursementRate: 0
+      },
+      riskData: {
+        highRiskApplications: 0,
+        mediumRiskApplications: 0,
+        lowRiskApplications: 0,
+        fraudDetectionRate: 0,
+        totalFraudCases: 0
+      }
+    };
   }
 
   // TODO: Add these methods when backend APIs are available
