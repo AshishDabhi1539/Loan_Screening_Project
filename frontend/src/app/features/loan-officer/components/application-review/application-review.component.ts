@@ -4,12 +4,13 @@ import { Router, ActivatedRoute } from '@angular/router';
 
 import { NotificationService } from '../../../../core/services/notification.service';
 import { LoanOfficerService } from '../../../../core/services/loan-officer.service';
-import { CompleteApplicationDetailsResponse } from '../../../../core/models/officer.model';
+import { CompleteApplicationDetailsResponse, ExternalVerificationResponse } from '../../../../core/models/officer.model';
+import { ExternalVerificationComponent } from '../external-verification/external-verification.component';
 
 @Component({
   selector: 'app-application-review',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ExternalVerificationComponent],
   templateUrl: './application-review.component.html',
   styleUrl: './application-review.component.css'
 })
@@ -24,6 +25,7 @@ export class ApplicationReviewComponent implements OnInit {
   currentStep = signal(1);
   totalSteps = 5;
   isFromCompliance = signal(false);
+  showExternalVerification = signal(false);
 
   steps = signal([
     { number: 1, title: 'Overview', completed: false },
@@ -295,10 +297,24 @@ export class ApplicationReviewComponent implements OnInit {
    * Navigate to external verification
    */
   startExternalVerification(): void {
+    if (this.applicationDetails()?.verificationSummary?.externalVerificationComplete) {
+      return;
+    }
+    this.showExternalVerification.set(true);
+  }
+
+  handleExternalVerificationCompleted(_result: ExternalVerificationResponse): void {
+    this.showExternalVerification.set(false);
     const appId = this.applicationDetails()?.applicationInfo?.id;
     if (appId) {
-      this.router.navigate(['/loan-officer/application', appId, 'external-verification']);
+      this.router.navigate(['/loan-officer/application', appId, 'details'], {
+        queryParams: { tab: 'external' }
+      });
     }
+  }
+
+  handleExternalVerificationBack(): void {
+    this.showExternalVerification.set(false);
   }
 
   /**

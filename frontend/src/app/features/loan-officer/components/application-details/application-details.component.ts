@@ -26,6 +26,7 @@ export class ApplicationDetailsComponent implements OnInit {
   
   // Active tab
   activeTab = signal<'overview' | 'personal' | 'financial' | 'documents' | 'external' | 'audit'>('overview');
+  private pendingTab: 'overview' | 'personal' | 'financial' | 'documents' | 'external' | 'audit' | null = null;
   
   // View mode - determines if we show action buttons or not
   isViewMode = signal(false);
@@ -52,6 +53,21 @@ export class ApplicationDetailsComponent implements OnInit {
     // Check if we're in view-only mode (from query param)
     this.route.queryParams.subscribe(params => {
       this.isViewMode.set(params['mode'] === 'view');
+
+      const tabParam = (params['tab'] as string | undefined)?.toLowerCase();
+      const validTabs: Array<'overview' | 'personal' | 'financial' | 'documents' | 'external' | 'audit'> = [
+        'overview', 'personal', 'financial', 'documents', 'external', 'audit'
+      ];
+
+      if (tabParam && validTabs.includes(tabParam as any)) {
+        this.pendingTab = tabParam as typeof this.pendingTab;
+        if (this.applicationDetails()) {
+          this.setActiveTab(this.pendingTab!);
+          this.pendingTab = null;
+        }
+      } else if (!tabParam) {
+        this.pendingTab = null;
+      }
     });
     
     if (applicationId) {
@@ -78,6 +94,11 @@ export class ApplicationDetailsComponent implements OnInit {
       next: (details) => {
         this.applicationDetails.set(details);
         this.isLoading.set(false);
+
+        if (this.pendingTab) {
+          this.setActiveTab(this.pendingTab);
+          this.pendingTab = null;
+        }
       },
       error: (error) => {
         console.error('Error loading application details:', error);
@@ -94,8 +115,8 @@ export class ApplicationDetailsComponent implements OnInit {
    * Set active tab
    */
   setActiveTab(tab: 'overview' | 'personal' | 'financial' | 'documents' | 'external' | 'audit'): void {
-    // Prevent access to external verification and audit trail tabs if external verification is not completed
-    if ((tab === 'external' || tab === 'audit') && !this.isExternalVerificationCompleted()) {
+    // Prevent access to external verification tab if external verification is not completed
+    if (tab === 'external' && !this.isExternalVerificationCompleted()) {
       this.notificationService.warning(
         'Access Restricted',
         'External verification must be completed before accessing this tab.'
@@ -112,14 +133,6 @@ export class ApplicationDetailsComponent implements OnInit {
       this.loadAuditTrail();
     }
     
-    // Refresh application details when external verification tab is clicked
-    // This ensures we get the latest verification results
-    if (tab === 'external') {
-      const appId = this.applicationDetails()?.applicationInfo?.id;
-      if (appId) {
-        this.loadApplicationDetails(appId);
-      }
-    }
   }
 
   /**
@@ -553,6 +566,12 @@ export class ApplicationDetailsComponent implements OnInit {
     const completedStatuses = [
       'EXTERNAL_VERIFICATION',
       'FRAUD_CHECK',
+      'FLAGGED_FOR_COMPLIANCE',
+      'COMPLIANCE_REVIEW',
+      'PENDING_COMPLIANCE_DOCS',
+      'UNDER_INVESTIGATION',
+      'AWAITING_COMPLIANCE_DECISION',
+      'COMPLIANCE_REVIEW_COMPLETED',
       'READY_FOR_DECISION',
       'APPROVED',
       'REJECTED',

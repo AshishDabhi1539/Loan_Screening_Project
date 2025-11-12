@@ -296,26 +296,99 @@
 
       <!-- Step 3: External Verification -->
       @if (currentStep() === 3) {
-        <div class="space-y-4">
-          <div class="flex items-center justify-between">
-            <h2 class="text-lg font-semibold text-gray-900">External Verification</h2>
-            <button
-              (click)="startExternalVerification()"
-              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Start Verification
-            </button>
+        <div class="bg-white border border-blue-100 shadow-sm rounded-xl p-6 space-y-6">
+          <div class="flex flex-wrap items-start justify-between gap-4">
+            <div class="flex items-start gap-3">
+              <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 11c1.38 0 2.5-1.12 2.5-2.5S13.38 6 12 6s-2.5 1.12-2.5 2.5S10.62 11 12 11z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.5 20a7.5 7.5 0 10-15 0"/>
+                </svg>
+              </div>
+              <div>
+                <h2 class="text-xl font-semibold text-gray-900">External Verification</h2>
+                <p class="text-sm text-gray-600 mt-1">
+                  Trigger third-party checks and review the results before moving forward.
+                </p>
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              @if (applicationDetails()?.verificationSummary?.externalVerificationComplete) {
+                <span class="inline-flex items-center px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-semibold">
+                  <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                  </svg>
+                  Completed
+                </span>
+              }
+              @if (!applicationDetails()?.verificationSummary?.externalVerificationComplete && !showExternalVerification()) {
+                <button
+                  (click)="startExternalVerification()"
+                  class="inline-flex items-center rounded-lg px-4 py-2 text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 transition-colors"
+                >
+                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                  </svg>
+                  <span class="ml-2">Start Verification</span>
+                </button>
+              }
+            </div>
           </div>
-           @if (applicationDetails()?.verificationSummary; as summary) {
-           @if (summary.externalVerificationComplete) {
-             <div class="bg-gray-50 rounded-lg p-4">
-               <div class="text-sm text-gray-600">External Verification: Complete</div>
-               <div class="text-sm text-gray-600 mt-2">Current Stage: {{ summary.currentStage }}</div>
-             </div>
-           } @else {
-             <div class="text-sm text-gray-500">External verification not completed yet.</div>
-           }
-           }
+
+          @if (showExternalVerification()) {
+            <app-external-verification
+              [inlineMode]="true"
+              [applicationIdInput]="applicationDetails()?.applicationInfo?.id || null"
+              (verificationCompleted)="handleExternalVerificationCompleted($event)"
+              (goBackInline)="handleExternalVerificationBack()"
+            ></app-external-verification>
+          } @else {
+            @if (applicationDetails()?.verificationSummary; as summary) {
+              @if (summary.externalVerificationComplete) {
+                <div class="rounded-lg border border-green-200 bg-green-50 p-5 space-y-4">
+                  <div class="flex items-start gap-3">
+                    <div class="mt-1 text-green-600">
+                      <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.707a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293A1 1 0 006.293 10.707l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                      </svg>
+                    </div>
+                    <div class="flex-1">
+                      <h3 class="text-base font-semibold text-green-900">Verification complete</h3>
+                      <p class="text-sm text-green-800 mt-1">
+                        All required external checks have been finalised. Review the summary before proceeding.
+                      </p>
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-white rounded-lg border border-green-100 p-4">
+                      <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Current Stage</div>
+                      <div class="text-sm font-semibold text-gray-900 mt-2">
+                        {{ summary.currentStage || 'Complete' }}
+                      </div>
+                    </div>
+                    <div class="bg-white rounded-lg border border-green-100 p-4">
+                      <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Status</div>
+                      <div class="text-sm font-semibold text-gray-900 mt-2">Complete</div>
+                      <div class="text-xs text-gray-500 mt-1">Ready to move to Financial Review.</div>
+                    </div>
+                    <div class="bg-white rounded-lg border border-green-100 p-4">
+                      <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Next Step</div>
+                      <div class="text-sm text-gray-900 font-semibold mt-2">Review insights & continue</div>
+                      <div class="text-xs text-gray-500 mt-1">Proceed once findings are captured in your notes.</div>
+                    </div>
+                  </div>
+                </div>
+              } @else {
+                <div class="rounded-lg border border-blue-200 bg-blue-50 p-5 text-sm text-blue-800">
+                  External verification has not started yet. Launch the workflow when you're ready to proceed.
+                </div>
+              }
+            } @else {
+              <div class="rounded-lg border border-gray-200 bg-gray-50 p-5 text-sm text-gray-600">
+                Verification summary not yet available. Start the external verification to generate real-time updates.
+              </div>
+            }
+          }
         </div>
       }
 
@@ -412,7 +485,7 @@
       }
 
       <!-- Validation Warning -->
-      @if (!canProceedToNextStep() && currentStep() !== totalSteps) {
+      @if (!canProceedToNextStep() && currentStep() !== totalSteps && currentStep() !== 3) {
         <div class="mt-4 flex justify-end">
           <div class="flex items-center space-x-2 text-sm text-yellow-700">
             <svg class="w-4 h-4 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">

@@ -1,19 +1,121 @@
 <div class="space-y-6">
-  <!-- Header -->
-  <!-- <div class="bg-white shadow rounded-lg p-6">
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-2xl font-bold text-gray-900">Loan Decision</h1>
-        <p class="mt-1 text-sm text-gray-500">Make a decision on this loan application</p>
+  <!-- Decision Type Selection -->
+  @if (!decisionType()) {
+    <div class="bg-white shadow rounded-lg p-6">
+      <div class="flex items-center justify-between gap-3 mb-4">
+        <h2 class="text-lg font-semibold text-gray-900">Select Decision Type</h2>
+        <button
+          (click)="cancel()"
+          class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+        >
+          Cancel
+        </button>
       </div>
-      <button
-        (click)="cancel()"
-        class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
-      >
-        Cancel
-      </button>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <button
+          (click)="setDecisionType('approve')"
+          class="p-6 border-2 border-green-400 bg-green-50 rounded-lg hover:border-green-500 hover:bg-green-100 transition-all text-left"
+        >
+          <div class="flex items-center space-x-3">
+            <svg class="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+              <div class="font-semibold text-green-800">Approve</div>
+              <div class="text-sm text-green-700 mt-1">Approve this loan application</div>
+            </div>
+          </div>
+        </button>
+
+        <button
+          (click)="setDecisionType('reject')"
+          class="p-6 border-2 border-red-400 bg-red-50 rounded-lg hover:border-red-500 hover:bg-red-100 transition-all text-left"
+        >
+          <div class="flex items-center space-x-3">
+            <svg class="w-8 h-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+              <div class="font-semibold text-red-800">Reject</div>
+              <div class="text-sm text-red-700 mt-1">Reject this loan application</div>
+            </div>
+          </div>
+        </button>
+
+        <!-- Flag for Compliance button (only if NOT from compliance) -->
+        @if (!isFromCompliance()) {
+          <button
+            (click)="setDecisionType('flag')"
+            class="p-6 border-2 border-yellow-400 bg-yellow-50 rounded-lg hover:border-yellow-500 hover:bg-yellow-100 transition-all text-left"
+          >
+            <div class="flex items-center space-x-3">
+              <svg class="w-8 h-8 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+              <div>
+                <div class="font-semibold text-yellow-800">Flag for Compliance</div>
+                <div class="text-sm text-yellow-700 mt-1">Flag for compliance review</div>
+              </div>
+            </div>
+          </button>
+        }
+      </div>
     </div>
-  </div> -->
+  }
+
+  <!-- Applicant Summary -->
+  @if (applicationDetails(); as app) {
+    <div class="bg-white shadow rounded-lg p-6">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4"> Applicant Summary</h2>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div>
+          <div class="text-sm text-gray-500">Applicant</div>
+          <div class="font-semibold text-gray-900">{{ app.applicantIdentity.personalDetails.fullName || 'N/A' }}</div>
+        </div>
+        <div>
+          <div class="text-sm text-gray-500">Credit Score</div>
+          <div class="font-semibold" [ngClass]="{
+            'text-green-600': (app.externalVerification?.creditScore || 0) >= 700,
+            'text-yellow-600': (app.externalVerification?.creditScore || 0) >= 550 && (app.externalVerification?.creditScore || 0) < 700,
+            'text-red-600': (app.externalVerification?.creditScore || 0) < 550
+          }">
+            {{ app.externalVerification?.creditScore || 'N/A' }}
+          </div>
+        </div>
+        <div>
+          <div class="text-sm text-gray-500">Risk Level</div>
+          <div class="font-semibold">
+            <span class="px-2 py-1 rounded text-xs" [ngClass]="{
+              'bg-green-100 text-green-800': app.externalVerification?.riskLevel === 'LOW',
+              'bg-yellow-100 text-yellow-800': app.externalVerification?.riskLevel === 'MEDIUM',
+              'bg-red-100 text-red-800': app.externalVerification?.riskLevel === 'HIGH'
+            }">
+              {{ app.externalVerification?.riskLevel || 'N/A' }}
+            </span>
+          </div>
+        </div>
+        <div>
+          <div class="text-sm text-gray-500">Monthly Income</div>
+          <div class="font-semibold text-gray-900">₹{{ app.employmentDetails.monthlyIncome | number:'1.0-0' }}</div>
+        </div>
+      </div>
+      
+      <div class="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="font-semibold text-blue-900">Requested Loan</div>
+            <div class="text-blue-700 text-lg">
+              ₹{{ app.applicationInfo.loanAmount | number:'1.0-0' }} for {{ app.applicationInfo.tenureMonths }} months
+            </div>
+          </div>
+          <div class="text-right">
+            <div class="text-sm text-blue-600">Loan Type</div>
+            <div class="font-semibold text-blue-900">{{ app.applicationInfo.loanType }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
 
   <!-- Compliance Review Summary (Only if from compliance) -->
   @if (isFromCompliance() && applicationDetails(); as app) {
@@ -260,116 +362,6 @@
           {{ showInvestigationDetails() ? 'Hide' : 'See Complete' }} Investigation Details
         </button>
       }
-    </div>
-  }
-
-  <!-- Decision Type Selection -->
-  @if (!decisionType()) {
-    <div class="bg-white shadow rounded-lg p-6">
-      <h2 class="text-lg font-semibold text-gray-900 mb-4">Select Decision Type</h2>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <button
-          (click)="setDecisionType('approve')"
-          class="p-6 border-2 border-green-200 rounded-lg hover:border-green-500 hover:bg-green-50 transition-all text-left"
-        >
-          <div class="flex items-center space-x-3">
-            <svg class="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div>
-              <div class="font-semibold text-gray-900">Approve</div>
-              <div class="text-sm text-gray-500 mt-1">Approve this loan application</div>
-            </div>
-          </div>
-        </button>
-
-        <button
-          (click)="setDecisionType('reject')"
-          class="p-6 border-2 border-red-200 rounded-lg hover:border-red-500 hover:bg-red-50 transition-all text-left"
-        >
-          <div class="flex items-center space-x-3">
-            <svg class="w-8 h-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div>
-              <div class="font-semibold text-gray-900">Reject</div>
-              <div class="text-sm text-gray-500 mt-1">Reject this loan application</div>
-            </div>
-          </div>
-        </button>
-
-        <!-- Flag for Compliance button (only if NOT from compliance) -->
-        @if (!isFromCompliance()) {
-          <button
-            (click)="setDecisionType('flag')"
-            class="p-6 border-2 border-yellow-200 rounded-lg hover:border-yellow-500 hover:bg-yellow-50 transition-all text-left"
-          >
-            <div class="flex items-center space-x-3">
-              <svg class="w-8 h-8 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
-              </svg>
-              <div>
-                <div class="font-semibold text-gray-900">Flag for Compliance</div>
-                <div class="text-sm text-gray-500 mt-1">Flag for compliance review</div>
-              </div>
-            </div>
-          </button>
-        }
-      </div>
-    </div>
-  }
-
-  <!-- Applicant Summary -->
-  @if (applicationDetails(); as app) {
-    <div class="bg-white shadow rounded-lg p-6">
-      <h2 class="text-lg font-semibold text-gray-900 mb-4">📊 Applicant Summary</h2>
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div>
-          <div class="text-sm text-gray-500">Applicant</div>
-          <div class="font-semibold text-gray-900">{{ app.applicantIdentity.personalDetails.fullName || 'N/A' }}</div>
-        </div>
-        <div>
-          <div class="text-sm text-gray-500">Credit Score</div>
-          <div class="font-semibold" [ngClass]="{
-            'text-green-600': (app.externalVerification?.creditScore || 0) >= 700,
-            'text-yellow-600': (app.externalVerification?.creditScore || 0) >= 550 && (app.externalVerification?.creditScore || 0) < 700,
-            'text-red-600': (app.externalVerification?.creditScore || 0) < 550
-          }">
-            {{ app.externalVerification?.creditScore || 'N/A' }}
-          </div>
-        </div>
-        <div>
-          <div class="text-sm text-gray-500">Risk Level</div>
-          <div class="font-semibold">
-            <span class="px-2 py-1 rounded text-xs" [ngClass]="{
-              'bg-green-100 text-green-800': app.externalVerification?.riskLevel === 'LOW',
-              'bg-yellow-100 text-yellow-800': app.externalVerification?.riskLevel === 'MEDIUM',
-              'bg-red-100 text-red-800': app.externalVerification?.riskLevel === 'HIGH'
-            }">
-              {{ app.externalVerification?.riskLevel || 'N/A' }}
-            </span>
-          </div>
-        </div>
-        <div>
-          <div class="text-sm text-gray-500">Monthly Income</div>
-          <div class="font-semibold text-gray-900">₹{{ app.employmentDetails.monthlyIncome | number:'1.0-0' }}</div>
-        </div>
-      </div>
-      
-      <div class="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-        <div class="flex items-center justify-between">
-          <div>
-            <div class="font-semibold text-blue-900">Requested Loan</div>
-            <div class="text-blue-700 text-lg">
-              ₹{{ app.applicationInfo.loanAmount | number:'1.0-0' }} for {{ app.applicationInfo.tenureMonths }} months
-            </div>
-          </div>
-          <div class="text-right">
-            <div class="text-sm text-blue-600">Loan Type</div>
-            <div class="font-semibold text-blue-900">{{ app.applicationInfo.loanType }}</div>
-          </div>
-        </div>
-      </div>
     </div>
   }
 
