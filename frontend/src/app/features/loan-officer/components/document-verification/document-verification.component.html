@@ -8,105 +8,52 @@
     <ng-container *ngIf="applicationDetails() as details">
       <ng-container *ngIf="details.applicationInfo as app">
 
-    <!-- Sticky Progress Tracker -->
-    <div class="sticky top-0 z-20 bg-gradient-to-r from-blue-600 to-blue-700 shadow-lg p-4 mb-6 rounded-lg">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center space-x-4">
-          <div class="bg-white/20 rounded-full p-2">
-            <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-          </div>
-          <div class="text-white">
-            <h3 class="font-semibold text-lg">Verification Progress</h3>
-            <p class="text-sm text-blue-100">{{ getCompletedCategoriesCount() }} of {{ getTotalCategoriesCount() }} categories verified</p>
-          </div>
-        </div>
-        <div class="flex items-center space-x-4">
-          <div class="text-right text-white">
-            <div class="text-2xl font-bold">{{ getProgressPercentage() }}%</div>
-            <div class="text-xs text-blue-100">Complete</div>
-          </div>
-          <div class="w-48 bg-white/20 rounded-full h-3">
-            <div 
-              class="bg-white h-3 rounded-full transition-all duration-500 ease-out"
-              [style.width.%]="getProgressPercentage()"
-            ></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Header -->
-    <div class="bg-white shadow rounded-lg p-6">
-      <div class="flex items-center justify-between">
-        <div>
-          <h1 class="text-2xl font-bold text-gray-900">📋 Document Verification</h1>
-          <p class="mt-1 text-sm text-gray-500">
-            @if (details.applicantIdentity && details.applicantIdentity.personalDetails && details.applicantIdentity.personalDetails.fullName) {
-              Applicant: {{ details.applicantIdentity.personalDetails.fullName }} • {{ app.loanType }}
-            } @else {
-              Application: {{ app.loanType }}
-            }
-          </p>
-          @if (details.employmentDetails && details.employmentDetails.employmentType) {
-            <p class="mt-1 text-xs text-gray-400">
-              Employment Type: <span class="font-medium text-blue-600">{{ details.employmentDetails.employmentType }}</span>
-            </p>
-          }
-        </div>
-        <button
-          type="button"
-          (click)="cancel()"
-          class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
-        >
-          ← Back
-        </button>
-      </div>
-    </div>
-
+    
+   
     <!-- NEW: Category-Based Verification Form -->
     <form [formGroup]="verificationForm" (ngSubmit)="submitVerification()" class="space-y-6">
       
-      <!-- Instructions -->
-      <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <p class="text-sm text-blue-900">
-          <strong>📌 New Verification Process:</strong> Review applicant data alongside documents for each category. Mark each category as verified or rejected.
-        </p>
-      </div>
 
       <!-- SECTION 1: IDENTITY VERIFICATION -->
       @if (hasIdentityDocuments()) {
         <div class="bg-white shadow rounded-lg p-6">
-          <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-            <span class="text-2xl mr-2">🆔</span>
-            1. Identity Verification
-          </h2>
-
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-semibold text-gray-900 flex items-center">
+              <span class="text-2xl mr-2"></span>
+              1. Identity Verification
+            </h2>
+            <button
+              type="button"
+              (click)="cancel()"
+              class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+            >
+              ← Back
+            </button>
+          </div>
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <!-- LEFT: Applicant Data -->
             <div class="bg-gray-50 rounded-lg p-4">
-              <h3 class="font-medium text-gray-900 mb-3">Applicant Information</h3>
+              <!-- <h3 class="font-medium text-gray-900 mb-3">Applicant Information</h3> -->
               @if (getPersonalDetails(); as personal) {
-                <div class="space-y-2 text-sm">
-                  <div class="flex justify-between">
-                    <span class="text-gray-600">Full Name:</span>
-                    <span class="font-medium">{{ personal.fullName }}</span>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span class="text-gray-600 block">Full Name</span>
+                    <span class="font-medium text-gray-900">{{ personal.fullName }}</span>
                   </div>
-                  <div class="flex justify-between">
-                    <span class="text-gray-600">Date of Birth:</span>
-                    <span class="font-medium">{{ formatDate(personal.dateOfBirth) }}</span>
+                  <div>
+                    <span class="text-gray-600 block">Date of Birth</span>
+                    <span class="font-medium text-gray-900">{{ formatDate(personal.dateOfBirth) }}</span>
                   </div>
                   @if (personal.aadhaarNumber) {
-                    <div class="flex justify-between">
-                      <span class="text-gray-600">Aadhaar:</span>
-                      <span class="font-medium">{{ personal.aadhaarNumber }}</span>
+                    <div>
+                      <span class="text-gray-600 block">Aadhaar</span>
+                      <span class="font-medium text-gray-900">{{ personal.aadhaarNumber }}</span>
                     </div>
                   }
                   @if (personal.panNumber) {
-                    <div class="flex justify-between">
-                      <span class="text-gray-600">PAN:</span>
-                      <span class="font-medium">{{ personal.panNumber }}</span>
+                    <div>
+                      <span class="text-gray-600 block">PAN</span>
+                      <span class="font-medium text-gray-900">{{ personal.panNumber }}</span>
                     </div>
                   }
                 </div>
@@ -114,34 +61,43 @@
             </div>
 
             <!-- RIGHT: Documents -->
-            <div class="space-y-3">
-              <h3 class="font-medium text-gray-900 mb-3">Uploaded Documents</h3>
-              @for (doc of getIdentityDocuments(); track doc.documentId) {
-                <div class="border border-gray-200 rounded-lg p-3 hover:border-blue-300 transition-colors">
-                  <div class="flex items-center justify-between">
-                    <div class="flex-1">
-                      <div class="text-sm font-medium text-gray-900">{{ doc.documentType.replace('_', ' ') }}</div>
-                      <div class="text-xs text-gray-500 mt-1">{{ doc.fileName }}</div>
-                    </div>
-                    <div class="flex space-x-2">
-                      <button
-                        type="button"
-                        (click)="viewDocument(doc.fileUrl)"
-                        class="px-3 py-1 text-xs text-blue-600 bg-blue-50 rounded hover:bg-blue-100"
-                      >
-                        View
-                      </button>
-                      <button
-                        type="button"
-                        (click)="downloadDocument(doc.fileUrl, doc.fileName)"
-                        class="px-3 py-1 text-xs text-gray-600 bg-gray-100 rounded hover:bg-gray-200"
-                      >
-                        Download
-                      </button>
+            <div>
+              <!-- <h3 class="font-medium text-gray-900 mb-3">Uploaded Documents</h3> -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                @for (doc of getIdentityDocuments(); track doc.documentId) {
+                  <div class="border border-gray-200 rounded-lg p-3 hover:border-blue-300 transition-colors">
+                    <div class="flex items-start justify-between">
+                      <div class="flex-1 min-w-0">
+                        <div class="text-sm font-medium text-gray-900 truncate">{{ doc.documentType.replace('_', ' ') }}</div>
+                        <div class="text-xs text-gray-500 mt-1 truncate">{{ doc.fileName }}</div>
+                      </div>
+                      <div class="flex space-x-1 ml-2">
+                        <button
+                          type="button"
+                          (click)="viewDocument(doc.fileUrl)"
+                          class="p-1.5 text-blue-600 bg-blue-50 rounded hover:bg-blue-100 transition-colors"
+                          title="View Document"
+                        >
+                          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          (click)="downloadDocument(doc.fileUrl, doc.fileName)"
+                          class="p-1.5 text-gray-600 bg-gray-100 rounded hover:bg-gray-200 transition-colors"
+                          title="Download Document"
+                        >
+                          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              }
+                }
+              </div>
             </div>
           </div>
 
@@ -221,37 +177,38 @@
       <!-- SECTION 2: EMPLOYMENT VERIFICATION -->
       @if (hasEmploymentDocuments()) {
         <div class="bg-white shadow rounded-lg p-6">
-          <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-            <span class="text-2xl mr-2">💼</span>
-            2. Employment Verification
-          </h2>
-
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-semibold text-gray-900 flex items-center">
+              <span class="text-2xl mr-2"></span>
+              2. Employment Verification
+            </h2>
+          </div>
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <!-- LEFT: Employment Data -->
             <div class="bg-gray-50 rounded-lg p-4">
-              <h3 class="font-medium text-gray-900 mb-3">Employment Information</h3>
+              <!-- <h3 class="font-medium text-gray-900 mb-3">Employment Information</h3> -->
               @if (getEmploymentDetails(); as employment) {
-                <div class="space-y-2 text-sm">
-                  <div class="flex justify-between">
-                    <span class="text-gray-600">Employment Type:</span>
-                    <span class="font-medium">{{ employment.employmentType }}</span>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span class="text-gray-600 block">Employment Type</span>
+                    <span class="font-medium text-gray-900">{{ employment.employmentType }}</span>
                   </div>
                   @if (employment.companyName) {
-                    <div class="flex justify-between">
-                      <span class="text-gray-600">Company:</span>
-                      <span class="font-medium">{{ employment.companyName }}</span>
+                    <div>
+                      <span class="text-gray-600 block">Company</span>
+                      <span class="font-medium text-gray-900">{{ employment.companyName }}</span>
                     </div>
                   }
                   @if (employment.designation) {
-                    <div class="flex justify-between">
-                      <span class="text-gray-600">Designation:</span>
-                      <span class="font-medium">{{ employment.designation }}</span>
+                    <div>
+                      <span class="text-gray-600 block">Designation</span>
+                      <span class="font-medium text-gray-900">{{ employment.designation }}</span>
                     </div>
                   }
                   @if (employment.workExperience) {
-                    <div class="flex justify-between">
-                      <span class="text-gray-600">Experience:</span>
-                      <span class="font-medium">{{ employment.workExperience }}</span>
+                    <div>
+                      <span class="text-gray-600 block">Experience</span>
+                      <span class="font-medium text-gray-900">{{ employment.workExperience }}</span>
                     </div>
                   }
                 </div>
@@ -259,34 +216,43 @@
             </div>
 
             <!-- RIGHT: Documents -->
-            <div class="space-y-3">
-              <h3 class="font-medium text-gray-900 mb-3">Uploaded Documents</h3>
-              @for (doc of getEmploymentDocuments(); track doc.documentId) {
-                <div class="border border-gray-200 rounded-lg p-3 hover:border-blue-300 transition-colors">
-                  <div class="flex items-center justify-between">
-                    <div class="flex-1">
-                      <div class="text-sm font-medium text-gray-900">{{ doc.documentType.replace('_', ' ') }}</div>
-                      <div class="text-xs text-gray-500 mt-1">{{ doc.fileName }}</div>
-                    </div>
-                    <div class="flex space-x-2">
-                      <button
-                        type="button"
-                        (click)="viewDocument(doc.fileUrl)"
-                        class="px-3 py-1 text-xs text-blue-600 bg-blue-50 rounded hover:bg-blue-100"
-                      >
-                        View
-                      </button>
-                      <button
-                        type="button"
-                        (click)="downloadDocument(doc.fileUrl, doc.fileName)"
-                        class="px-3 py-1 text-xs text-gray-600 bg-gray-100 rounded hover:bg-gray-200"
-                      >
-                        Download
-                      </button>
+            <div>
+              <!-- <h3 class="font-medium text-gray-900 mb-3">Uploaded Documents</h3> -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                @for (doc of getEmploymentDocuments(); track doc.documentId) {
+                  <div class="border border-gray-200 rounded-lg p-3 hover:border-blue-300 transition-colors">
+                    <div class="flex items-start justify-between">
+                      <div class="flex-1 min-w-0">
+                        <div class="text-sm font-medium text-gray-900 truncate">{{ doc.documentType.replace('_', ' ') }}</div>
+                        <div class="text-xs text-gray-500 mt-1 truncate">{{ doc.fileName }}</div>
+                      </div>
+                      <div class="flex space-x-1 ml-2">
+                        <button
+                          type="button"
+                          (click)="viewDocument(doc.fileUrl)"
+                          class="p-1.5 text-blue-600 bg-blue-50 rounded hover:bg-blue-100 transition-colors"
+                          title="View Document"
+                        >
+                          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          (click)="downloadDocument(doc.fileUrl, doc.fileName)"
+                          class="p-1.5 text-gray-600 bg-gray-100 rounded hover:bg-gray-200 transition-colors"
+                          title="Download Document"
+                        >
+                          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              }
+                }
+              </div>
             </div>
           </div>
 
@@ -365,27 +331,28 @@
       <!-- SECTION 3: INCOME VERIFICATION -->
       @if (hasIncomeDocuments()) {
         <div class="bg-white shadow rounded-lg p-6">
-          <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-            <span class="text-2xl mr-2">💰</span>
-            3. Income Verification
-          </h2>
-
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-semibold text-gray-900 flex items-center">
+              <span class="text-2xl mr-2"></span>
+              3. Income Verification
+            </h2>
+          </div>
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <!-- LEFT: Income Data -->
             <div class="bg-gray-50 rounded-lg p-4">
-              <h3 class="font-medium text-gray-900 mb-3">Income Information</h3>
+              <!-- <h3 class="font-medium text-gray-900 mb-3">Income Information</h3> -->
               @if (getIncomeDetails(); as income) {
-                <div class="space-y-2 text-sm">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                   @if (income.monthlyIncome) {
-                    <div class="flex justify-between">
-                      <span class="text-gray-600">Monthly Income:</span>
-                      <span class="font-medium">₹{{ income.monthlyIncome | number }}</span>
+                    <div>
+                      <span class="text-gray-600 block">Monthly Income</span>
+                      <span class="font-medium text-gray-900">₹{{ income.monthlyIncome | number }}</span>
                     </div>
                   }
                   @if (income.annualIncome) {
-                    <div class="flex justify-between">
-                      <span class="text-gray-600">Annual Income:</span>
-                      <span class="font-medium">₹{{ income.annualIncome | number }}</span>
+                    <div>
+                      <span class="text-gray-600 block">Annual Income</span>
+                      <span class="font-medium text-gray-900">₹{{ income.annualIncome | number }}</span>
                     </div>
                   }
                 </div>
@@ -393,34 +360,43 @@
             </div>
 
             <!-- RIGHT: Documents -->
-            <div class="space-y-3">
-              <h3 class="font-medium text-gray-900 mb-3">Uploaded Documents</h3>
-              @for (doc of getIncomeDocuments(); track doc.documentId) {
-                <div class="border border-gray-200 rounded-lg p-3 hover:border-blue-300 transition-colors">
-                  <div class="flex items-center justify-between">
-                    <div class="flex-1">
-                      <div class="text-sm font-medium text-gray-900">{{ doc.documentType.replace('_', ' ') }}</div>
-                      <div class="text-xs text-gray-500 mt-1">{{ doc.fileName }}</div>
-                    </div>
-                    <div class="flex space-x-2">
-                      <button
-                        type="button"
-                        (click)="viewDocument(doc.fileUrl)"
-                        class="px-3 py-1 text-xs text-blue-600 bg-blue-50 rounded hover:bg-blue-100"
-                      >
-                        View
-                      </button>
-                      <button
-                        type="button"
-                        (click)="downloadDocument(doc.fileUrl, doc.fileName)"
-                        class="px-3 py-1 text-xs text-gray-600 bg-gray-100 rounded hover:bg-gray-200"
-                      >
-                        Download
-                      </button>
+            <div>
+              <!-- <h3 class="font-medium text-gray-900 mb-3">Uploaded Documents</h3> -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                @for (doc of getIncomeDocuments(); track doc.documentId) {
+                  <div class="border border-gray-200 rounded-lg p-3 hover:border-blue-300 transition-colors">
+                    <div class="flex items-start justify-between">
+                      <div class="flex-1 min-w-0">
+                        <div class="text-sm font-medium text-gray-900 truncate">{{ doc.documentType.replace('_', ' ') }}</div>
+                        <div class="text-xs text-gray-500 mt-1 truncate">{{ doc.fileName }}</div>
+                      </div>
+                      <div class="flex space-x-1 ml-2">
+                        <button
+                          type="button"
+                          (click)="viewDocument(doc.fileUrl)"
+                          class="p-1.5 text-blue-600 bg-blue-50 rounded hover:bg-blue-100 transition-colors"
+                          title="View Document"
+                        >
+                          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          (click)="downloadDocument(doc.fileUrl, doc.fileName)"
+                          class="p-1.5 text-gray-600 bg-gray-100 rounded hover:bg-gray-200 transition-colors"
+                          title="Download Document"
+                        >
+                          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              }
+                }
+              </div>
             </div>
           </div>
 
@@ -499,39 +475,40 @@
       <!-- SECTION 4: BANK VERIFICATION -->
       @if (hasBankDocuments()) {
         <div class="bg-white shadow rounded-lg p-6">
-          <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-            <span class="text-2xl mr-2">🏦</span>
-            4. Bank Account Verification
-          </h2>
-
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-semibold text-gray-900 flex items-center">
+              <span class="text-2xl mr-2"></span>
+              4. Bank Account Verification
+            </h2>
+          </div>
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <!-- LEFT: Bank Data -->
             <div class="bg-gray-50 rounded-lg p-4">
-              <h3 class="font-medium text-gray-900 mb-3">Bank Information</h3>
+              <!-- <h3 class="font-medium text-gray-900 mb-3">Bank Information</h3> -->
               @if (getBankDetails(); as bank) {
-                <div class="space-y-2 text-sm">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                   @if (bank.bankName) {
-                    <div class="flex justify-between">
-                      <span class="text-gray-600">Bank Name:</span>
-                      <span class="font-medium">{{ bank.bankName }}</span>
+                    <div>
+                      <span class="text-gray-600 block">Bank Name</span>
+                      <span class="font-medium text-gray-900">{{ bank.bankName }}</span>
                     </div>
                   }
                   @if (bank.accountNumber) {
-                    <div class="flex justify-between">
-                      <span class="text-gray-600">Account Number:</span>
-                      <span class="font-medium">{{ bank.accountNumber }}</span>
+                    <div>
+                      <span class="text-gray-600 block">Account Number</span>
+                      <span class="font-medium text-gray-900">{{ bank.accountNumber }}</span>
                     </div>
                   }
                   @if (bank.ifscCode) {
-                    <div class="flex justify-between">
-                      <span class="text-gray-600">IFSC Code:</span>
-                      <span class="font-medium">{{ bank.ifscCode }}</span>
+                    <div>
+                      <span class="text-gray-600 block">IFSC Code</span>
+                      <span class="font-medium text-gray-900">{{ bank.ifscCode }}</span>
                     </div>
                   }
                   @if (bank.accountType) {
-                    <div class="flex justify-between">
-                      <span class="text-gray-600">Account Type:</span>
-                      <span class="font-medium">{{ bank.accountType }}</span>
+                    <div>
+                      <span class="text-gray-600 block">Account Type</span>
+                      <span class="font-medium text-gray-900">{{ bank.accountType }}</span>
                     </div>
                   }
                 </div>
@@ -539,34 +516,43 @@
             </div>
 
             <!-- RIGHT: Documents -->
-            <div class="space-y-3">
-              <h3 class="font-medium text-gray-900 mb-3">Uploaded Documents</h3>
-              @for (doc of getBankDocuments(); track doc.documentId) {
-                <div class="border border-gray-200 rounded-lg p-3 hover:border-blue-300 transition-colors">
-                  <div class="flex items-center justify-between">
-                    <div class="flex-1">
-                      <div class="text-sm font-medium text-gray-900">{{ doc.documentType.replace('_', ' ') }}</div>
-                      <div class="text-xs text-gray-500 mt-1">{{ doc.fileName }}</div>
-                    </div>
-                    <div class="flex space-x-2">
-                      <button
-                        type="button"
-                        (click)="viewDocument(doc.fileUrl)"
-                        class="px-3 py-1 text-xs text-blue-600 bg-blue-50 rounded hover:bg-blue-100"
-                      >
-                        View
-                      </button>
-                      <button
-                        type="button"
-                        (click)="downloadDocument(doc.fileUrl, doc.fileName)"
-                        class="px-3 py-1 text-xs text-gray-600 bg-gray-100 rounded hover:bg-gray-200"
-                      >
-                        Download
-                      </button>
+            <div>
+              <!-- <h3 class="font-medium text-gray-900 mb-3">Uploaded Documents</h3> -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                @for (doc of getBankDocuments(); track doc.documentId) {
+                  <div class="border border-gray-200 rounded-lg p-3 hover:border-blue-300 transition-colors">
+                    <div class="flex items-start justify-between">
+                      <div class="flex-1 min-w-0">
+                        <div class="text-sm font-medium text-gray-900 truncate">{{ doc.documentType.replace('_', ' ') }}</div>
+                        <div class="text-xs text-gray-500 mt-1 truncate">{{ doc.fileName }}</div>
+                      </div>
+                      <div class="flex space-x-1 ml-2">
+                        <button
+                          type="button"
+                          (click)="viewDocument(doc.fileUrl)"
+                          class="p-1.5 text-blue-600 bg-blue-50 rounded hover:bg-blue-100 transition-colors"
+                          title="View Document"
+                        >
+                          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          (click)="downloadDocument(doc.fileUrl, doc.fileName)"
+                          class="p-1.5 text-gray-600 bg-gray-100 rounded hover:bg-gray-200 transition-colors"
+                          title="Download Document"
+                        >
+                          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              }
+                }
+              </div>
             </div>
           </div>
 
@@ -645,15 +631,16 @@
       <!-- SECTION 5: ADDRESS VERIFICATION -->
       @if (hasAddressDocuments()) {
         <div class="bg-white shadow rounded-lg p-6">
-          <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-            <span class="text-2xl mr-2">📍</span>
-            5. Address Verification
-          </h2>
-
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-semibold text-gray-900 flex items-center">
+              <span class="text-2xl mr-2"></span>
+              5. Address Verification
+            </h2>
+          </div>
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <!-- LEFT: Address Data -->
             <div class="bg-gray-50 rounded-lg p-4">
-              <h3 class="font-medium text-gray-900 mb-3">Address Information</h3>
+              <!-- <h3 class="font-medium text-gray-900 mb-3">Address Information</h3> -->
               @if (getAddressDetails(); as addresses) {
                 <div class="space-y-3 text-sm">
                   @if (addresses.currentAddress) {
@@ -679,34 +666,43 @@
             </div>
 
             <!-- RIGHT: Documents -->
-            <div class="space-y-3">
-              <h3 class="font-medium text-gray-900 mb-3">Uploaded Documents</h3>
-              @for (doc of getAddressDocuments(); track doc.documentId) {
-                <div class="border border-gray-200 rounded-lg p-3 hover:border-blue-300 transition-colors">
-                  <div class="flex items-center justify-between">
-                    <div class="flex-1">
-                      <div class="text-sm font-medium text-gray-900">{{ doc.documentType.replace('_', ' ') }}</div>
-                      <div class="text-xs text-gray-500 mt-1">{{ doc.fileName }}</div>
-                    </div>
-                    <div class="flex space-x-2">
-                      <button
-                        type="button"
-                        (click)="viewDocument(doc.fileUrl)"
-                        class="px-3 py-1 text-xs text-blue-600 bg-blue-50 rounded hover:bg-blue-100"
-                      >
-                        View
-                      </button>
-                      <button
-                        type="button"
-                        (click)="downloadDocument(doc.fileUrl, doc.fileName)"
-                        class="px-3 py-1 text-xs text-gray-600 bg-gray-100 rounded hover:bg-gray-200"
-                      >
-                        Download
-                      </button>
+            <div>
+              <!-- <h3 class="font-medium text-gray-900 mb-3">Uploaded Documents</h3> -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                @for (doc of getAddressDocuments(); track doc.documentId) {
+                  <div class="border border-gray-200 rounded-lg p-3 hover:border-blue-300 transition-colors">
+                    <div class="flex items-start justify-between">
+                      <div class="flex-1 min-w-0">
+                        <div class="text-sm font-medium text-gray-900 truncate">{{ doc.documentType.replace('_', ' ') }}</div>
+                        <div class="text-xs text-gray-500 mt-1 truncate">{{ doc.fileName }}</div>
+                      </div>
+                      <div class="flex space-x-1 ml-2">
+                        <button
+                          type="button"
+                          (click)="viewDocument(doc.fileUrl)"
+                          class="p-1.5 text-blue-600 bg-blue-50 rounded hover:bg-blue-100 transition-colors"
+                          title="View Document"
+                        >
+                          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          (click)="downloadDocument(doc.fileUrl, doc.fileName)"
+                          class="p-1.5 text-gray-600 bg-gray-100 rounded hover:bg-gray-200 transition-colors"
+                          title="Download Document"
+                        >
+                          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              }
+                }
+              </div>
             </div>
           </div>
 
@@ -783,127 +779,82 @@
       }
 
       <!-- GENERAL NOTES -->
-      <div class="bg-white shadow rounded-lg p-6">
-        <h2 class="text-lg font-semibold text-gray-900 mb-4">📝 General Verification Notes</h2>
+      <div class="bg-white shadow rounded-lg p-4">
+        <h2 class="text-base font-semibold text-gray-900 mb-3">General Verification Notes</h2>
         <textarea
           formControlName="generalNotes"
-          rows="4"
+          rows="3"
           placeholder="Add any additional notes about the overall verification process..."
-          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
         ></textarea>
       </div>
 
       <!-- VERIFICATION SUMMARY -->
       @if (getCompletedCategoriesCount() > 0) {
-        <div class="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-6 shadow-md">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-              <svg class="w-6 h-6 mr-2 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
-              </svg>
-              Verification Summary
-            </h2>
-            <span class="px-3 py-1 bg-blue-600 text-white rounded-full text-sm font-semibold">
-              {{ getCompletedCategoriesCount() }}/{{ getTotalCategoriesCount() }} Complete
-            </span>
+        <div class="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
+          <div class="flex items-center space-x-4">
+            <span class="text-sm font-medium text-gray-700">Verification Progress:</span>
+            <div class="flex items-center space-x-2">
+              @if (hasIdentityDocuments()) {
+                <span [class]="verificationForm.get('identityVerified')?.value === true 
+                  ? 'px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium'
+                  : verificationForm.get('identityVerified')?.value === false
+                    ? 'px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium'
+                    : 'px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs'">
+                  Identity
+                  @if (verificationForm.get('identityVerified')?.value === true) { ✓ }
+                  @else if (verificationForm.get('identityVerified')?.value === false) { ✗ }
+                </span>
+              }
+              @if (hasEmploymentDocuments()) {
+                <span [class]="verificationForm.get('employmentVerified')?.value === true 
+                  ? 'px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium'
+                  : verificationForm.get('employmentVerified')?.value === false
+                    ? 'px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium'
+                    : 'px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs'">
+                  Employment
+                  @if (verificationForm.get('employmentVerified')?.value === true) { ✓ }
+                  @else if (verificationForm.get('employmentVerified')?.value === false) { ✗ }
+                </span>
+              }
+              @if (hasIncomeDocuments()) {
+                <span [class]="verificationForm.get('incomeVerified')?.value === true 
+                  ? 'px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium'
+                  : verificationForm.get('incomeVerified')?.value === false
+                    ? 'px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium'
+                    : 'px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs'">
+                  Income
+                  @if (verificationForm.get('incomeVerified')?.value === true) { ✓ }
+                  @else if (verificationForm.get('incomeVerified')?.value === false) { ✗ }
+                </span>
+              }
+              @if (hasBankDocuments()) {
+                <span [class]="verificationForm.get('bankVerified')?.value === true 
+                  ? 'px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium'
+                  : verificationForm.get('bankVerified')?.value === false
+                    ? 'px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium'
+                    : 'px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs'">
+                  Bank
+                  @if (verificationForm.get('bankVerified')?.value === true) { ✓ }
+                  @else if (verificationForm.get('bankVerified')?.value === false) { ✗ }
+                </span>
+              }
+              @if (hasAddressDocuments()) {
+                <span [class]="verificationForm.get('addressVerified')?.value === true 
+                  ? 'px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium'
+                  : verificationForm.get('addressVerified')?.value === false
+                    ? 'px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium'
+                    : 'px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs'">
+                  Address
+                  @if (verificationForm.get('addressVerified')?.value === true) { ✓ }
+                  @else if (verificationForm.get('addressVerified')?.value === false) { ✗ }
+                </span>
+              }
+            </div>
           </div>
-          
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            @if (hasIdentityDocuments()) {
-              <div [class]="verificationForm.get('identityVerified')?.value === true 
-                ? 'bg-green-50 border-2 border-green-300 rounded-lg p-4'
-                : verificationForm.get('identityVerified')?.value === false
-                  ? 'bg-red-50 border-2 border-red-300 rounded-lg p-4'
-                  : 'bg-gray-50 border-2 border-gray-300 rounded-lg p-4'">
-                <div class="flex items-center justify-between">
-                  <span class="font-medium text-gray-900">🆔 Identity</span>
-                  @if (verificationForm.get('identityVerified')?.value === true) {
-                    <span class="px-2 py-1 bg-green-600 text-white rounded text-xs font-semibold">✓ Verified</span>
-                  } @else if (verificationForm.get('identityVerified')?.value === false) {
-                    <span class="px-2 py-1 bg-red-600 text-white rounded text-xs font-semibold">✗ Rejected</span>
-                  } @else {
-                    <span class="px-2 py-1 bg-gray-400 text-white rounded text-xs">Pending</span>
-                  }
-                </div>
-              </div>
-            }
-
-            @if (hasEmploymentDocuments()) {
-              <div [class]="verificationForm.get('employmentVerified')?.value === true 
-                ? 'bg-green-50 border-2 border-green-300 rounded-lg p-4'
-                : verificationForm.get('employmentVerified')?.value === false
-                  ? 'bg-red-50 border-2 border-red-300 rounded-lg p-4'
-                  : 'bg-gray-50 border-2 border-gray-300 rounded-lg p-4'">
-                <div class="flex items-center justify-between">
-                  <span class="font-medium text-gray-900">💼 Employment</span>
-                  @if (verificationForm.get('employmentVerified')?.value === true) {
-                    <span class="px-2 py-1 bg-green-600 text-white rounded text-xs font-semibold">✓ Verified</span>
-                  } @else if (verificationForm.get('employmentVerified')?.value === false) {
-                    <span class="px-2 py-1 bg-red-600 text-white rounded text-xs font-semibold">✗ Rejected</span>
-                  } @else {
-                    <span class="px-2 py-1 bg-gray-400 text-white rounded text-xs">Pending</span>
-                  }
-                </div>
-              </div>
-            }
-
-            @if (hasIncomeDocuments()) {
-              <div [class]="verificationForm.get('incomeVerified')?.value === true 
-                ? 'bg-green-50 border-2 border-green-300 rounded-lg p-4'
-                : verificationForm.get('incomeVerified')?.value === false
-                  ? 'bg-red-50 border-2 border-red-300 rounded-lg p-4'
-                  : 'bg-gray-50 border-2 border-gray-300 rounded-lg p-4'">
-                <div class="flex items-center justify-between">
-                  <span class="font-medium text-gray-900">💰 Income</span>
-                  @if (verificationForm.get('incomeVerified')?.value === true) {
-                    <span class="px-2 py-1 bg-green-600 text-white rounded text-xs font-semibold">✓ Verified</span>
-                  } @else if (verificationForm.get('incomeVerified')?.value === false) {
-                    <span class="px-2 py-1 bg-red-600 text-white rounded text-xs font-semibold">✗ Rejected</span>
-                  } @else {
-                    <span class="px-2 py-1 bg-gray-400 text-white rounded text-xs">Pending</span>
-                  }
-                </div>
-              </div>
-            }
-
-            @if (hasBankDocuments()) {
-              <div [class]="verificationForm.get('bankVerified')?.value === true 
-                ? 'bg-green-50 border-2 border-green-300 rounded-lg p-4'
-                : verificationForm.get('bankVerified')?.value === false
-                  ? 'bg-red-50 border-2 border-red-300 rounded-lg p-4'
-                  : 'bg-gray-50 border-2 border-gray-300 rounded-lg p-4'">
-                <div class="flex items-center justify-between">
-                  <span class="font-medium text-gray-900">🏦 Bank</span>
-                  @if (verificationForm.get('bankVerified')?.value === true) {
-                    <span class="px-2 py-1 bg-green-600 text-white rounded text-xs font-semibold">✓ Verified</span>
-                  } @else if (verificationForm.get('bankVerified')?.value === false) {
-                    <span class="px-2 py-1 bg-red-600 text-white rounded text-xs font-semibold">✗ Rejected</span>
-                  } @else {
-                    <span class="px-2 py-1 bg-gray-400 text-white rounded text-xs">Pending</span>
-                  }
-                </div>
-              </div>
-            }
-
-            @if (hasAddressDocuments()) {
-              <div [class]="verificationForm.get('addressVerified')?.value === true 
-                ? 'bg-green-50 border-2 border-green-300 rounded-lg p-4'
-                : verificationForm.get('addressVerified')?.value === false
-                  ? 'bg-red-50 border-2 border-red-300 rounded-lg p-4'
-                  : 'bg-gray-50 border-2 border-gray-300 rounded-lg p-4'">
-                <div class="flex items-center justify-between">
-                  <span class="font-medium text-gray-900">📍 Address</span>
-                  @if (verificationForm.get('addressVerified')?.value === true) {
-                    <span class="px-2 py-1 bg-green-600 text-white rounded text-xs font-semibold">✓ Verified</span>
-                  } @else if (verificationForm.get('addressVerified')?.value === false) {
-                    <span class="px-2 py-1 bg-red-600 text-white rounded text-xs font-semibold">✗ Rejected</span>
-                  } @else {
-                    <span class="px-2 py-1 bg-gray-400 text-white rounded text-xs">Pending</span>
-                  }
-                </div>
-              </div>
-            }
-          </div>
+          <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold">
+            {{ getCompletedCategoriesCount() }}/{{ getTotalCategoriesCount() }} Complete
+          </span>
         </div>
       }
 
@@ -968,7 +919,6 @@
         </div>
       </div>
     </form>
-
       </ng-container>
     </ng-container>
   }

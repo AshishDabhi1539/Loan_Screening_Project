@@ -179,41 +179,6 @@
         </div>
       }
 
-      <!-- Verified Documents (Read-only) -->
-      @if (verifiedDocuments().length > 0) {
-        <div class="bg-white rounded-2xl shadow-xl p-8 mb-8">
-          <div class="flex items-center space-x-3 mb-6">
-            <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-              <svg class="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-              </svg>
-            </div>
-            <div>
-              <h2 class="text-2xl font-bold text-gray-900">Verified Documents</h2>
-              <p class="text-sm text-gray-600">These documents have been verified and don't need resubmission</p>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            @for (doc of verifiedDocuments(); track doc.documentType) {
-              <div class="border-2 border-green-200 rounded-xl p-4 bg-green-50">
-                <div class="flex items-center justify-between">
-                  <div>
-                    <p class="text-sm font-semibold text-gray-900">{{ getDocumentTypeName(doc.documentType) }}</p>
-                    @if (doc.fileName) {
-                      <p class="text-xs text-gray-600 mt-1">{{ doc.fileName }}</p>
-                    }
-                  </div>
-                  <svg class="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                  </svg>
-                </div>
-              </div>
-            }
-          </div>
-        </div>
-      }
-
       <!-- Submit Section -->
       <div class="bg-white rounded-2xl shadow-xl p-8">
         <div class="flex items-center justify-between">
