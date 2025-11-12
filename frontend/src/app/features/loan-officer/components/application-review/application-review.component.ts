@@ -431,4 +431,19 @@ export class ApplicationReviewComponent implements OnInit {
     ];
     return descriptions[this.currentStep() - 1] || '';
   }
+
+  /**
+   * Get step arrow CSS class
+   */
+  getStepArrowClass(step: any): string {
+    if (step.completed && this.currentStep() !== step.number) {
+      return 'bg-green-500 text-white cursor-pointer hover:bg-green-600';
+    } else if (this.currentStep() === step.number) {
+      return 'bg-blue-500 text-white cursor-pointer hover:bg-blue-600';
+    } else if (this.isStepClickable(step.number)) {
+      return 'bg-gray-300 text-gray-700 cursor-pointer hover:bg-gray-400';
+    } else {
+      return 'bg-gray-200 text-gray-500 cursor-not-allowed';
+    }
+  }
 }
