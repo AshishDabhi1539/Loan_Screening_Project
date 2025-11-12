@@ -21,9 +21,11 @@ export class ApplicationDetailsComponent implements OnInit {
 
   isLoading = signal(false);
   applicationDetails = signal<CompleteApplicationDetailsResponse | null>(null);
+  auditTrail = signal<any[]>([]);
+  isLoadingAudit = signal(false);
 
   // Active tab for tabbed interface
-  activeTab = signal<'overview' | 'personal' | 'financial' | 'documents'>('overview');
+  activeTab = signal<'overview' | 'personal' | 'financial' | 'documents' | 'audit'>('overview');
   applicationId = signal<string>('');
 
   ngOnInit(): void {
@@ -69,6 +71,44 @@ export class ApplicationDetailsComponent implements OnInit {
   }
 
   /**
+   * Set active tab
+   */
+  setActiveTab(tab: 'overview' | 'personal' | 'financial' | 'documents' | 'audit'): void {
+    this.activeTab.set(tab);
+    
+    // Load audit trail when audit tab is clicked
+    if (tab === 'audit' && this.auditTrail().length === 0) {
+      this.loadAuditTrail();
+    }
+  }
+
+  /**
+   * Load audit trail - shows all important events without conditions
+   */
+  private loadAuditTrail(): void {
+    const appId = this.applicationId();
+    if (!appId) return;
+
+    this.isLoadingAudit.set(true);
+    this.adminService.getAuditTrail(appId).subscribe({
+      next: (trail) => {
+        // Sort by timestamp descending (newest first) - no filtering, show all events
+        const sortedTrail = trail.sort((a, b) => 
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        );
+        
+        this.auditTrail.set(sortedTrail);
+        this.isLoadingAudit.set(false);
+      },
+      error: (error) => {
+        console.error('Error loading audit trail:', error);
+        this.notificationService.error('Error', 'Failed to load audit trail');
+        this.isLoadingAudit.set(false);
+      }
+    });
+  }
+
+  /**
    * Format currency
    */
   formatCurrency(amount: number): string {
@@ -91,6 +131,18 @@ export class ApplicationDetailsComponent implements OnInit {
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
+    }).format(dateObj);
+  }
+
+  /**
+   * Format date only (without time) - for birth dates, etc.
+   */
+  formatDateOnly(date: Date | string): string {
+    const dateObj = date instanceof Date ? date : new Date(date);
+    return new Intl.DateTimeFormat('en-IN', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
     }).format(dateObj);
   }
 
@@ -204,12 +256,6 @@ export class ApplicationDetailsComponent implements OnInit {
   }
 
 
-  /**
-   * Set active tab
-   */
-  setActiveTab(tab: 'overview' | 'personal' | 'financial' | 'documents'): void {
-    this.activeTab.set(tab);
-  }
 
   /**
    * Download PDF - same functionality as applicant side
@@ -456,7 +502,7 @@ export class ApplicationDetailsComponent implements OnInit {
             </div>
             <div class="info-item">
               <div class="label">Date of Birth</div>
-              <div class="value">${this.formatDate(application.applicantIdentity.personalDetails.dateOfBirth)}</div>
+              <div class="value">${this.formatDateOnly(application.applicantIdentity.personalDetails.dateOfBirth)}</div>
             </div>
             <div class="info-item">
               <div class="label">Marital Status</div>
@@ -558,7 +604,7 @@ export class ApplicationDetailsComponent implements OnInit {
             </div>
             <div class="info-item">
               <div class="label">Credit Score</div>
-              <div class="value">${application.externalVerification.creditScore || 'Not available'}</div>
+              <div class="value">${application.externalVerification?.creditScore || 'Not available'}</div>
             </div>
             <div class="info-item">
               <div class="label">EMI to Income Ratio</div>
@@ -671,20 +717,18 @@ export class ApplicationDetailsComponent implements OnInit {
   }
 
   /**
-   * View document - exact copy from loan officer implementation
+   * View document in new tab
    */
-  viewDocument(document: any): void {
-    window.open(document.fileUrl, '_blank');
+  viewDocument(doc: any): void {
+    window.open(doc.fileUrl, '_blank');
   }
 
   /**
-   * Download document - exact copy from loan officer implementation
+   * Download document - only show notification after successful download
    */
-  downloadDocument(document: any): void {
-    this.notificationService.info('Download Started', `Downloading ${document.fileName}...`);
-    
+  downloadDocument(doc: any): void {
     // Fetch the file as blob
-    fetch(document.fileUrl)
+    fetch(doc.fileUrl)
       .then(response => response.blob())
       .then(blob => {
         // Create blob URL
@@ -693,7 +737,7 @@ export class ApplicationDetailsComponent implements OnInit {
         // Create temporary anchor element
         const link = document.createElement('a');
         link.href = blobUrl;
-        link.download = document.fileName || 'document.pdf';
+        link.download = doc.fileName || 'document.pdf';
         
         // Trigger download
         document.body.appendChild(link);
@@ -703,11 +747,13 @@ export class ApplicationDetailsComponent implements OnInit {
         // Clean up blob URL
         window.URL.revokeObjectURL(blobUrl);
         
-        this.notificationService.success('Download Complete', `${document.fileName} downloaded successfully`);
+        // Only show notification after successful download
+        this.notificationService.success('Download Complete', `${doc.fileName} downloaded successfully`);
       })
       .catch(error => {
-        console.error('Download failed:', error);
-        this.notificationService.error('Download Failed', 'Unable to download document');
+        console.error('Download error:', error);
+        this.notificationService.error('Download Failed', 'Failed to download document. Opening in new tab instead.');
+        window.open(doc.fileUrl, '_blank');
       });
   }
 

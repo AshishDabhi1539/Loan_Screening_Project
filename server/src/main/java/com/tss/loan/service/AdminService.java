@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import com.tss.loan.dto.response.AuditLogResponse;
 import com.tss.loan.dto.response.CompleteApplicationDetailsResponse;
 import com.tss.loan.dto.response.LoanApplicationResponse;
 
@@ -46,4 +47,12 @@ public interface AdminService {
      * @return Complete application details
      */
     CompleteApplicationDetailsResponse getApplicationDetails(UUID applicationId);
+    
+    /**
+     * Get audit trail for an application (admin view)
+     * Admin can view all audit logs and workflow history without restrictions
+     * @param applicationId The application ID
+     * @return List of audit log entries
+     */
+    List<AuditLogResponse> getApplicationAuditTrail(UUID applicationId);
 }

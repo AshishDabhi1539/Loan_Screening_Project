@@ -198,6 +198,13 @@ export class AdminService {
   }
 
   /**
+   * Get audit trail for an application (admin view)
+   */
+  getAuditTrail(applicationId: string): Observable<any[]> {
+    return this.apiService.get<any[]>(`/admin/applications/${applicationId}/audit-trail`);
+  }
+
+  /**
    * Calculate system health based on stats
    */
   private calculateSystemHealth(stats: SystemStats): 'good' | 'warning' | 'critical' {

@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.tss.loan.dto.request.OfficerCreationRequest;
+import com.tss.loan.dto.response.AuditLogResponse;
 import com.tss.loan.dto.response.LoanApplicationResponse;
 import com.tss.loan.dto.response.OfficerDetailsResponse;
 import com.tss.loan.dto.response.UserResponse;
@@ -100,6 +101,20 @@ public class AdminController {
     public ResponseEntity<com.tss.loan.dto.response.CompleteApplicationDetailsResponse> getApplicationDetails(
             @PathVariable java.util.UUID applicationId) {
         return ResponseEntity.ok(adminService.getApplicationDetails(applicationId));
+    }
+    
+    /**
+     * Get audit trail for an application (admin view - no restrictions)
+     */
+    @GetMapping("/applications/{applicationId}/audit-trail")
+    public ResponseEntity<List<AuditLogResponse>> getAuditTrail(
+            @PathVariable UUID applicationId) {
+        
+        log.info("Admin requesting audit trail for application: {}", applicationId);
+        
+        List<AuditLogResponse> auditTrail = adminService.getApplicationAuditTrail(applicationId);
+        
+        return ResponseEntity.ok(auditTrail);
     }
     
     /**

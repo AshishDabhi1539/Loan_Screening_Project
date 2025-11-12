@@ -17,6 +17,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.tss.loan.dto.response.AuditLogResponse;
 import com.tss.loan.dto.response.CompleteApplicationDetailsResponse;
 import com.tss.loan.dto.response.LoanApplicationResponse;
 import com.tss.loan.entity.applicant.ApplicantPersonalDetails;
@@ -34,7 +35,9 @@ import com.tss.loan.repository.LoanApplicationRepository;
 import com.tss.loan.repository.OfficerPersonalDetailsRepository;
 import com.tss.loan.repository.UserRepository;
 import com.tss.loan.service.AdminService;
+import com.tss.loan.service.ApplicationWorkflowService;
 import com.tss.loan.service.LoanOfficerService;
+import com.tss.loan.service.UserDisplayService;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -66,6 +69,12 @@ public class AdminServiceImpl implements AdminService {
     
     @Autowired
     private LoanOfficerService loanOfficerService;
+    
+    @Autowired
+    private ApplicationWorkflowService applicationWorkflowService;
+    
+    @Autowired
+    private UserDisplayService userDisplayService;
     
     @Override
     @Transactional(readOnly = true)
@@ -354,5 +363,77 @@ public class AdminServiceImpl implements AdminService {
         log.info("Successfully retrieved application details for admin: {}", applicationId);
         
         return response;
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<AuditLogResponse> getApplicationAuditTrail(UUID applicationId) {
+        log.info("Admin requesting audit trail for application: {}", applicationId);
+        
+        // Validate application exists
+        loanApplicationRepository.findById(applicationId)
+            .orElseThrow(() -> new RuntimeException("Application not found: " + applicationId));
+        
+        List<AuditLogResponse> auditTrail = new java.util.ArrayList<>();
+        
+        // Get audit logs for this application
+        List<com.tss.loan.entity.system.AuditLog> auditLogs = auditLogRepository.findByEntityTypeAndEntityIdOrderByTimestampDesc(
+            "LoanApplication", 
+            applicationId.getMostSignificantBits()
+        );
+        
+        // Convert audit logs to response DTOs
+        for (com.tss.loan.entity.system.AuditLog log : auditLogs) {
+            AuditLogResponse response = AuditLogResponse.builder()
+                .id(log.getId())
+                .action(log.getAction())
+                .performedBy(log.getUser() != null ? userDisplayService.getDisplayName(log.getUser()) : "System")
+                .performedByEmail(log.getUser() != null ? log.getUser().getEmail() : "system@loanscreen.com")
+                .timestamp(log.getTimestamp())
+                .entityType(log.getEntityType())
+                .entityId(log.getEntityId().toString())
+                .details(log.getAdditionalInfo())
+                .ipAddress(log.getIpAddress())
+                .userAgent(log.getUserAgent())
+                .changeType("AUDIT_LOG")
+                .oldValues(log.getOldValues())
+                .newValues(log.getNewValues())
+                .additionalInfo(log.getAdditionalInfo())
+                .build();
+            auditTrail.add(response);
+        }
+        
+        // Get workflow history for this application
+        List<com.tss.loan.entity.workflow.ApplicationWorkflow> workflowHistory = 
+            applicationWorkflowService.getWorkflowHistory(applicationId);
+        
+        // Convert workflow history to response DTOs
+        for (com.tss.loan.entity.workflow.ApplicationWorkflow workflow : workflowHistory) {
+            AuditLogResponse response = AuditLogResponse.builder()
+                .id(workflow.getId())
+                .action("STATUS_CHANGE")
+                .performedBy(workflow.getProcessedBy() != null ? userDisplayService.getDisplayName(workflow.getProcessedBy()) : "System")
+                .performedByEmail(workflow.getProcessedBy() != null ? workflow.getProcessedBy().getEmail() : "system@loanscreen.com")
+                .timestamp(workflow.getProcessedAt())
+                .entityType("LoanApplication")
+                .entityId(applicationId.toString())
+                .details(String.format("Status changed from %s to %s", workflow.getFromStatus(), workflow.getToStatus()))
+                .ipAddress(workflow.getIpAddress())
+                .userAgent(workflow.getUserAgent())
+                .changeType("WORKFLOW_CHANGE")
+                .fromStatus(workflow.getFromStatus().toString())
+                .toStatus(workflow.getToStatus().toString())
+                .comments(workflow.getComments())
+                .systemRemarks(workflow.getSystemRemarks())
+                .isSystemGenerated(workflow.getIsSystemGenerated())
+                .build();
+            auditTrail.add(response);
+        }
+        
+        // Sort by timestamp descending (most recent first) - NO FILTERING for admin
+        auditTrail.sort((a, b) -> b.getTimestamp().compareTo(a.getTimestamp()));
+        
+        log.info("Retrieved {} audit trail entries for application: {} (Admin view - no filtering)", auditTrail.size(), applicationId);
+        return auditTrail;
     }
 }

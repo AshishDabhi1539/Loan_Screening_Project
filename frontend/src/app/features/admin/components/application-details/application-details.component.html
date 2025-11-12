@@ -128,6 +128,16 @@
               </span>
             }
           </button>
+          <button
+            (click)="setActiveTab('audit')"
+            [ngClass]="{
+              'border-blue-500 text-blue-600': activeTab() === 'audit',
+              'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab() !== 'audit'
+            }"
+            class="whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm"
+          >
+            Audit Trail
+          </button>
         </nav>
       </div>
 
@@ -205,7 +215,7 @@
                 </div>
                 <div class="bg-gray-50 rounded-lg p-4">
                   <div class="text-sm text-gray-500 mb-1">Date of Birth</div>
-                  <div class="text-lg font-semibold text-gray-900">{{ details.applicantIdentity.personalDetails.dateOfBirth ? formatDate(details.applicantIdentity.personalDetails.dateOfBirth) : 'N/A' }}</div>
+                  <div class="text-lg font-semibold text-gray-900">{{ details.applicantIdentity.personalDetails.dateOfBirth ? formatDateOnly(details.applicantIdentity.personalDetails.dateOfBirth) : 'N/A' }}</div>
                 </div>
                 <div class="bg-gray-50 rounded-lg p-4">
                   <div class="text-sm text-gray-500 mb-1">PAN Number</div>
@@ -237,11 +247,28 @@
             <div>
               <h3 class="text-lg font-semibold text-gray-900 mb-4">Address Information</h3>
               <div class="bg-gray-50 rounded-lg p-6">
-                @if (details.applicantIdentity.personalDetails.address) {
-                  <div class="text-lg text-gray-900">
-                    {{ details.applicantIdentity.personalDetails.address.permanentAddress }}<br>
-                    {{ details.applicantIdentity.personalDetails.address.city }}, {{ details.applicantIdentity.personalDetails.address.state }} - {{ details.applicantIdentity.personalDetails.address.pincode }}
-                  </div>
+                @if (details.applicantIdentity.personalDetails.addresses) {
+                  @if (details.applicantIdentity.personalDetails.addresses.currentAddress && details.applicantIdentity.personalDetails.addresses.permanentAddress && details.applicantIdentity.personalDetails.addresses.currentAddress === details.applicantIdentity.personalDetails.addresses.permanentAddress) {
+                    <div class="text-lg text-gray-900">
+                      {{ details.applicantIdentity.personalDetails.addresses.currentAddress }}<br>
+                      {{ details.applicantIdentity.personalDetails.addresses.city }}, {{ details.applicantIdentity.personalDetails.addresses.state }} - {{ details.applicantIdentity.personalDetails.addresses.pincode }}
+                    </div>
+                    <div class="mt-2 text-sm text-gray-600 italic">Current & Permanent Address (Same)</div>
+                  } @else {
+                    <div class="space-y-3">
+                      <div>
+                        <div class="text-sm text-gray-500">Current Address</div>
+                        <div class="text-lg text-gray-900">{{ details.applicantIdentity.personalDetails.addresses.currentAddress || 'N/A' }}</div>
+                      </div>
+                      @if (details.applicantIdentity.personalDetails.addresses.permanentAddress && details.applicantIdentity.personalDetails.addresses.permanentAddress !== details.applicantIdentity.personalDetails.addresses.currentAddress) {
+                        <div>
+                          <div class="text-sm text-gray-500">Permanent Address</div>
+                          <div class="text-lg text-gray-900">{{ details.applicantIdentity.personalDetails.addresses.permanentAddress }}</div>
+                        </div>
+                      }
+                      <div class="text-base text-gray-900">{{ details.applicantIdentity.personalDetails.addresses.city }}, {{ details.applicantIdentity.personalDetails.addresses.state }} - {{ details.applicantIdentity.personalDetails.addresses.pincode }}</div>
+                    </div>
+                  }
                 } @else {
                   <div class="text-gray-500">Address information not available</div>
                 }
@@ -468,6 +495,67 @@
                 </svg>
                 <h3 class="text-lg font-medium text-gray-900 mb-2">No Documents</h3>
                 <p class="text-gray-500">No documents have been uploaded for this application yet.</p>
+              </div>
+            }
+          </div>
+        }
+
+        <!-- Audit Trail Tab -->
+        @if (activeTab() === 'audit') {
+          <div class="bg-white shadow rounded-lg p-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-6">📋 Audit Trail</h2>
+            
+            @if (isLoadingAudit()) {
+              <div class="text-center py-12">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                <p class="mt-4 text-sm text-gray-500">Loading audit trail...</p>
+              </div>
+            } @else if (auditTrail().length === 0) {
+              <div class="text-center py-12">
+                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                <h3 class="mt-2 text-sm font-medium text-gray-900">No Audit Logs</h3>
+                <p class="mt-1 text-sm text-gray-500">No audit trail entries found for this application.</p>
+              </div>
+            } @else {
+              <div class="flow-root">
+                <ul role="list" class="-mb-8">
+                  @for (entry of auditTrail(); track entry.id; let i = $index; let last = $last) {
+                    <li>
+                      <div class="relative pb-8">
+                        @if (!last) {
+                          <span class="absolute left-4 top-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true"></span>
+                        }
+                        <div class="relative flex space-x-3">
+                          <div>
+                            <span class="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center ring-8 ring-white">
+                              <svg class="h-4 w-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
+                              </svg>
+                            </span>
+                          </div>
+                          <div class="flex-1 min-w-0">
+                            <div>
+                              <div class="text-sm">
+                                <span class="font-medium text-gray-900">{{ entry.performedBy || 'System' }}</span>
+                              </div>
+                              <p class="mt-0.5 text-sm text-gray-500">
+                                {{ formatDate(entry.timestamp) }}
+                              </p>
+                            </div>
+                            <div class="mt-2 text-sm text-gray-700">
+                              <p class="font-medium">{{ entry.action }}</p>
+                              @if (entry.details) {
+                                <p class="mt-1 text-gray-600">{{ entry.details }}</p>
+                              }
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </li>
+                  }
+                </ul>
               </div>
             }
           </div>
