@@ -34,18 +34,20 @@
               Review Documents
             </button>
           }
-          <!-- Request Additional Documents Button -->
-          <button
-            (click)="openRequestDocsModal()"
-            [disabled]="!canRequestDocuments()"
-            class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-primary-600 border border-primary-600 rounded-lg hover:bg-primary-700 transition-colors duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:hover:bg-gray-400"
-            [title]="!canRequestDocuments() ? 'Applicant action required: awaiting requested documents. Actions are locked until submission.' : 'Request Additional Documents'"
-          >
-            <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-            </svg>
-            Request Documents
-          </button>
+          <!-- Request Additional Documents Button - Only show after investigation is completed -->
+          @if (hasInvestigationResults()) {
+            <button
+              (click)="openRequestDocsModal()"
+              [disabled]="!canRequestDocuments()"
+              class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-primary-600 border border-primary-600 rounded-lg hover:bg-primary-700 transition-colors duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:hover:bg-gray-400"
+              [title]="!canRequestDocuments() ? 'Applicant action required: awaiting requested documents. Actions are locked until submission.' : 'Request Additional Documents'"
+            >
+              <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+              </svg>
+              Request Documents
+            </button>
+          }
           <!-- Trigger Decision Button -->
           @if (canTriggerDecision()) {
             <button
@@ -884,10 +886,6 @@
                   </div>
                   <div class="bg-white p-4 rounded-lg border border-gray-200">
                     <p class="text-xs text-gray-600 mb-1">Risk Score</p>
-                    <p class="text-2xl font-bold text-gray-900">{{ financialAssessment()?.riskAssessment?.riskScore || 'N/A' }}</p>
-                  </div>
-                  <div class="bg-white p-4 rounded-lg border border-gray-200">
-                    <p class="text-xs text-gray-600 mb-1">Fraud Score</p>
                     <p class="text-2xl font-bold text-gray-900">{{ financialAssessment()?.riskAssessment?.fraudScore || 'N/A' }}</p>
                   </div>
                   <div class="bg-white p-4 rounded-lg border border-gray-200">
@@ -917,10 +915,6 @@
                   <div class="bg-white p-4 rounded-lg border border-gray-200">
                     <p class="text-xs text-gray-600 mb-1">EMI to Income Ratio</p>
                     <p class="text-lg font-bold text-gray-900">{{ financialAssessment()?.calculatedRatios?.emiToIncomeRatio?.toFixed(2) || 'N/A' }}%</p>
-                  </div>
-                  <div class="bg-white p-4 rounded-lg border border-gray-200">
-                    <p class="text-xs text-gray-600 mb-1">Debt to Income Ratio</p>
-                    <p class="text-lg font-bold text-gray-900">{{ financialAssessment()?.calculatedRatios?.debtToIncomeRatio?.toFixed(2) || 'N/A' }}%</p>
                   </div>
                   <div class="bg-white p-4 rounded-lg border border-gray-200">
                     <p class="text-xs text-gray-600 mb-1">Loan to Income Ratio</p>

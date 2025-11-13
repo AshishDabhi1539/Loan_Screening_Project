@@ -68,16 +68,6 @@
           <div class="space-y-4">
             <h2 class="text-xl font-semibold mb-4">Select Employment Type</h2>
             
-            <!-- Loan Type Info -->
-            <!-- @if (loanType()) {
-              <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-4">
-                <p class="text-sm text-blue-700">
-                  <span class="font-semibold">📋 Loan Type:</span> {{ loanType() }}
-                  <br>
-                  <span class="text-xs">Employment types are filtered based on your loan selection.</span>
-                </p>
-              </div>
-            } -->
             
             <!-- Loading State -->
             @if (isLoadingEligibility()) {
@@ -139,18 +129,6 @@
               }
             </h2>
             
-            @if (selectedEmploymentType() === 'SELF_EMPLOYED' || selectedEmploymentType() === 'BUSINESS_OWNER') {
-              <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-4">
-                <p class="text-sm text-blue-700">
-                  <span class="font-semibold">ℹ️ Note:</span> Please fill the form fields with your business details. 
-                  The labels are adapted based on your employment type. Additional specific fields (GST, Registration Numbers, etc.) 
-                  will be requested during document upload.
-                </p>
-              </div>
-            }
-            
-            <!-- Generic Employment Fields (ONLY for SALARIED, SELF_EMPLOYED, BUSINESS_OWNER, PROFESSIONAL) -->
-            <!-- STUDENT, RETIRED, UNEMPLOYED, FREELANCER have their own specific sections below -->
             @if (needsCompanyDetails()) {
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -808,14 +786,14 @@
               </div>
             </div>
 
-            @if (getTotalIncome() > 0) {
+            <!-- @if (getTotalIncome() > 0) {
               <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
                 <div class="flex justify-between items-center">
                   <span class="font-medium">Total Monthly Income:</span>
                   <span class="text-xl font-bold text-green-600">{{ formatCurrency(getTotalIncome()) }}</span>
                 </div>
               </div>
-            }
+            } -->
             
             <!-- FOIR Calculator -->
             @if (employmentForm.get('monthlyIncome')?.value > 0) {

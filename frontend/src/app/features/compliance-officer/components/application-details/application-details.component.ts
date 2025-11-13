@@ -825,12 +825,21 @@ export class ApplicationDetailsComponent implements OnInit {
   triggerDecision(): void {
     // Trigger decision with a default summary note
     const summaryNotes = 'Investigation completed, ready for decision';
+    const appId = this.applicationId();
+    
+    console.log('🚀 Starting trigger decision for application:', appId);
+    
+    if (!appId) {
+      this.notificationService.error('Error', 'Application ID not found');
+      return;
+    }
     
     // Show loading state
     this.isLoading.set(true);
     
-    this.complianceService.triggerDecision(this.applicationId(), { summaryNotes }).subscribe({
-      next: () => {
+    this.complianceService.triggerDecision(appId, { summaryNotes }).subscribe({
+      next: (response) => {
+        console.log('✅ Trigger decision response:', response);
         // Optimistically update local state so the page reflects new status instantly
         const app = this.application();
         if (app && app.applicationInfo) {
@@ -848,9 +857,18 @@ export class ApplicationDetailsComponent implements OnInit {
         );
 
         // Navigate to decision page and replace URL to avoid back-navigation glitch
-        this.router.navigate(['/compliance-officer/decision'], { replaceUrl: true }).finally(() => {
-          this.isLoading.set(false);
-        });
+        this.router.navigate(['/compliance-officer/decision'], { replaceUrl: true }).then(
+          (success) => {
+            console.log('✅ Navigation successful:', success);
+            this.isLoading.set(false);
+          }
+        ).catch(
+          (error) => {
+            console.error('❌ Navigation failed:', error);
+            this.isLoading.set(false);
+            this.notificationService.error('Navigation Error', 'Failed to redirect to decision page');
+          }
+        );
       },
       error: (err: any) => {
         console.error('Error triggering decision:', err);
