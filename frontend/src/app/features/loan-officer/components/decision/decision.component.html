@@ -426,11 +426,6 @@
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">
               Interest Rate (%) *
-              @if (applicationDetails()) {
-                <span class="text-xs text-gray-500 ml-2">
-                  (Recommended: {{ calculateRecommendedRate(applicationDetails()!) | number:'1.1-1' }}%)
-                </span>
-              }
             </label>
             <input
               type="number"
