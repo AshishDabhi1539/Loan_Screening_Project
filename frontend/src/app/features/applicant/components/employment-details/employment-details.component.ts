@@ -137,12 +137,11 @@ export interface StudentEmploymentDetails {
   additionalFinancialSupport?: string;
 }
 
-import { FoirCalculatorComponent } from '../../../../shared/components/foir-calculator/foir-calculator.component';
 
 @Component({
   selector: 'app-employment-details',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FoirCalculatorComponent],
+  imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './employment-details.component.html',
   styleUrl: './employment-details.component.css'
 })

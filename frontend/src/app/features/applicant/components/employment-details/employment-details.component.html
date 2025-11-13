@@ -795,16 +795,6 @@
               </div>
             } -->
             
-            <!-- FOIR Calculator -->
-            @if (employmentForm.get('monthlyIncome')?.value > 0) {
-              <div class="mt-6">
-                <app-foir-calculator
-                  [monthlyIncome]="getTotalIncome()"
-                  [existingObligations]="employmentForm.get('existingLoanEmi')?.value || 0"
-                  [newEmi]="calculateEstimatedEMI()">
-                </app-foir-calculator>
-              </div>
-            }
           </div>
         }
 
