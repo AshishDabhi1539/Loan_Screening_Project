@@ -1,8 +1,7 @@
 <!-- Toast Container -->
 <div 
-  class="fixed top-4 right-4 z-[9999] p-2 space-y-2 pointer-events-none"
+  class="fixed top-4 right-4 z-[9999] space-y-3 pointer-events-none toast-container"
   [@listAnimation]="notifications().length"
-  style="width: 280px; max-width: calc(100vw - 2rem);"
 >
   @for (notification of notifications(); track notification.id) {
     <div 
@@ -10,13 +9,13 @@
       [class]="getNotificationClasses(notification.type)"
       class="pointer-events-auto toast-wrapper"
     >
-      <div class="p-3 toast-content">
-        <div class="flex items-center">
-          <div class="flex-shrink-0">
+      <div class="toast-content">
+        <div class="flex items-start gap-3">
+          <div class="flex-shrink-0 mt-0.5">
             <!-- Icon -->
             <svg 
               [class]="getIconClasses(notification.type)"
-              class="h-4 w-4 toast-icon" 
+              class="h-5 w-5 toast-icon" 
               fill="none" 
               viewBox="0 0 24 24" 
               stroke="currentColor"
@@ -30,26 +29,26 @@
             </svg>
           </div>
           
-          <div class="ml-2 flex-1 min-w-0">
+          <div class="flex-1 min-w-0">
             <!-- Title -->
-            <p class="text-xs font-medium text-gray-900 leading-tight toast-title">
+            <p class="text-sm font-semibold text-gray-900 leading-tight toast-title line-clamp-1">
               {{ notification.title }}
             </p>
             
             <!-- Message (truncated if too long) -->
-            <p class="text-xs text-gray-600 leading-tight break-words toast-message truncate">
+            <p class="mt-0.5 text-xs text-gray-600 leading-snug break-words toast-message line-clamp-2">
               {{ notification.message }}
             </p>
           </div>
           
           <!-- Close Button -->
-          <div class="ml-1 flex-shrink-0">
+          <div class="flex-shrink-0">
             <button
               type="button"
               (click)="closeNotification(notification.id)"
-              class="text-gray-400 hover:text-gray-600 p-0.5 rounded toast-close-btn"
+              class="text-gray-400 hover:text-gray-600 p-1 rounded toast-close-btn"
             >
-              <svg class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+              <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
                 <path 
                   fill-rule="evenodd" 
                   d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" 
@@ -63,7 +62,7 @@
       
       <!-- Progress Bar (for timed notifications) -->
       @if (!notification.persistent && notification.duration && notification.duration > 0) {
-        <div class="bg-gray-50 px-4 py-2">
+        <div class="px-4 pb-3">
           <div class="w-full bg-gray-200 rounded-full h-1">
             <div 
               class="h-1 rounded-full transition-all duration-100 ease-linear"
