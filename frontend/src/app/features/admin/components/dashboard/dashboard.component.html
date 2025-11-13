@@ -316,51 +316,34 @@
     }
   </div>
 
-  <!-- Application Overview -->
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    <!-- Application Status Breakdown -->
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200">
-      <div class="px-6 py-4 border-b border-gray-200">
-        <h2 class="text-lg font-semibold text-gray-900">Application Status</h2>
-      </div>
-      <div class="p-6">
-        <div class="space-y-4">
-          <!-- Pending -->
-          <div class="flex items-center justify-between">
-            <div class="flex items-center">
-              <div class="w-3 h-3 bg-yellow-500 rounded-full mr-3"></div>
-              <span class="text-sm font-medium text-gray-700">Pending Review</span>
-            </div>
-            <span class="text-sm font-semibold text-gray-900">{{ adminStats().pendingApplications }}</span>
-          </div>
-          
-          <!-- Approved -->
-          <div class="flex items-center justify-between">
-            <div class="flex items-center">
-              <div class="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
-              <span class="text-sm font-medium text-gray-700">Approved</span>
-            </div>
-            <span class="text-sm font-semibold text-gray-900">{{ adminStats().approvedApplications }}</span>
-          </div>
-          
-          <!-- Rejected -->
-          <div class="flex items-center justify-between">
-            <div class="flex items-center">
-              <div class="w-3 h-3 bg-red-500 rounded-full mr-3"></div>
-              <span class="text-sm font-medium text-gray-700">Rejected</span>
-            </div>
-            <span class="text-sm font-semibold text-gray-900">{{ adminStats().rejectedApplications }}</span>
-          </div>
+  <!-- Recent Activities Section -->
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+    <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+      <h2 class="text-lg font-semibold text-gray-900">Recent Activities</h2>
+      <div class="flex items-center space-x-3">
+        <span class="text-xs text-gray-500">Last 10 activities</span>
+        <div class="flex items-center space-x-2">
+          <button 
+            (click)="exportAuditLogs()"
+            class="inline-flex items-center px-2.5 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50"
+          >
+            <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            Export
+          </button>
+          <button 
+            (click)="refreshActivities()"
+            class="inline-flex items-center px-2.5 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50"
+          >
+            <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            </svg>
+            Refresh
+          </button>
         </div>
       </div>
     </div>
-
-    <!-- Recent Activities -->
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200">
-      <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-        <h2 class="text-lg font-semibold text-gray-900">Recent Activities</h2>
-        <span class="text-xs text-gray-500">Last 7 days</span>
-      </div>
 
       @if (isLoading()) {
         <!-- Loading State -->
@@ -391,13 +374,13 @@
       } @else {
         <!-- Activities List -->
         <div class="divide-y divide-gray-100">
-          @for (activity of recentActivities(); track activity.id) {
-            <div class="px-6 py-4 hover:bg-gray-50 transition-colors duration-150">
+          @for (activity of recentActivities().slice(0, 10); track activity.id) {
+            <div class="px-4 py-2 hover:bg-gray-50 transition-colors duration-150">
               <div class="flex items-start space-x-4">
                 <!-- Activity Icon -->
-                <div class="flex-shrink-0 mt-1">
-                  <div [class]="'w-10 h-10 rounded-full flex items-center justify-center ' + getActivityColor(activity.type || activity.action || '')">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <div class="flex-shrink-0">
+                  <div [class]="'w-8 h-8 rounded-full flex items-center justify-center ' + getActivityColor(activity.type || activity.action || '')">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                       <path stroke-linecap="round" stroke-linejoin="round" [attr.d]="getActivityIcon(activity.type || activity.action || '')" />
                     </svg>
                   </div>
@@ -436,4 +419,3 @@
       }
     </div>
   </div>
-</div>

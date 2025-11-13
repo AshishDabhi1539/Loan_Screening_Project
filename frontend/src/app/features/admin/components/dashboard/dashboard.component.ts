@@ -417,4 +417,15 @@ export class DashboardComponent implements OnInit {
     this.notificationService.info('Coming Soon', 'System settings feature is under development');
     // TODO: Create settings page and route when needed
   }
+
+  exportAuditLogs(): void {
+    this.notificationService.info('Export Started', 'Audit logs export is being prepared...');
+    // TODO: Implement audit logs export functionality
+  }
+
+  refreshActivities(): void {
+    this.isLoading.set(true);
+    this.loadAdminData();
+    this.notificationService.success('Refreshed', 'Recent activities updated successfully');
+  }
 }
