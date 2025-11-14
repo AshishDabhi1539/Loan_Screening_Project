@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 
@@ -13,11 +13,16 @@ import { ExternalVerificationResponse } from '../../../../core/models/officer.mo
   templateUrl: './external-verification.component.html',
   styleUrl: './external-verification.component.css'
 })
-export class ExternalVerificationComponent implements OnInit {
-  private router = inject(Router);
-  private route = inject(ActivatedRoute);
+export class ExternalVerificationComponent implements OnInit, OnChanges {
+  private router = inject(Router, { optional: true });
+  private route = inject(ActivatedRoute, { optional: true });
   private notificationService = inject(NotificationService);
   private loanOfficerService = inject(LoanOfficerService);
+
+  @Input() applicationIdInput: string | null = null;
+  @Input() inlineMode = false;
+  @Output() verificationCompleted = new EventEmitter<ExternalVerificationResponse>();
+  @Output() goBackInline = new EventEmitter<void>();
 
   isLoading = signal(false);
   isTriggering = signal(false);
@@ -26,13 +31,24 @@ export class ExternalVerificationComponent implements OnInit {
   applicationId = signal<string | null>(null);
 
   ngOnInit(): void {
-    const id = this.route.snapshot.paramMap.get('id');
+    if (this.inlineMode && this.applicationIdInput) {
+      this.applicationId.set(this.applicationIdInput);
+      return;
+    }
+
+    const id = this.route?.snapshot.paramMap.get('id');
     if (id) {
       this.applicationId.set(id);
       this.loadVerificationStatus();
     } else {
       this.notificationService.error('Error', 'Application ID is missing');
-      this.router.navigate(['/loan-officer/applications/assigned']);
+      this.router?.navigate(['/loan-officer/applications/assigned']);
+    }
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['applicationIdInput'] && this.applicationIdInput) {
+      this.applicationId.set(this.applicationIdInput);
     }
   }
 
@@ -85,6 +101,7 @@ export class ExternalVerificationComponent implements OnInit {
       next: (result) => {
         this.verificationResult.set(result);
         this.isCompleting.set(false);
+        this.verificationCompleted.emit(result);
         this.notificationService.success(
           'Verification Complete',
           'External verification completed successfully.'
@@ -105,11 +122,15 @@ export class ExternalVerificationComponent implements OnInit {
    * Navigate back to application review
    */
   viewApplicationDetails(): void {
+    if (this.inlineMode) {
+      return;
+    }
+
     const appId = this.applicationId();
     if (appId) {
-      this.router.navigate(['/loan-officer/application', appId, 'review']);
+      this.router?.navigate(['/loan-officer/application', appId, 'review']);
     } else {
-      this.router.navigate(['/loan-officer/applications/assigned']);
+      this.router?.navigate(['/loan-officer/applications/assigned']);
     }
   }
 

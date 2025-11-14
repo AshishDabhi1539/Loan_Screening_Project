@@ -6,6 +6,7 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { AdminService } from '../../../../core/services/admin.service';
 import { AdminStats, RecentActivity } from '../../../../core/models/admin.model';
+import { LoanApplicationResponse } from '../../../../core/models/loan-application.model';
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -22,12 +23,13 @@ export class DashboardComponent implements OnInit {
 
   // Signals for reactive state
   currentUser = this.authService.currentUser;
-  isLoading = signal(false);
   
-  // Admin-specific stats
+  // Signals for reactive data
   adminStats = signal<AdminStats>({
     totalUsers: 0,
     totalOfficers: 0,
+    complianceOfficers: 0,
+    totalApplicants: 0,
     totalApplications: 0,
     pendingApplications: 0,
     approvedApplications: 0,
@@ -35,13 +37,30 @@ export class DashboardComponent implements OnInit {
     systemHealth: 'good',
     activeUsers: 0
   });
-
-  recentActivities = signal<RecentActivity[]>([]);
   
+  // New comprehensive analytics
+  dashboardAnalytics = signal<any>(null); // Using any for now to avoid TypeScript issues
+  
+  recentActivities = signal<RecentActivity[]>([]);
+  recentApplications = signal<LoanApplicationResponse[]>([]);
+  isLoading = signal(true);
+  isAnalyticsLoading = signal(true);
+
   // Computed values
   userDisplayName = computed(() => {
     const user = this.currentUser();
-    return user?.displayName || user?.email?.split('@')[0] || 'Admin';
+    if (!user) return 'Admin';
+    
+    // Extract first and last name only (consistent with other dashboards)
+    if (user.displayName) {
+      const parts = user.displayName.trim().split(/\s+/).filter(Boolean);
+      if (parts.length === 1) return parts[0];
+      if (parts.length >= 2) return `${parts[0]} ${parts[parts.length - 1]}`;
+      return user.displayName;
+    }
+    
+    // Fallback to email username
+    return user.email?.split('@')[0] || 'Admin';
   });
 
   systemHealthColor = computed(() => {
@@ -56,6 +75,8 @@ export class DashboardComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadAdminData();
+    this.loadRecentApplications();
+    this.loadDashboardAnalytics();
   }
 
   /**
@@ -81,6 +102,8 @@ export class DashboardComponent implements OnInit {
         this.adminStats.set({
           totalUsers: 0,
           totalOfficers: 0,
+          complianceOfficers: 0,
+          totalApplicants: 0,
           totalApplications: 0,
           pendingApplications: 0,
           approvedApplications: 0,
@@ -89,6 +112,43 @@ export class DashboardComponent implements OnInit {
           activeUsers: 0
         });
         this.recentActivities.set([]);
+      }
+    });
+  }
+
+  /**
+   * Load recent applications (last 5)
+   */
+  private loadRecentApplications(): void {
+    this.adminService.getRecentApplications().subscribe({
+      next: (applications) => {
+        this.recentApplications.set(applications);
+        console.log('✅ Recent applications loaded:', applications);
+      },
+      error: (error) => {
+        console.error('❌ Failed to load recent applications:', error);
+        this.recentApplications.set([]);
+      }
+    });
+  }
+
+  /**
+   * Load comprehensive dashboard analytics
+   */
+  private loadDashboardAnalytics(): void {
+    this.isAnalyticsLoading.set(true);
+    
+    this.adminService.getDashboardAnalytics().subscribe({
+      next: (analytics) => {
+        this.dashboardAnalytics.set(analytics);
+        this.isAnalyticsLoading.set(false);
+        console.log('✅ Dashboard analytics loaded:', analytics);
+      },
+      error: (error) => {
+        console.error('❌ Failed to load dashboard analytics:', error);
+        this.isAnalyticsLoading.set(false);
+        // Set empty analytics on error
+        this.dashboardAnalytics.set(null);
       }
     });
   }
@@ -122,14 +182,13 @@ export class DashboardComponent implements OnInit {
   /**
    * Format date for display
    */
-  formatDate(date: Date): string {
+  formatDate(date: Date | string): string {
+    const dateObj = date instanceof Date ? date : new Date(date);
     return new Intl.DateTimeFormat('en-IN', {
       year: 'numeric',
       month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(date);
+      day: 'numeric'
+    }).format(dateObj);
   }
 
   /**
@@ -157,7 +216,7 @@ export class DashboardComponent implements OnInit {
   getActivityIcon(type: string): string {
     switch (type) {
       case 'USER_REGISTRATION':
-        return 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z';
+        return 'M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z';
       case 'OFFICER_CREATED':
         return 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z';
       case 'APPLICATION_SUBMITTED':
@@ -166,29 +225,141 @@ export class DashboardComponent implements OnInit {
         return 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z';
       case 'APPLICATION_REJECTED':
         return 'M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z';
+      case 'DOCUMENT_UPLOADED':
+        return 'M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12';
+      case 'COMPLIANCE_REVIEW_COMPLETED':
+        return 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z';
+      case 'DECISION_MADE':
+        return 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4';
       default:
         return 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z';
     }
   }
 
   /**
-   * Get activity color based on type
+   * Get activity color based on type (for circular icon background)
    */
   getActivityColor(type: string): string {
     switch (type) {
       case 'USER_REGISTRATION':
-        return 'text-blue-600 bg-blue-100';
+        return 'text-blue-600 bg-blue-50';
       case 'OFFICER_CREATED':
-        return 'text-purple-600 bg-purple-100';
+        return 'text-purple-600 bg-purple-50';
       case 'APPLICATION_SUBMITTED':
-        return 'text-yellow-600 bg-yellow-100';
+        return 'text-indigo-600 bg-indigo-50';
       case 'APPLICATION_APPROVED':
-        return 'text-green-600 bg-green-100';
+        return 'text-green-600 bg-green-50';
       case 'APPLICATION_REJECTED':
-        return 'text-red-600 bg-red-100';
+        return 'text-red-600 bg-red-50';
+      case 'DOCUMENT_UPLOADED':
+        return 'text-orange-600 bg-orange-50';
+      case 'COMPLIANCE_REVIEW_COMPLETED':
+        return 'text-teal-600 bg-teal-50';
+      case 'DECISION_MADE':
+        return 'text-emerald-600 bg-emerald-50';
       default:
-        return 'text-gray-600 bg-gray-100';
+        return 'text-gray-600 bg-gray-50';
     }
+  }
+
+  /**
+   * Get activity badge color
+   */
+  getActivityBadgeColor(type: string): string {
+    switch (type) {
+      case 'USER_REGISTRATION':
+        return 'bg-blue-100 text-blue-800';
+      case 'OFFICER_CREATED':
+        return 'bg-purple-100 text-purple-800';
+      case 'APPLICATION_SUBMITTED':
+        return 'bg-indigo-100 text-indigo-800';
+      case 'APPLICATION_APPROVED':
+        return 'bg-green-100 text-green-800';
+      case 'APPLICATION_REJECTED':
+        return 'bg-red-100 text-red-800';
+      case 'DOCUMENT_UPLOADED':
+        return 'bg-orange-100 text-orange-800';
+      case 'COMPLIANCE_REVIEW_COMPLETED':
+        return 'bg-teal-100 text-teal-800';
+      case 'DECISION_MADE':
+        return 'bg-emerald-100 text-emerald-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  }
+
+  /**
+   * Get activity label for badge
+   */
+  getActivityLabel(type: string): string {
+    switch (type) {
+      case 'USER_REGISTRATION':
+        return 'New User';
+      case 'OFFICER_CREATED':
+        return 'New Officer';
+      case 'APPLICATION_SUBMITTED':
+        return 'Application';
+      case 'APPLICATION_APPROVED':
+        return 'Approved';
+      case 'APPLICATION_REJECTED':
+        return 'Rejected';
+      case 'DOCUMENT_UPLOADED':
+        return 'Documents';
+      case 'COMPLIANCE_REVIEW_COMPLETED':
+        return 'Compliance';
+      case 'DECISION_MADE':
+        return 'Decision';
+      default:
+        return 'Activity';
+    }
+  }
+
+  /**
+   * Get status badge color for applications
+   */
+  getStatusBadgeColor(status: string): string {
+    switch (status) {
+      case 'DRAFT':
+        return 'bg-gray-100 text-gray-800';
+      case 'SUBMITTED':
+      case 'PENDING_REVIEW':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'DOCUMENT_VERIFICATION':
+        return 'bg-blue-100 text-blue-800';
+      case 'UNDER_REVIEW':
+        return 'bg-indigo-100 text-indigo-800';
+      case 'COMPLIANCE_REVIEW':
+        return 'bg-purple-100 text-purple-800';
+      case 'READY_FOR_DECISION':
+        return 'bg-orange-100 text-orange-800';
+      case 'APPROVED':
+        return 'bg-green-100 text-green-800';
+      case 'REJECTED':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  }
+
+  /**
+   * Format status for display
+   */
+  formatStatus(status: string): string {
+    return status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  }
+
+  /**
+   * View application details (admin read-only view)
+   */
+  viewApplicationDetails(applicationId: string): void {
+    this.router.navigate(['/admin/applications', applicationId]);
+  }
+
+  /**
+   * View all applications
+   */
+  viewAllApplications(): void {
+    this.router.navigate(['/admin/applications']);
   }
 
   /**
@@ -197,6 +368,7 @@ export class DashboardComponent implements OnInit {
   refreshDashboard(): void {
     this.notificationService.info('Refreshing', 'Updating admin dashboard...');
     this.loadAdminData();
+    this.loadRecentApplications();
   }
 
   /**
@@ -234,17 +406,26 @@ export class DashboardComponent implements OnInit {
   }
 
   viewAllUsers(): void {
-    this.notificationService.info('User Management', 'Opening user management panel...');
-    // TODO: Navigate to user management
+    this.router.navigate(['/admin/users/applicants']);
   }
 
   viewSystemReports(): void {
-    this.notificationService.info('System Reports', 'Opening system reports...');
-    // TODO: Navigate to reports
+    this.router.navigate(['/admin/reports/system']);
   }
 
   manageSettings(): void {
-    this.notificationService.info('System Settings', 'Opening system configuration...');
-    // TODO: Navigate to settings
+    this.notificationService.info('Coming Soon', 'System settings feature is under development');
+    // TODO: Create settings page and route when needed
+  }
+
+  exportAuditLogs(): void {
+    this.notificationService.info('Export Started', 'Audit logs export is being prepared...');
+    // TODO: Implement audit logs export functionality
+  }
+
+  refreshActivities(): void {
+    this.isLoading.set(true);
+    this.loadAdminData();
+    this.notificationService.success('Refreshed', 'Recent activities updated successfully');
   }
 }

@@ -156,7 +156,6 @@ export class DecisionComponent implements OnInit {
           this.loadComplianceInvestigationData(applicationId);
         }
         
-        this.preFillApprovalForm(data);
         this.isLoading.set(false);
       },
       error: (error: any) => {
@@ -310,28 +309,10 @@ export class DecisionComponent implements OnInit {
   }
 
   /**
-   * Set decision type and pre-fill form if approval
+   * Set decision type
    */
   setDecisionType(type: 'approve' | 'reject' | 'flag'): void {
     this.decisionType.set(type);
-    
-    // Smart pre-fill for approval
-    if (type === 'approve' && this.applicationDetails()) {
-      const data = this.applicationDetails()!;
-      const recommendedRate = this.calculateRecommendedRate(data);
-      const decisionReason = this.generateDecisionReason(data);
-      
-      this.approveForm.patchValue({
-        approvedAmount: data.applicationInfo.loanAmount,
-        approvedTenure: data.applicationInfo.tenureMonths,
-        approvedInterestRate: recommendedRate,
-        decisionReason: decisionReason
-      });
-      
-      // Add risk-based conditions
-      const riskLevel = data.externalVerification?.riskLevel || 'MEDIUM';
-      this.addRiskBasedConditions(riskLevel);
-    }
   }
 
   /**

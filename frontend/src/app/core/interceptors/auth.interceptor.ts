@@ -55,6 +55,16 @@ export class AuthInterceptor implements HttpInterceptor {
    * Handle 401 unauthorized errors with token refresh
    */
   private handle401Error(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
+    // CRITICAL FIX: Don't try to refresh if user is already logged out
+    if (!this.authService.isAuthenticated()) {
+      console.log('User already logged out, skipping token refresh');
+      return throwError(() => new HttpErrorResponse({
+        error: 'User not authenticated',
+        status: 401,
+        statusText: 'Unauthorized'
+      }));
+    }
+
     if (!this.isRefreshing) {
       this.isRefreshing = true;
       this.refreshTokenSubject.next(null);
@@ -70,8 +80,11 @@ export class AuthInterceptor implements HttpInterceptor {
         catchError((error) => {
           this.isRefreshing = false;
           
-          // Refresh failed, logout user
-          this.authService.logout();
+          // Only logout if user was previously authenticated
+          if (this.authService.isAuthenticated()) {
+            console.log('Token refresh failed, logging out user');
+            this.authService.logout();
+          }
           return throwError(() => error);
         })
       );

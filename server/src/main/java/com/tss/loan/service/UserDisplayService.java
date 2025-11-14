@@ -23,9 +23,15 @@ public class UserDisplayService {
     /**
      * Get display name for user
      * Priority: PersonalDetails.fullName > User.email
+     * For ADMIN users: returns "System Administrator"
      */
     public String getDisplayName(User user) {
         if (user == null) return "Unknown User";
+        
+        // For ADMIN users, return hardcoded display name
+        if (user.getRole() != null && "ADMIN".equals(user.getRole().toString())) {
+            return "System Administrator";
+        }
         
         Optional<ApplicantPersonalDetails> personalDetails = 
             personalDetailsRepository.findByUserId(user.getId());

@@ -10,6 +10,7 @@ export interface AdminStats {
   totalOfficers?: number;
   activeOfficers?: number;
   totalApplicants?: number;
+  complianceOfficers?: number;
   activeApplications?: number;
   totalDisbursed?: number;
   systemHealth: 'good' | 'warning' | 'critical' | number;
@@ -181,18 +182,115 @@ export interface SystemStats {
  * Recent activity
  */
 export interface RecentActivity {
-  id: string;
-  userId?: string;
-  userName?: string;
-  action?: string;
-  entityType?: string;
-  entityId?: string;
+  id: string | number;
+  action: string;
+  type: string;
+  description: string;
   timestamp: string | Date;
-  details?: string;
-  // Service-specific fields
-  type?: 'USER_REGISTRATION' | 'OFFICER_CREATED' | 'APPLICATION_SUBMITTED' | 'APPLICATION_APPROVED' | 'APPLICATION_REJECTED';
-  description?: string;
-  userEmail?: string;
+  entityType?: string;
+  userName?: string;
+  userType?: string; // Applicant, Loan Officer, etc.
+}
+
+/**
+ * Dashboard Analytics - Complete analytics data structure
+ */
+export interface DashboardAnalytics {
+  keyMetrics: KeyMetrics;
+  chartData: ChartData;
+  performanceData: PerformanceData;
+  financialData: FinancialData;
+  riskData: RiskData;
+}
+
+/**
+ * Key Metrics for dashboard cards
+ */
+export interface KeyMetrics {
+  newApplicationsThisMonth: number;
+  newApplicationsGrowth: number;
+  activeOfficers: number;
+  activeOfficersGrowth: number;
+  pendingReviews: number;
+  pendingReviewsChange: number;
+  approvalRateThisMonth: number;
+  approvalRateChange: number;
+}
+
+/**
+ * Chart Data for visualizations
+ */
+export interface ChartData {
+  applicationStatusDistribution: { [key: string]: number };
+  monthlyApplicationTrends: MonthlyTrend[];
+  dailyUserActivity: DailyActivity[];
+  officerPerformance: OfficerPerformance[];
+}
+
+/**
+ * Performance metrics
+ */
+export interface PerformanceData {
+  averageProcessingTimeDays: number;
+  averageApprovalTimeDays: number;
+  systemUptimePercentage: number;
+  totalActiveUsers: number;
+  totalSystemTransactions: number;
+}
+
+/**
+ * Financial analytics
+ */
+export interface FinancialData {
+  totalLoanAmountRequested: number;
+  totalLoanAmountApproved: number;
+  totalLoanAmountDisbursed: number;
+  averageLoanAmount: number;
+  disbursementRate: number;
+}
+
+/**
+ * Risk analytics
+ */
+export interface RiskData {
+  highRiskApplications: number;
+  mediumRiskApplications: number;
+  lowRiskApplications: number;
+  fraudDetectionRate: number;
+  totalFraudCases: number;
+}
+
+/**
+ * Monthly trend data for charts
+ */
+export interface MonthlyTrend {
+  month: string; // "2024-01"
+  applications: number;
+  approvals: number;
+  rejections: number;
+  totalAmount: number;
+}
+
+/**
+ * Daily activity data for charts
+ */
+export interface DailyActivity {
+  date: string; // "2024-01-15"
+  userLogins: number;
+  applicationSubmissions: number;
+  officerActions: number;
+}
+
+/**
+ * Officer performance data
+ */
+export interface OfficerPerformance {
+  officerName: string;
+  officerId: string;
+  applicationsProcessed: number;
+  applicationsApproved: number;
+  approvalRate: number;
+  averageProcessingTime: number;
 }
 
 /**

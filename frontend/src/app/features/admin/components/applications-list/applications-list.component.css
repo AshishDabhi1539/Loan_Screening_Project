@@ -1,0 +1,71 @@
+/* Applications List Component Styles */
+
+/* Smooth transitions for table rows */
+tr {
+  transition: background-color 0.15s ease-in-out;
+}
+
+/* Checkbox styling */
+input[type="checkbox"] {
+  cursor: pointer;
+}
+
+input[type="checkbox"]:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Sort icon rotation */
+.rotate-180 {
+  transform: rotate(180deg);
+}
+
+/* Loading spinner animation */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Responsive table scroll */
+.overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Button disabled state */
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Focus styles for accessibility */
+input:focus,
+select:focus,
+button:focus {
+  outline: none;
+}
+
+/* Hover effects for clickable rows */
+tbody tr:hover {
+  cursor: pointer;
+}
+
+/* Selected row highlight */
+tbody tr.bg-primary-50 {
+  background-color: rgba(59, 130, 246, 0.05);
+}
+
+/* Badge styles */
+.rounded-full {
+  white-space: nowrap;
+}
+
+/* Pagination button styles */
+.min-w-\[40px\] {
+  min-width: 40px;
+  text-align: center;
+}

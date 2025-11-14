@@ -15,9 +15,11 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.tss.loan.dto.request.OfficerCreationRequest;
+import com.tss.loan.dto.response.AuditLogResponse;
 import com.tss.loan.dto.response.LoanApplicationResponse;
 import com.tss.loan.dto.response.OfficerDetailsResponse;
 import com.tss.loan.dto.response.UserResponse;
@@ -59,64 +61,93 @@ public class AdminController {
     private LoanApplicationMapper loanApplicationMapper;
     
     @Autowired
-    private com.tss.loan.repository.UserRepository userRepository;
+    private com.tss.loan.service.AdminService adminService;
     
     /**
      * Get Admin Dashboard Statistics
      */
     @GetMapping("/dashboard")
     public ResponseEntity<java.util.Map<String, Object>> getAdminDashboard() {
-        log.info("Fetching admin dashboard statistics");
+        return ResponseEntity.ok(adminService.getDashboardStatistics());
+    }
+    
+    /**
+     * Get Recent Activities
+     */
+    @GetMapping("/recent-activities")
+    public ResponseEntity<List<java.util.Map<String, Object>>> getRecentActivities() {
+        return ResponseEntity.ok(adminService.getRecentActivities());
+    }
+    
+    /**
+     * Get Comprehensive Dashboard Analytics
+     */
+    @GetMapping("/analytics")
+    public ResponseEntity<com.tss.loan.dto.response.DashboardAnalytics> getDashboardAnalytics() {
+        return ResponseEntity.ok(adminService.getDashboardAnalytics());
+    }
+    
+    /**
+     * Get Financial Analytics
+     */
+    @GetMapping("/analytics/financial")
+    public ResponseEntity<java.util.Map<String, Object>> getFinancialAnalytics() {
+        return ResponseEntity.ok(adminService.getFinancialAnalytics());
+    }
+    
+    /**
+     * Get Performance Metrics
+     */
+    @GetMapping("/analytics/performance")
+    public ResponseEntity<java.util.Map<String, Object>> getPerformanceMetrics() {
+        return ResponseEntity.ok(adminService.getPerformanceMetrics());
+    }
+    
+    /**
+     * Get Trend Analytics
+     */
+    @GetMapping("/analytics/trends")
+    public ResponseEntity<java.util.Map<String, Object>> getTrendAnalytics(@RequestParam(defaultValue = "month") String period) {
+        return ResponseEntity.ok(adminService.getTrendAnalytics(period));
+    }
+    
+    /**
+     * Get Recent Applications (Last 5 for dashboard)
+     */
+    @GetMapping("/recent-applications")
+    public ResponseEntity<List<com.tss.loan.dto.response.LoanApplicationResponse>> getRecentApplications() {
+        return ResponseEntity.ok(adminService.getRecentApplications());
+    }
+    
+    /**
+     * Get All Applications (for "View All" page)
+     */
+    @GetMapping("/applications")
+    public ResponseEntity<List<com.tss.loan.dto.response.LoanApplicationResponse>> getAllApplications() {
+        return ResponseEntity.ok(adminService.getAllApplications());
+    }
+    
+    /**
+     * Get Application Details (Read-only for admin)
+     */
+    @GetMapping("/applications/{applicationId}")
+    public ResponseEntity<com.tss.loan.dto.response.CompleteApplicationDetailsResponse> getApplicationDetails(
+            @PathVariable java.util.UUID applicationId) {
+        return ResponseEntity.ok(adminService.getApplicationDetails(applicationId));
+    }
+    
+    /**
+     * Get audit trail for an application (admin view - no restrictions)
+     */
+    @GetMapping("/applications/{applicationId}/audit-trail")
+    public ResponseEntity<List<AuditLogResponse>> getAuditTrail(
+            @PathVariable UUID applicationId) {
         
-        // Use COUNT queries instead of loading all entities to avoid N+1 problem
-        long totalUsers = userRepository.count();
-        long totalOfficers = userRepository.countByRoleIn(
-            java.util.Arrays.asList(
-                com.tss.loan.entity.enums.RoleType.LOAN_OFFICER,
-                com.tss.loan.entity.enums.RoleType.SENIOR_LOAN_OFFICER,
-                com.tss.loan.entity.enums.RoleType.COMPLIANCE_OFFICER,
-                com.tss.loan.entity.enums.RoleType.SENIOR_COMPLIANCE_OFFICER
-            )
-        );
-        long totalApplications = loanApplicationRepository.count();
+        log.info("Admin requesting audit trail for application: {}", applicationId);
         
-        // Count by status using repository methods (single query each)
-        long pendingApplications = loanApplicationRepository.countByStatusIn(
-            java.util.Arrays.asList(
-                com.tss.loan.entity.enums.ApplicationStatus.SUBMITTED,
-                com.tss.loan.entity.enums.ApplicationStatus.DOCUMENT_VERIFICATION,
-                com.tss.loan.entity.enums.ApplicationStatus.UNDER_REVIEW,
-                com.tss.loan.entity.enums.ApplicationStatus.READY_FOR_DECISION
-            )
-        );
+        List<AuditLogResponse> auditTrail = adminService.getApplicationAuditTrail(applicationId);
         
-        long approvedApplications = loanApplicationRepository.countByStatus(
-            com.tss.loan.entity.enums.ApplicationStatus.APPROVED
-        );
-        
-        long rejectedApplications = loanApplicationRepository.countByStatus(
-            com.tss.loan.entity.enums.ApplicationStatus.REJECTED
-        );
-        
-        long activeUsers = userRepository.countByStatus(
-            com.tss.loan.entity.enums.UserStatus.ACTIVE
-        );
-        
-        // Build response
-        java.util.Map<String, Object> stats = new java.util.HashMap<>();
-        stats.put("totalUsers", totalUsers);
-        stats.put("totalOfficers", totalOfficers);
-        stats.put("totalApplications", totalApplications);
-        stats.put("pendingApplications", pendingApplications);
-        stats.put("approvedApplications", approvedApplications);
-        stats.put("rejectedApplications", rejectedApplications);
-        stats.put("activeUsers", activeUsers);
-        stats.put("systemHealth", pendingApplications > 50 ? "warning" : "good");
-        
-        log.info("Admin dashboard stats: {} users, {} officers, {} applications", 
-                totalUsers, totalOfficers, totalApplications);
-        
-        return ResponseEntity.ok(stats);
+        return ResponseEntity.ok(auditTrail);
     }
     
     /**

@@ -40,6 +40,16 @@
   border-bottom: 1px solid rgba(229, 231, 235, 0.8);
 }
 
+/* Ensure header stays fixed */
+header {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 50 !important;
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+}
+
 /* User Menu Styles */
 .user-menu-button {
   transition: all 0.2s ease-in-out;

@@ -11,10 +11,7 @@ import com.tss.loan.entity.user.User;
 import com.tss.loan.repository.ApplicantPersonalDetailsRepository;
 import com.tss.loan.service.ProfileCompletionService;
 
-import lombok.extern.slf4j.Slf4j;
-
 @Service
-@Slf4j
 public class ProfileCompletionServiceImpl implements ProfileCompletionService {
     
     @Autowired

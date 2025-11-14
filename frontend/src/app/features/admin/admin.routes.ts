@@ -41,5 +41,13 @@ export const adminRoutes: Routes = [
   {
     path: 'reports/system',
     loadComponent: () => import('./components/system-report/system-report.component').then(m => m.SystemReportComponent)
+  },
+  {
+    path: 'applications',
+    loadComponent: () => import('./components/applications-list/applications-list.component').then(m => m.ApplicationsListComponent)
+  },
+  {
+    path: 'applications/:id',
+    loadComponent: () => import('./components/application-details/application-details.component').then(m => m.ApplicationDetailsComponent)
   }
 ];

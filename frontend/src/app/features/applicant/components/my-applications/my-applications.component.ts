@@ -88,11 +88,11 @@ export class MyApplicationsComponent implements OnInit {
           nextAction: undefined,
           progress: 0,
           applicantName: app.applicantName,
-          assignedOfficerName: undefined,
-          hasPersonalDetails: undefined,
-          hasFinancialProfile: undefined,
-          documentsCount: undefined,
-          employmentType: undefined
+          assignedOfficerName: app.assignedOfficerName,
+          hasPersonalDetails: app.hasPersonalDetails,
+          hasFinancialProfile: app.hasFinancialProfile,
+          documentsCount: app.documentsCount || 0,
+          employmentType: app.employmentType
         })) as LoanApplicationSummary[];
 
         // Enrich with progress and nextAction via DashboardService helpers
@@ -207,6 +207,16 @@ export class MyApplicationsComponent implements OnInit {
     if (app.status !== 'DRAFT') {
       return;
     }
+
+    // DEBUG: Log application state
+    console.log('📋 Resume Application Debug:', {
+      applicationId: app.id,
+      status: app.status,
+      hasPersonalDetails: app.hasPersonalDetails,
+      hasFinancialProfile: app.hasFinancialProfile,
+      documentsCount: app.documentsCount,
+      employmentType: app.employmentType
+    });
 
     // Step 1: Check if personal details are complete
     if (!app.hasPersonalDetails) {

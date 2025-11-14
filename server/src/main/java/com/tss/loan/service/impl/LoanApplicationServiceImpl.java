@@ -416,7 +416,8 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
     @Override
     @Transactional(readOnly = true)
     public List<LoanApplicationResponse> getLoanApplicationsByUser(User user) {
-        List<LoanApplication> entities = loanApplicationRepository.findByApplicantIdOrderByCreatedAtDesc(user.getId());
+        // Use eager loading query to fetch financialProfile and avoid LazyInitializationException
+        List<LoanApplication> entities = loanApplicationRepository.findByApplicantIdWithDetailsOrderByCreatedAtDesc(user.getId());
         return entities.stream()
                 .map(loanApplicationMapper::toResponse)
                 .toList();

@@ -120,6 +120,8 @@ export class NotificationService {
   }
 
   logoutSuccess(): void {
+    // Clear existing notifications so we don't stack multiple logout messages
+    this.clearAll();
     this.info('Logged Out', 'You have been successfully logged out.');
   }
 

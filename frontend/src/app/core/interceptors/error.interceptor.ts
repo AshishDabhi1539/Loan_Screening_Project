@@ -48,9 +48,14 @@ export class ErrorInterceptor implements HttpInterceptor {
           }
         }
 
-        // Log error for debugging (suppress logout errors as they're expected)
-        if (!req.url.includes('/auth/logout')) {
-          console.error('HTTP Error:', {
+        // Suppress errors during logout (expected behavior)
+        const isLoggingOut = !localStorage.getItem('auth_token') && !sessionStorage.getItem('auth_token');
+        const isLogoutRequest = req.url.includes('/auth/logout');
+        const isAuthRequest = req.url.includes('/auth/');
+        
+        // Log error for debugging (suppress logout-related and auth errors as they're expected)
+        if (!isLogoutRequest && !isLoggingOut && !isAuthRequest) {
+          console.error('API Error:', {
             status: error.status,
             message: errorMessage,
             url: error.url,
@@ -58,9 +63,9 @@ export class ErrorInterceptor implements HttpInterceptor {
           });
         }
 
-        // Handle specific error scenarios
-        if (error.status === 401) {
-          // Redirect to login for unauthorized access
+        // Handle specific error scenarios (but not during logout or auth requests)
+        if (error.status === 401 && !isLoggingOut && !isAuthRequest) {
+          console.log('Unauthorized access detected, redirecting to login');
           this.router.navigate(['/auth/login']);
         }
 

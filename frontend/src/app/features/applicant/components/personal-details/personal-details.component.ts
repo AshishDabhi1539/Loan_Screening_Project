@@ -436,4 +436,57 @@ export class PersonalDetailsComponent implements OnInit {
     this.personalDetailsForm.get(fieldName)?.setValue(value);
   }
 
+  /**
+   * Restrict PAN number keypress to valid characters only
+   */
+  onPanKeypress(event: KeyboardEvent): void {
+    const currentValue = (event.target as HTMLInputElement).value;
+    const char = event.key;
+    
+    // Allow control keys (backspace, delete, tab, etc.)
+    if (event.ctrlKey || event.altKey || ['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(char)) {
+      return;
+    }
+    
+    // PAN format: ABCDE1234F (5 letters + 4 digits + 1 letter)
+    const position = currentValue.length;
+    
+    if (position < 5) {
+      // First 5 positions: only letters
+      if (!/[A-Za-z]/.test(char)) {
+        event.preventDefault();
+      }
+    } else if (position < 9) {
+      // Next 4 positions: only digits
+      if (!/[0-9]/.test(char)) {
+        event.preventDefault();
+      }
+    } else if (position === 9) {
+      // Last position: only letter
+      if (!/[A-Za-z]/.test(char)) {
+        event.preventDefault();
+      }
+    } else {
+      // Beyond 10 characters
+      event.preventDefault();
+    }
+  }
+
+  /**
+   * Restrict Aadhaar number keypress to digits only
+   */
+  onAadhaarKeypress(event: KeyboardEvent): void {
+    const char = event.key;
+    
+    // Allow control keys (backspace, delete, tab, etc.)
+    if (event.ctrlKey || event.altKey || ['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(char)) {
+      return;
+    }
+    
+    // Only allow digits
+    if (!/[0-9]/.test(char)) {
+      event.preventDefault();
+    }
+  }
+
 }

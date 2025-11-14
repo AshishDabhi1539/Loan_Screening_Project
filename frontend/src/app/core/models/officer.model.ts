@@ -215,7 +215,7 @@ export interface PersonalDetailsNested {
   motherName: string;
   panNumber: string;
   aadhaarNumber: string;
-  address: AddressInfo;
+  addresses: AddressInfo; // Changed from 'address' to 'addresses' to match API response
   contact: ContactInfo;
   verificationStatus: VerificationStatus;
 }
